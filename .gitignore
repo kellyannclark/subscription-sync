@@ -1,25 +1,31 @@
+# Node modules and system files
 node_modules
 .DS_Store
 
-/.cache
-/build
-/app/build
-/public/build/
-/public/_dev
-/app/public/build
-/prisma/dev.sqlite
-/prisma/dev.sqlite-journal
+# Build and cache directories
+.cache
+build
+app/build
+public/build/
+public/_dev
+app/public/build
+
+# Prisma database files
+prisma/dev.sqlite
+prisma/dev.sqlite-journal
 database.sqlite
 
+# Environment variables
 .env
 .env.*
 
-
-
-
-
+# Extensions build output
 /extensions/*/dist
 
-# Ignore shopify files created during app dev
+# Shopify CLI artifacts
 .shopify/*
 .shopify.lock
+
+# Vite/Remix output (sometimes created during dev)
+dist
+.vite
