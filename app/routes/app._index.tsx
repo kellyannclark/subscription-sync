@@ -20,8 +20,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 type DashboardItem = {
   title: string;
   description: string;
-  url?: string;
-  actionLabel?: string;
+  url: string;
+  icon: string;
+  accent: string;
 };
 
 const dashboardItems: DashboardItem[] = [
@@ -30,77 +31,119 @@ const dashboardItems: DashboardItem[] = [
     description:
       "Track submissions, automation, and reminders for the current subscription period.",
     url: "/app/current-cycle",
-    actionLabel: "Open",
+    icon: "📅",
+    accent: "#38b6ff",
   },
   {
     title: "Quick Submit",
-    description:
-      "Manually submit or adjust a customer's monthly selection.",
-    actionLabel: "Coming soon",
-  },
-  {
-    title: "Subscriber List",
-    description:
-      "View all subscribers, filter accounts, and access customer details.",
-    url: "/app/customers",
-    actionLabel: "Open",
-  },
-  {
-    title: "Subscriber Form",
-    description:
-      "Preview the live customer form subscribers will use each month.",
-    url: "/app/form",
-    actionLabel: "Open",
-  },
-  {
-    title: "Tier List",
-    description:
-      "View all subscription tiers and manage the products available in each one.",
-    url: "/app/tiers",
-    actionLabel: "Open",
-  },
-  {
-    title: "Create Tier",
-    description:
-      "Create a new subscription tier and assign eligible products.",
-    url: "/app/tiers/new",
-    actionLabel: "Open",
+    description: "Manually submit a customer’s monthly selection.",
+    url: "/app/quick-submit",
+    icon: "⚡",
+    accent: "#8b5cf6",
   },
   {
     title: "Activity Log",
     description:
-      "Review sync events, automation runs, and admin activity.",
-    actionLabel: "Coming soon",
+      "View a history of sync events, automation runs, and admin actions.",
+    url: "/app/activity-log",
+    icon: "📝",
+    accent: "#6b7280",
+  },
+  {
+    title: "Subscriber List",
+    description: "View and filter all subscribers.",
+    url: "/app/customers",
+    icon: "👥",
+    accent: "#14b8a6",
+  },
+  {
+    title: "Subscriber View",
+    description: "Access detailed subscriber profiles.",
+    url: "/app/customers/demo",
+    icon: "🔍",
+    accent: "#0ea5e9",
+  },
+  {
+    title: "Subscriber Form",
+    description: "Preview the live form subscribers fill out.",
+    url: "/app/form",
+    icon: "🧾",
+    accent: "#06b6d4",
+  },
+  {
+    title: "Tier List",
+    description: "View all subscription tiers.",
+    url: "/app/tiers",
+    icon: "📚",
+    accent: "#f59e0b",
+  },
+  {
+    title: "Create Tier",
+    description: "Create a new subscription tier and add products.",
+    url: "/app/tiers/new",
+    icon: "➕",
+    accent: "#f97316",
+  },
+  {
+    title: "Edit Tier",
+    description: "Manage active subscription tiers.",
+    url: "/app/tiers/demo",
+    icon: "✏️",
+    accent: "#fb923c",
   },
   {
     title: "Settings",
-    description:
-      "Adjust automation rules, integrations, and global app settings.",
+    description: "Adjust global automation and tagging rules.",
     url: "/app/settings",
-    actionLabel: "Open",
+    icon: "⚙️",
+    accent: "#64748b",
   },
 ];
 
-function DashboardCard({ title, description, url, actionLabel }: DashboardItem) {
-  const isDisabled = !url;
-
+function DashboardCard({ title, description, url, icon, accent }: DashboardItem) {
   return (
     <Card>
-      <BlockStack gap="300">
-        <Text as="h2" variant="headingMd">
-          {title}
-        </Text>
+      <div
+        style={{
+          borderTop: `4px solid ${accent}`,
+          borderRadius: "8px",
+          paddingTop: "4px",
+        }}
+      >
+        <BlockStack gap="300">
+          <InlineStack align="space-between" blockAlign="center">
+            <InlineStack gap="200" blockAlign="center">
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "999px",
+                  backgroundColor: `${accent}20`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "18px",
+                }}
+              >
+                {icon}
+              </div>
+              <Text as="h2" variant="headingMd">
+                {title}
+              </Text>
+            </InlineStack>
+          </InlineStack>
 
-        <Text as="p" variant="bodyMd" tone="subdued">
-          {description}
-        </Text>
+          <Text as="p" variant="bodyMd" tone="subdued">
+            {description}
+          </Text>
 
-        <InlineStack align="start">
-          <Button url={url} disabled={isDisabled} variant="primary">
-            {actionLabel ?? "Open"}
-          </Button>
-        </InlineStack>
-      </BlockStack>
+          <InlineStack align="start">
+            <Button url={url} variant="primary">
+              Open
+            </Button>
+          </InlineStack>
+        </BlockStack>
+      </div>
     </Card>
   );
 }
