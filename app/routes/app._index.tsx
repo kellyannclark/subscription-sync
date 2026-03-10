@@ -1,5 +1,5 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
-import {
+import type { LoaderFunctionArgs } from "@remix-run/node"; //needs a loader for authentication, even if it doesn't load any data
+import { //UI building blocks from Polaris 
   Page,
   Layout,
   Text,
@@ -9,22 +9,23 @@ import {
   InlineStack,
   Box,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
+import { Link } from "@remix-run/react";
+import { TitleBar } from "@shopify/app-bridge-react";  //Shopify App Bridge component for consistent title bars across the app
+import { authenticate } from "../shopify.server";//Custom authentication function to ensure only admins can access this dashboard
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+export const loader = async ({ request }: LoaderFunctionArgs) => {//Authenticate the user as an admin before allowing access to the dashboard
   await authenticate.admin(request);
   return null;
 };
-
+//Define the structure of each dashboard item for consistent rendering
 type DashboardItem = {
   title: string;
   description: string;
   url: string;
   icon: string;
-  accent: string;
+ 
 };
-
+//List of dashboard items with their respective details for rendering on the dashboard
 const dashboardItems: DashboardItem[] = [
   {
     title: "Current Cycle",
@@ -32,14 +33,14 @@ const dashboardItems: DashboardItem[] = [
       "Track submissions, automation, and reminders for the current subscription period.",
     url: "/app/current-cycle",
     icon: "📅",
-    accent: "#38b6ff",
+  
   },
   {
     title: "Quick Submit",
     description: "Manually submit a customer’s monthly selection.",
     url: "/app/quick-submit",
     icon: "⚡",
-    accent: "#8b5cf6",
+  
   },
   {
     title: "Activity Log",
@@ -47,78 +48,78 @@ const dashboardItems: DashboardItem[] = [
       "View a history of sync events, automation runs, and admin actions.",
     url: "/app/activity-log",
     icon: "📝",
-    accent: "#6b7280",
   },
   {
     title: "Subscriber List",
     description: "View and filter all subscribers.",
     url: "/app/customers",
     icon: "👥",
-    accent: "#14b8a6",
   },
   {
     title: "Subscriber View",
     description: "Access detailed subscriber profiles.",
     url: "/app/customers/demo",
     icon: "🔍",
-    accent: "#0ea5e9",
   },
   {
     title: "Subscriber Form",
     description: "Preview the live form subscribers fill out.",
     url: "/app/form",
     icon: "🧾",
-    accent: "#06b6d4",
   },
   {
     title: "Tier List",
     description: "View all subscription tiers.",
     url: "/app/tiers",
     icon: "📚",
-    accent: "#f59e0b",
   },
   {
     title: "Create Tier",
     description: "Create a new subscription tier and add products.",
     url: "/app/tiers/new",
     icon: "➕",
-    accent: "#f97316",
   },
   {
     title: "Edit Tier",
     description: "Manage active subscription tiers.",
     url: "/app/tiers/demo",
     icon: "✏️",
-    accent: "#fb923c",
   },
   {
     title: "Settings",
     description: "Adjust global automation and tagging rules.",
     url: "/app/settings",
     icon: "⚙️",
-    accent: "#64748b",
   },
 ];
 
-function DashboardCard({ title, description, url, icon, accent }: DashboardItem) {
+// Component for rendering each dashboard card
+function DashboardCard({ title, description, url, icon }: DashboardItem) {
   return (
-    <Card>
-      <div
-        style={{
-          borderTop: `4px solid ${accent}`,
-          borderRadius: "8px",
-          paddingTop: "4px",
-        }}
-      >
-        <BlockStack gap="300">
-          <InlineStack align="space-between" blockAlign="center">
+    <Link
+      to={url}
+      style={{
+        textDecoration: "none",
+        color: "inherit",
+      }}
+    >
+      <Card>
+        <div
+          style={{
+            minHeight: "140px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
+          <BlockStack gap="300">
             <InlineStack gap="200" blockAlign="center">
               <div
                 style={{
                   width: "40px",
                   height: "40px",
                   borderRadius: "999px",
-                  backgroundColor: `${accent}20`,
+                  backgroundColor: "#EEF2F6",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -127,27 +128,22 @@ function DashboardCard({ title, description, url, icon, accent }: DashboardItem)
               >
                 {icon}
               </div>
+
               <Text as="h2" variant="headingMd">
                 {title}
               </Text>
             </InlineStack>
-          </InlineStack>
 
-          <Text as="p" variant="bodyMd" tone="subdued">
-            {description}
-          </Text>
-
-          <InlineStack align="start">
-            <Button url={url} variant="primary">
-              Open
-            </Button>
-          </InlineStack>
-        </BlockStack>
-      </div>
-    </Card>
+            <Text as="p" variant="bodyMd" tone="subdued">
+              {description}
+            </Text>
+          </BlockStack>
+        </div>
+      </Card>
+    </Link>
   );
 }
-
+//Main dashboard component that renders the title bar and a grid of dashboard cards for navigation
 export default function Dashboard() {
   return (
     <Page>
