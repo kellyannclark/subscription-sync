@@ -167,24 +167,18 @@ export default function EditTierPage() {
         )}
 
         <InlineStack align="space-between" blockAlign="start">
-          <BlockStack gap="100">
-            <Text as="h1" variant="headingXl">
-              Edit Tier
-            </Text>
-            <Text as="p" variant="bodyMd" tone="subdued">
-              Update tier details, manage assigned SKUs, and adjust selection
-              rules.
-            </Text>
-          </BlockStack>
+        <Text as="p" variant="bodyMd" tone="subdued">
+            Update tier details, manage assigned SKUs, and adjust selection rules.
+        </Text>
 
-          <BlockStack gap="100" inlineAlign="end">
+        <BlockStack gap="100" inlineAlign="end">
             <Text as="p" variant="bodyMd">
-              Last updated Oct 9, 2025
+            Last updated Oct 9, 2025
             </Text>
             <Text as="p" variant="bodySm" tone="subdued">
-              ID: twirl-123
+            ID: twirl-123
             </Text>
-          </BlockStack>
+        </BlockStack>
         </InlineStack>
 
         <Card>
@@ -304,218 +298,214 @@ export default function EditTierPage() {
             </Box>
 
             <Divider />
+{assignedProducts.length === 0 ? (
+  <Box
+    padding="400"
+    background="bg-surface-secondary"
+    borderRadius="200"
+  >
+    <Text as="p" variant="bodyMd" tone="subdued">
+      No products assigned to this tier yet.
+    </Text>
+  </Box>
+) : (
+<div style={{ maxWidth: "900px", margin: "0 auto" }}>
+  <BlockStack gap="300">
+    {assignedProducts.map((item) => (
+      <Box
+        key={item.sku}
+        padding="300"
+        background="bg-surface-secondary"
+        borderRadius="200"
+      >
+        <BlockStack gap="300">
+          <InlineStack align="space-between" blockAlign="center">
+            <BlockStack gap="100">
+              <Text as="p" variant="bodySm" tone="subdued">
+                SKU
+              </Text>
+              <Text as="p" variant="bodyMd">
+                {item.sku}
+              </Text>
+            </BlockStack>
 
-            {assignedProducts.length === 0 ? (
-              <Box
-                padding="400"
-                background="bg-surface-secondary"
-                borderRadius="200"
-              >
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  No products assigned to this tier yet.
-                </Text>
-              </Box>
-            ) : (
-              <BlockStack gap="300">
-                <InlineStack gap="300" wrap={false}>
-                  <Box width="15%">
-                    <Text as="span" variant="bodySm" fontWeight="medium">
-                      SKU
-                    </Text>
-                  </Box>
-                  <Box width="25%">
-                    <Text as="span" variant="bodySm" fontWeight="medium">
-                      Product
-                    </Text>
-                  </Box>
-                  <Box width="10%">
-                    <Text as="span" variant="bodySm" fontWeight="medium">
-                      Size
-                    </Text>
-                  </Box>
-                  <Box width="15%">
-                    <Text as="span" variant="bodySm" fontWeight="medium">
-                      Availability
-                    </Text>
-                  </Box>
-                  <Box width="15%">
-                    <Text as="span" variant="bodySm" fontWeight="medium">
-                      Force Include
-                    </Text>
-                  </Box>
-                  <Box width="10%">
-                    <Text as="span" variant="bodySm" fontWeight="medium">
-                      Expires On
-                    </Text>
-                  </Box>
-                  <Box width="10%">
-                    <Text as="span" variant="bodySm" fontWeight="medium">
-                      Action
-                    </Text>
-                  </Box>
-                </InlineStack>
+            <Button
+              size="slim"
+              tone="critical"
+              variant="plain"
+              onClick={() => handleRemoveProduct(item.sku)}
+            >
+              Remove
+            </Button>
+          </InlineStack>
 
-                <Divider />
-
-                {assignedProducts.map((item) => (
-                  <InlineStack key={item.sku} gap="300" blockAlign="center" wrap={false}>
-                    <Box width="15%">
-                      <Text as="span" variant="bodyMd">
-                        {item.sku}
-                      </Text>
-                    </Box>
-                    <Box width="25%">
-                      <Text as="span" variant="bodyMd">
-                        {item.product}
-                      </Text>
-                    </Box>
-                    <Box width="10%">
-                      <Text as="span" variant="bodyMd">
-                        {item.size}
-                      </Text>
-                    </Box>
-                    <Box width="15%">
-                      <Text
-                        as="span"
-                        variant="bodyMd"
-                        tone={
-                          item.availability === "Available" ? "success" : "critical"
-                        }
-                      >
-                        {item.availability}
-                      </Text>
-                    </Box>
-                    <Box width="15%">
-                      <Button
-                        size="slim"
-                        variant={item.forceInclude ? "primary" : "secondary"}
-                        onClick={() => handleToggleForceInclude(item.sku)}
-                      >
-                        {item.forceInclude ? "On" : "Off"}
-                      </Button>
-                    </Box>
-                    <Box width="10%">
-                      <Text as="span" variant="bodyMd">
-                        {item.expiresOn ?? "—"}
-                      </Text>
-                    </Box>
-                    <Box width="10%">
-                      <Button
-                        size="slim"
-                        tone="critical"
-                        variant="plain"
-                        onClick={() => handleRemoveProduct(item.sku)}
-                      >
-                        Remove
-                      </Button>
-                    </Box>
-                  </InlineStack>
-                ))}
-              </BlockStack>
-            )}
-          </BlockStack>
-        </Card>
-
-        <Card>
-          <BlockStack gap="300">
-            <Text as="h2" variant="headingLg">
-              Tier Rules
+          <BlockStack gap="100">
+            <Text as="p" variant="bodySm" tone="subdued">
+              Product
             </Text>
-
-            <InlineStack align="space-between" blockAlign="center">
-              <Text as="span" variant="bodyMd">
-                Item never sent before
-              </Text>
-              <Button
-                size="slim"
-                variant={neverSentBefore ? "primary" : "secondary"}
-                onClick={() => setNeverSentBefore((prev) => !prev)}
-              >
-                {neverSentBefore ? "On" : "Off"}
-              </Button>
-            </InlineStack>
-
-            <InlineStack align="space-between" blockAlign="center">
-              <Text as="span" variant="bodyMd">
-                Same size as last size sent
-              </Text>
-              <Button
-                size="slim"
-                variant={sameSizeAsLastSent ? "primary" : "secondary"}
-                onClick={() => setSameSizeAsLastSent((prev) => !prev)}
-              >
-                {sameSizeAsLastSent ? "On" : "Off"}
-              </Button>
-            </InlineStack>
-
-            <InlineStack align="space-between" blockAlign="center">
-              <Text as="span" variant="bodyMd">
-                Only offer products marked Active
-              </Text>
-              <Button
-                size="slim"
-                variant={onlyOfferActive ? "primary" : "secondary"}
-                onClick={() => setOnlyOfferActive((prev) => !prev)}
-              >
-                {onlyOfferActive ? "On" : "Off"}
-              </Button>
-            </InlineStack>
-          </BlockStack>
-        </Card>
-
-        <Card>
-          <BlockStack gap="300">
-            <Text as="h2" variant="headingLg">
-              Tier Summary
-            </Text>
-
-            <InlineStack gap="300" wrap>
-              <Box
-                padding="300"
-                background="bg-surface-secondary"
-                borderRadius="200"
-              >
-                <Text as="span" variant="headingMd">
-                  Products: {assignedProducts.length}
-                </Text>
-              </Box>
-
-              <Box
-                padding="300"
-                background="bg-surface-secondary"
-                borderRadius="200"
-              >
-                <Text as="span" variant="headingMd">
-                  Status:{" "}
-                  {statusOptions.find((option) => option.value === status)?.label}
-                </Text>
-              </Box>
-            </InlineStack>
-
-            <Divider />
-
             <Text as="p" variant="bodyMd">
-              Rules:{" "}
-              {[
-                neverSentBefore ? "Never sent before" : null,
-                sameSizeAsLastSent ? "Same size as last sent" : null,
-                onlyOfferActive ? "Only offer Active products" : null,
-              ]
-                .filter(Boolean)
-                .join(", ")}
+              {item.product}
             </Text>
-
-            <InlineStack align="end" gap="300">
-              <Button url="/app/tiers" variant="plain">
-                Cancel
-              </Button>
-              <Button variant="primary" onClick={handleSaveChanges}>
-                Save Changes
-              </Button>
-            </InlineStack>
           </BlockStack>
-        </Card>
+
+          <InlineStack align="space-between" blockAlign="center">
+            <BlockStack gap="100">
+              <Text as="p" variant="bodySm" tone="subdued">
+                Size
+              </Text>
+              <Text as="p" variant="bodyMd">
+                {item.size}
+              </Text>
+            </BlockStack>
+
+            <BlockStack gap="100" inlineAlign="end">
+              <Text as="p" variant="bodySm" tone="subdued">
+                Availability
+              </Text>
+              <Text
+                as="p"
+                variant="bodyMd"
+                tone={
+                  item.availability === "Available" ? "success" : "critical"
+                }
+              >
+                {item.availability}
+              </Text>
+            </BlockStack>
+          </InlineStack>
+
+          <InlineStack align="space-between" blockAlign="center">
+            <BlockStack gap="100">
+              <Text as="p" variant="bodySm" tone="subdued">
+                Expires On
+              </Text>
+              <Text as="p" variant="bodyMd">
+                {item.expiresOn ?? "—"}
+              </Text>
+            </BlockStack>
+
+            <BlockStack gap="100" inlineAlign="end">
+              <Text as="p" variant="bodySm" tone="subdued">
+                Force Include
+              </Text>
+              <Button
+                size="slim"
+                variant={item.forceInclude ? "primary" : "secondary"}
+                onClick={() => handleToggleForceInclude(item.sku)}
+              >
+                {item.forceInclude ? "On" : "Off"}
+              </Button>
+            </BlockStack>
+          </InlineStack>
+        </BlockStack>
+      </Box>
+    ))}
+  </BlockStack>
+</div>
+)}
       </BlockStack>
-    </Page>
-  );
+    </Card>
+
+    <Card>
+      <BlockStack gap="300">
+        <Text as="h2" variant="headingLg">
+          Tier Rules
+        </Text>
+
+        <InlineStack align="space-between" blockAlign="center">
+          <Text as="span" variant="bodyMd">
+            Item never sent before
+          </Text>
+          <Button
+            size="slim"
+            variant={neverSentBefore ? "primary" : "secondary"}
+            onClick={() => setNeverSentBefore((prev) => !prev)}
+          >
+            {neverSentBefore ? "On" : "Off"}
+          </Button>
+        </InlineStack>
+
+        <InlineStack align="space-between" blockAlign="center">
+          <Text as="span" variant="bodyMd">
+            Same size as last size sent
+          </Text>
+          <Button
+            size="slim"
+            variant={sameSizeAsLastSent ? "primary" : "secondary"}
+            onClick={() => setSameSizeAsLastSent((prev) => !prev)}
+          >
+            {sameSizeAsLastSent ? "On" : "Off"}
+          </Button>
+        </InlineStack>
+
+        <InlineStack align="space-between" blockAlign="center">
+          <Text as="span" variant="bodyMd">
+            Only offer products marked Active
+          </Text>
+          <Button
+            size="slim"
+            variant={onlyOfferActive ? "primary" : "secondary"}
+            onClick={() => setOnlyOfferActive((prev) => !prev)}
+          >
+            {onlyOfferActive ? "On" : "Off"}
+          </Button>
+        </InlineStack>
+      </BlockStack>
+    </Card>
+
+    <Card>
+      <BlockStack gap="300">
+        <Text as="h2" variant="headingLg">
+          Tier Summary
+        </Text>
+
+        <InlineStack gap="300" wrap>
+          <Box
+            padding="300"
+            background="bg-surface-secondary"
+            borderRadius="200"
+          >
+            <Text as="span" variant="headingMd">
+              Products: {assignedProducts.length}
+            </Text>
+          </Box>
+
+          <Box
+            padding="300"
+            background="bg-surface-secondary"
+            borderRadius="200"
+          >
+            <Text as="span" variant="headingMd">
+              Status:{" "}
+              {statusOptions.find((option) => option.value === status)?.label}
+            </Text>
+          </Box>
+        </InlineStack>
+
+        <Divider />
+
+        <Text as="p" variant="bodyMd">
+          Rules:{" "}
+          {[
+            neverSentBefore ? "Never sent before" : null,
+            sameSizeAsLastSent ? "Same size as last sent" : null,
+            onlyOfferActive ? "Only offer Active products" : null,
+          ]
+            .filter(Boolean)
+            .join(", ")}
+        </Text>
+
+        <InlineStack align="end" gap="300">
+          <Button url="/app/tiers" variant="plain">
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleSaveChanges}>
+            Save Changes
+          </Button>
+        </InlineStack>
+      </BlockStack>
+    </Card>
+  </BlockStack>
+</Page>
+);
 }

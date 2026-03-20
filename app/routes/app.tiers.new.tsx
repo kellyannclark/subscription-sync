@@ -78,12 +78,13 @@ export default function CreateTierPage() {
   return (
   <Page
     title="Create New Tier"
+    backAction={{ content: "Tiers", url: "/app/tiers" }}
     primaryAction={{
       content: "Create Tier",
       onAction: handleCreateTier,
     }}
   >
-    <TitleBar title="Create New Tier" />
+    <TitleBar />
 
     <BlockStack gap="500">
       <Text as="p" variant="bodyMd" tone="subdued">
