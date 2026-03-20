@@ -76,258 +76,241 @@ export default function CreateTierPage() {
   };
 
   return (
-    <Page
-      title="Create New Tier"
-      primaryAction={{
-        content: "Create Tier",
-        onAction: handleCreateTier,
-      }}
-    >
-      <TitleBar title="Create New Tier" />
+  <Page
+    title="Create New Tier"
+    primaryAction={{
+      content: "Create Tier",
+      onAction: handleCreateTier,
+    }}
+  >
+    <TitleBar title="Create New Tier" />
 
-      <BlockStack gap="500">
-        <Text as="p" variant="bodyMd" tone="subdued">
-          Create a new subscription tier and assign eligible products.
-        </Text>
+    <BlockStack gap="500">
+      <Text as="p" variant="bodyMd" tone="subdued">
+        Create a new subscription tier and assign eligible products.
+      </Text>
 
-        <InlineStack align="space-between" blockAlign="center">
+      <Card>
+        <BlockStack gap="400">
           <Text as="h2" variant="headingLg">
             Tier Details
           </Text>
-        </InlineStack>
 
-        <InlineStack gap="500" align="start">
-          <Box width="50%">
-            <Card>
-              <BlockStack gap="400">
-                <InlineStack gap="400" align="space-between">
-                  <Box width="30%">
-                    <Text as="span" variant="bodyMd" fontWeight="medium">
-                      Tier Name:
-                    </Text>
-                  </Box>
-                  <Box width="70%">
-                    <TextField
-                      label="Tier Name"
-                      labelHidden
-                      value={tierName}
-                      onChange={setTierName}
-                      autoComplete="off"
-                    />
-                  </Box>
-                </InlineStack>
-
-                <InlineStack gap="400" align="space-between" blockAlign="start">
-                  <Box width="30%">
-                    <Text as="span" variant="bodyMd" fontWeight="medium">
-                      Description:
-                    </Text>
-                  </Box>
-                  <Box width="70%">
-                    <TextField
-                      label="Description"
-                      labelHidden
-                      value={description}
-                      onChange={setDescription}
-                      multiline={6}
-                      autoComplete="off"
-                    />
-                  </Box>
-                </InlineStack>
-
-                <InlineStack gap="400" align="space-between" blockAlign="center">
-                  <Box width="30%">
-                    <Text as="span" variant="bodyMd" fontWeight="medium">
-                      Status:
-                    </Text>
-                  </Box>
-                  <Box width="70%">
-                    <Select
-                      label="Status"
-                      labelHidden
-                      options={statusOptions}
-                      onChange={setStatus}
-                      value={status}
-                    />
-                  </Box>
-                </InlineStack>
-
-                <Text as="p" variant="bodySm" tone="subdued">
-                  (Active | Hidden | Archived)
-                </Text>
-              </BlockStack>
-            </Card>
-          </Box>
-
-          <Box width="50%">
-            <Card>
-              <BlockStack gap="400">
-                <Text as="h3" variant="headingMd">
-                  Assign Products
-                </Text>
-
-                <TextField
-                  label="Search products"
-                  labelHidden
-                  value={searchValue}
-                  onChange={setSearchValue}
-                  autoComplete="off"
-                  placeholder="Start typing..."
-                />
-
-                <Text as="h4" variant="bodyMd" fontWeight="medium">
-                  Product List:
-                </Text>
-
-                <Box
-                  padding="300"
-                  borderWidth="025"
-                  borderColor="border"
-                  borderRadius="200"
-                  minHeight="220px"
-                >
-                  <BlockStack gap="200">
-                    {filteredProducts.length > 0 ? (
-                      filteredProducts.map((product) => (
-                        <InlineStack
-                          key={product}
-                          align="space-between"
-                          blockAlign="center"
-                        >
-                          <Text as="span" variant="bodyMd">
-                            {product}
-                          </Text>
-                          <Button
-                            size="slim"
-                            variant="plain"
-                            onClick={() => handleAddProduct(product)}
-                          >
-                            Add
-                          </Button>
-                        </InlineStack>
-                      ))
-                    ) : (
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        No products found.
-                      </Text>
-                    )}
-                  </BlockStack>
-                </Box>
-
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Searchable list from Shopify SKUs
-                </Text>
-              </BlockStack>
-            </Card>
-          </Box>
-        </InlineStack>
-
-        <InlineStack gap="500" align="start">
-          <Box width="50%">
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingLg">
-                Tier Rules
+          <InlineStack gap="400" align="space-between">
+            <Box width="30%">
+              <Text as="span" variant="bodyMd" fontWeight="medium">
+                Tier Name:
               </Text>
+            </Box>
+            <Box width="70%">
+              <TextField
+                label="Tier Name"
+                labelHidden
+                value={tierName}
+                onChange={setTierName}
+                autoComplete="off"
+              />
+            </Box>
+          </InlineStack>
 
-              <Card>
-                <BlockStack gap="300">
-                  <InlineStack align="space-between" blockAlign="center">
+          <InlineStack gap="400" align="space-between" blockAlign="start">
+            <Box width="30%">
+              <Text as="span" variant="bodyMd" fontWeight="medium">
+                Description:
+              </Text>
+            </Box>
+            <Box width="70%">
+              <TextField
+                label="Description"
+                labelHidden
+                value={description}
+                onChange={setDescription}
+                multiline={6}
+                autoComplete="off"
+              />
+            </Box>
+          </InlineStack>
+
+          <InlineStack gap="400" align="space-between" blockAlign="center">
+            <Box width="30%">
+              <Text as="span" variant="bodyMd" fontWeight="medium">
+                Status:
+              </Text>
+            </Box>
+            <Box width="70%">
+              <Select
+                label="Status"
+                labelHidden
+                options={statusOptions}
+                onChange={setStatus}
+                value={status}
+              />
+            </Box>
+          </InlineStack>
+
+          <Text as="p" variant="bodySm" tone="subdued">
+            (Active | Hidden | Archived)
+          </Text>
+        </BlockStack>
+      </Card>
+
+      <Card>
+        <BlockStack gap="400">
+          <Text as="h2" variant="headingLg">
+            Assign Products
+          </Text>
+
+          <TextField
+            label="Search products"
+            labelHidden
+            value={searchValue}
+            onChange={setSearchValue}
+            autoComplete="off"
+            placeholder="Start typing..."
+          />
+
+          <Text as="h4" variant="bodyMd" fontWeight="medium">
+            Product List:
+          </Text>
+
+          <Box
+            padding="300"
+            borderWidth="025"
+            borderColor="border"
+            borderRadius="200"
+            minHeight="220px"
+          >
+            <BlockStack gap="200">
+              {filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
+                  <InlineStack
+                    key={product}
+                    align="space-between"
+                    blockAlign="center"
+                  >
                     <Text as="span" variant="bodyMd">
-                      Item never sent before
+                      {product}
                     </Text>
                     <Button
                       size="slim"
-                      variant={neverSentBefore ? "primary" : "secondary"}
-                      onClick={() => setNeverSentBefore((prev) => !prev)}
+                      variant="plain"
+                      onClick={() => handleAddProduct(product)}
                     >
-                      {neverSentBefore ? "On" : "Off"}
+                      Add
                     </Button>
                   </InlineStack>
-
-                  <InlineStack align="space-between" blockAlign="center">
-                    <Text as="span" variant="bodyMd">
-                      Same size as last size sent
-                    </Text>
-                    <Button
-                      size="slim"
-                      variant={sameSizeAsLastSent ? "primary" : "secondary"}
-                      onClick={() => setSameSizeAsLastSent((prev) => !prev)}
-                    >
-                      {sameSizeAsLastSent ? "On" : "Off"}
-                    </Button>
-                  </InlineStack>
-
-                  <InlineStack align="space-between" blockAlign="center">
-                    <Text as="span" variant="bodyMd">
-                      Only offer products marked Active
-                    </Text>
-                    <Button
-                      size="slim"
-                      variant={onlyOfferActive ? "primary" : "secondary"}
-                      onClick={() => setOnlyOfferActive((prev) => !prev)}
-                    >
-                      {onlyOfferActive ? "On" : "Off"}
-                    </Button>
-                  </InlineStack>
-                </BlockStack>
-              </Card>
+                ))
+              ) : (
+                <Text as="p" variant="bodyMd" tone="subdued">
+                  No products found.
+                </Text>
+              )}
             </BlockStack>
           </Box>
 
-          <Box width="50%">
-            <BlockStack gap="300">
-              <Text as="h2" variant="headingLg">
-                Tier Summary
+          <Text as="p" variant="bodySm" tone="subdued">
+            Searchable list from Shopify SKUs
+          </Text>
+        </BlockStack>
+      </Card>
+
+      <Card>
+        <BlockStack gap="300">
+          <Text as="h2" variant="headingLg">
+            Tier Rules
+          </Text>
+
+          <InlineStack align="space-between" blockAlign="center">
+            <Text as="span" variant="bodyMd">
+              Item never sent before
+            </Text>
+            <Button
+              size="slim"
+              variant={neverSentBefore ? "primary" : "secondary"}
+              onClick={() => setNeverSentBefore((prev) => !prev)}
+            >
+              {neverSentBefore ? "On" : "Off"}
+            </Button>
+          </InlineStack>
+
+          <InlineStack align="space-between" blockAlign="center">
+            <Text as="span" variant="bodyMd">
+              Same size as last size sent
+            </Text>
+            <Button
+              size="slim"
+              variant={sameSizeAsLastSent ? "primary" : "secondary"}
+              onClick={() => setSameSizeAsLastSent((prev) => !prev)}
+            >
+              {sameSizeAsLastSent ? "On" : "Off"}
+            </Button>
+          </InlineStack>
+
+          <InlineStack align="space-between" blockAlign="center">
+            <Text as="span" variant="bodyMd">
+              Only offer products marked Active
+            </Text>
+            <Button
+              size="slim"
+              variant={onlyOfferActive ? "primary" : "secondary"}
+              onClick={() => setOnlyOfferActive((prev) => !prev)}
+            >
+              {onlyOfferActive ? "On" : "Off"}
+            </Button>
+          </InlineStack>
+        </BlockStack>
+      </Card>
+
+      <Card>
+        <BlockStack gap="300">
+          <Text as="h2" variant="headingLg">
+            Tier Summary
+          </Text>
+
+          <InlineStack gap="300" wrap>
+            <Box
+              padding="300"
+              background="bg-surface-secondary"
+              borderRadius="200"
+            >
+              <Text as="span" variant="headingMd">
+                Products: {selectedProducts.length}
               </Text>
+            </Box>
 
-              <Card>
-                <BlockStack gap="300">
-                  <InlineStack gap="300">
-                    <Box
-                      padding="300"
-                      background="bg-surface-secondary"
-                      borderRadius="200"
-                    >
-                      <Text as="span" variant="headingMd">
-                        Products: {selectedProducts.length}
-                      </Text>
-                    </Box>
+            <Box
+              padding="300"
+              background="bg-surface-secondary"
+              borderRadius="200"
+            >
+              <Text as="span" variant="headingMd">
+                Status:{" "}
+                {statusOptions.find((option) => option.value === status)?.label}
+              </Text>
+            </Box>
+          </InlineStack>
 
-                    <Box
-                      padding="300"
-                      background="bg-surface-secondary"
-                      borderRadius="200"
-                    >
-                      <Text as="span" variant="headingMd">
-                        Status: {statusOptions.find((option) => option.value === status)?.label}
-                      </Text>
-                    </Box>
-                  </InlineStack>
+          <Divider />
 
-                  <Divider />
+          <Text as="p" variant="bodyMd">
+            Rules:{" "}
+            {[
+              neverSentBefore ? "Never sent before" : null,
+              sameSizeAsLastSent ? "Same size as last sent" : null,
+              onlyOfferActive ? "Only offer Active products" : null,
+            ]
+              .filter(Boolean)
+              .join(", ")}
+          </Text>
 
-                  <Text as="p" variant="bodyMd">
-                    Rules:{" "}
-                    {[
-                      neverSentBefore ? "Never sent before" : null,
-                      sameSizeAsLastSent ? "Same size as last sent" : null,
-                      onlyOfferActive ? "Only offer Active products" : null,
-                    ]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </Text>
-
-                  <InlineStack align="end">
-                    <Button url="/app/tiers" variant="plain">
-                      Back
-                    </Button>
-                  </InlineStack>
-                </BlockStack>
-              </Card>
-            </BlockStack>
-          </Box>
-        </InlineStack>
-      </BlockStack>
-    </Page>
-  );
+          <InlineStack align="end">
+            <Button url="/app/tiers" variant="plain">
+              Back
+            </Button>
+          </InlineStack>
+        </BlockStack>
+      </Card>
+    </BlockStack>
+  </Page>
+);
 }
