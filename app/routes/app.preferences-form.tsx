@@ -137,48 +137,33 @@ const catalogItems: CatalogItem[] = [
 ];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.public.appProxy(request);
+  await authenticate.admin(request);
 
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
 
-  if (!token) {
-    throw new Response("Missing token", { status: 400 });
-  }
+  const safeToken = token ?? "demo-token";
 
-  // TODO:
-  // Look up this token in your own database and load the correct:
-  // - subscriber
-  // - subscription / tier
-  // - allowed catalog items
-  // - any saved preferences
-  //
-  // For now, we return mock data so the page renders.
-
-  return ({
+  return {
     appUrl: process.env.SHOPIFY_APP_URL ?? "",
-    token,
+    token: safeToken,
     subscriberName: "Sample Subscriber",
     tierName: "Twirl",
     preferences: generateMonths(),
     catalogItems,
-  });
+  };
 };
 
+
 export const action = async ({ request }: ActionFunctionArgs) => {
-  await authenticate.public.appProxy(request);
+  await authenticate.admin(request);
 
   const formData = await request.formData();
   const token = formData.get("token");
 
-
-
-if (!token || typeof token !== "string") {
-  return data(
-    { ok: false, error: "Missing token." },
-    { status: 400 }
-  );
-}
+  if (!token || typeof token !== "string") {
+    return data({ ok: false, error: "Missing token." }, { status: 400 });
+  }
 
   const notes = formData.get("notes");
 

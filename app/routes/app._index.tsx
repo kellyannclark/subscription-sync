@@ -52,25 +52,25 @@ const dashboardItems: DashboardItem[] = [
   {
     title: "Subscriber List",
     description: "View and filter all subscribers.",
-    url: "/app/customers",
+    url: "/app/subscriber-list",
     icon: "👥",
   },
   {
     title: "Subscriber View",
     description: "Access detailed subscriber profiles.",
-    url: "/app/customers/demo",
+    url: "/app/subscriber-view/demo",
     icon: "🔍",
   },
   {
     title: "Subscriber Form",
     description: "Preview the live form subscribers fill out.",
-    url: "/app/form",
+    url: "/app/preferences-form",
     icon: "🧾",
   },
   {
     title: "Tier List",
     description: "View all subscription tiers.",
-    url: "/app/tiers",
+    url: "/app/tier-list",
     icon: "📚",
   },
   {
