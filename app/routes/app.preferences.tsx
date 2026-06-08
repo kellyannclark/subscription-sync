@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
+import { data } from "@remix-run/node";
 import { useState } from "react";
 import {
   Page,
@@ -155,7 +155,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   //
   // For now, we return mock data so the page renders.
 
-  return json({
+  return ({
     appUrl: process.env.SHOPIFY_APP_URL ?? "",
     token,
     subscriberName: "Sample Subscriber",
@@ -171,12 +171,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const token = formData.get("token");
 
-  if (!token || typeof token !== "string") {
-    return json(
-      { ok: false, error: "Missing token." },
-      { status: 400 },
-    );
-  }
+
+
+if (!token || typeof token !== "string") {
+  return data(
+    { ok: false, error: "Missing token." },
+    { status: 400 }
+  );
+}
 
   const notes = formData.get("notes");
 
@@ -197,7 +199,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     submittedPreferences,
   });
 
-  return json({ ok: true });
+  return ({ ok: true });
 };
 
 export default function SubscriberFormPage() {
