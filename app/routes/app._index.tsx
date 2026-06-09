@@ -31,7 +31,7 @@ const dashboardItems: DashboardItem[] = [
     title: "Current Cycle",
     description:
       "Track submissions, automation, and reminders for the current subscription period.",
-    url: "/app/current-cycle",
+    url: "/app/daily-queue",
     icon: "📅",
   
   },
@@ -70,7 +70,7 @@ const dashboardItems: DashboardItem[] = [
   {
     title: "Tier List",
     description: "View all subscription tiers.",
-    url: "/app/tier-list",
+    url: "/app/tiers",
     icon: "📚",
   },
   {

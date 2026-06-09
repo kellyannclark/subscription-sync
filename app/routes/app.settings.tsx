@@ -28,8 +28,9 @@ import { authenticate } from "../shopify.server";
 
 type SettingsData = {
   automationEnabled: boolean;
-  cutoffDate: string;
-  processingDelay: string;
+  selectionDeadlineOffset: string;
+  autoSelectionOffset: string;
+  orderCreationOffset: string;
   autoOrderTag: string;
   customerSelectedTag: string;
   modifiedOrderTag: string;
@@ -56,8 +57,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const settings: SettingsData = {
     automationEnabled: true,
-    cutoffDate: "15",
-    processingDelay: "24",
+    selectionDeadlineOffset: "7",
+    autoSelectionOffset: "2",
+    orderCreationOffset: "1",
     autoOrderTag: "SubscriptionSync-Auto",
     customerSelectedTag: "MonthlySelection",
     modifiedOrderTag: "AppstleSync",
@@ -130,15 +132,20 @@ export default function SettingsPage() {
   const navigation = useNavigation();
 
   const isSubmitting = navigation.state === "submitting";
-
   const [intent, setIntent] = useState("save");
 
   const [automationEnabled, setAutomationEnabled] = useState(
     settings.automationEnabled,
   );
-  const [cutoffDate, setCutoffDate] = useState(settings.cutoffDate);
-  const [processingDelay, setProcessingDelay] = useState(
-    settings.processingDelay,
+
+  const [selectionDeadlineOffset, setSelectionDeadlineOffset] = useState(
+    settings.selectionDeadlineOffset,
+  );
+  const [autoSelectionOffset, setAutoSelectionOffset] = useState(
+    settings.autoSelectionOffset,
+  );
+  const [orderCreationOffset, setOrderCreationOffset] = useState(
+    settings.orderCreationOffset,
   );
 
   const [reminder14Days, setReminder14Days] = useState(settings.reminder14Days);
@@ -163,6 +170,7 @@ export default function SettingsPage() {
   const [requireManualReview, setRequireManualReview] = useState(
     settings.requireManualReview,
   );
+
   const [autoOrderTag, setAutoOrderTag] = useState(settings.autoOrderTag);
   const [customerSelectedTag, setCustomerSelectedTag] = useState(
     settings.customerSelectedTag,
@@ -178,7 +186,7 @@ export default function SettingsPage() {
   return (
     <Page
       title="Settings"
-      subtitle="Configure automation, reminders, inventory rules, integrations, and order processing for SubscriptionSync."
+      subtitle="Configure rolling subscriber schedules, reminders, inventory rules, integrations, and order processing."
       backAction={{ content: "Dashboard", url: "/app" }}
     >
       <Form method="post">
@@ -189,11 +197,20 @@ export default function SettingsPage() {
           name="automationEnabled"
           value={String(automationEnabled)}
         />
-        <input type="hidden" name="cutoffDate" value={cutoffDate} />
         <input
           type="hidden"
-          name="processingDelay"
-          value={processingDelay}
+          name="selectionDeadlineOffset"
+          value={selectionDeadlineOffset}
+        />
+        <input
+          type="hidden"
+          name="autoSelectionOffset"
+          value={autoSelectionOffset}
+        />
+        <input
+          type="hidden"
+          name="orderCreationOffset"
+          value={orderCreationOffset}
         />
 
         <input
@@ -277,37 +294,58 @@ export default function SettingsPage() {
                 <Card>
                   <BlockStack gap="400">
                     <Text as="h2" variant="headingMd">
-                      Automation Settings
+                      Rolling Schedule Settings
+                    </Text>
+
+                    <Text as="p" tone="subdued">
+                      These settings calculate deadlines from each subscriber’s
+                      individual next ship date.
                     </Text>
 
                     <Checkbox
-                      label="Enable automatic monthly selections"
+                      label="Enable automatic daily subscriber processing"
                       checked={automationEnabled}
                       onChange={setAutomationEnabled}
-                      helpText="When enabled, eligible subscribers can submit monthly selections and automation can prepare orders."
+                      helpText="When enabled, SubscriptionSync can check daily for subscribers who need reminders, auto-selection, or order creation."
                     />
 
                     <Select
-                      label="Default selection cutoff date"
-                      value={cutoffDate}
-                      onChange={setCutoffDate}
+                      label="Selection deadline offset"
+                      value={selectionDeadlineOffset}
+                      onChange={setSelectionDeadlineOffset}
+                      helpText="How many days before the next ship date the subscriber must submit their selection."
                       options={[
-                        { label: "1st of each month", value: "1" },
-                        { label: "5th of each month", value: "5" },
-                        { label: "10th of each month", value: "10" },
-                        { label: "15th of each month", value: "15" },
-                        { label: "20th of each month", value: "20" },
+                        { label: "3 days before ship date", value: "3" },
+                        { label: "5 days before ship date", value: "5" },
+                        { label: "7 days before ship date", value: "7" },
+                        { label: "10 days before ship date", value: "10" },
+                        { label: "14 days before ship date", value: "14" },
                       ]}
                     />
 
                     <Select
-                      label="Order processing time delay"
-                      value={processingDelay}
-                      onChange={setProcessingDelay}
+                      label="Auto-selection offset"
+                      value={autoSelectionOffset}
+                      onChange={setAutoSelectionOffset}
+                      helpText="How many days before the ship date the app should auto-select if the subscriber has not submitted a choice."
                       options={[
-                        { label: "12 hours", value: "12" },
-                        { label: "24 hours", value: "24" },
-                        { label: "48 hours", value: "48" },
+                        { label: "1 day before ship date", value: "1" },
+                        { label: "2 days before ship date", value: "2" },
+                        { label: "3 days before ship date", value: "3" },
+                        { label: "5 days before ship date", value: "5" },
+                      ]}
+                    />
+
+                    <Select
+                      label="Order creation offset"
+                      value={orderCreationOffset}
+                      onChange={setOrderCreationOffset}
+                      helpText="How many days before the ship date the app should create or prepare the order."
+                      options={[
+                        { label: "Same day as ship date", value: "0" },
+                        { label: "1 day before ship date", value: "1" },
+                        { label: "2 days before ship date", value: "2" },
+                        { label: "3 days before ship date", value: "3" },
                       ]}
                     />
                   </BlockStack>
@@ -319,26 +357,31 @@ export default function SettingsPage() {
                       Reminder Settings
                     </Text>
 
+                    <Text as="p" tone="subdued">
+                      Reminder timing is also based on each subscriber’s
+                      individual selection deadline.
+                    </Text>
+
                     <Checkbox
-                      label="Send reminder 14 days before cutoff"
+                      label="Send reminder 14 days before selection deadline"
                       checked={reminder14Days}
                       onChange={setReminder14Days}
                     />
 
                     <Checkbox
-                      label="Send reminder 7 days before cutoff"
+                      label="Send reminder 7 days before selection deadline"
                       checked={reminder7Days}
                       onChange={setReminder7Days}
                     />
 
                     <Checkbox
-                      label="Send reminder 3 days before cutoff"
+                      label="Send reminder 3 days before selection deadline"
                       checked={reminder3Days}
                       onChange={setReminder3Days}
                     />
 
                     <Checkbox
-                      label="Send final reminder 1 day before cutoff"
+                      label="Send final reminder 1 day before selection deadline"
                       checked={reminder1Day}
                       onChange={setReminder1Day}
                     />
@@ -386,7 +429,7 @@ export default function SettingsPage() {
                     </Text>
 
                     <Checkbox
-                      label="Auto-create orders after cutoff"
+                      label="Auto-create orders using each subscriber’s order creation date"
                       checked={autoCreateOrders}
                       onChange={setAutoCreateOrders}
                     />
@@ -400,7 +443,7 @@ export default function SettingsPage() {
                     <Divider />
 
                     <TextField
-                      label="Default tag for auto orders"
+                      label="Default tag for auto-created orders"
                       value={autoOrderTag}
                       onChange={setAutoOrderTag}
                       autoComplete="off"
