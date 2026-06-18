@@ -1,4 +1,6 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
+import { useSubmit } from "@remix-run/react";
 import { useState } from "react";
 import {
   Page,
@@ -14,10 +16,42 @@ import {
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
+import db from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
   return null;
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  console.log("ACTION IS RUNNING");
+
+  await authenticate.admin(request);
+
+  const formData = await request.formData();
+
+  const tierName = formData.get("tierName") as string;
+  const description = formData.get("description") as string;
+  const status = formData.get("status") as string;
+  const selectedProducts = JSON.parse(
+    formData.get("selectedProducts") as string,
+  ) as string[];
+
+  await db.tier.create({
+    data: {
+      name: tierName,
+      description,
+      isActive: status === "active",
+      products: {
+        create: selectedProducts.map((product) => ({
+          sku: product.split(" ")[0],
+          productName: product,
+        })),
+      },
+    },
+  });
+
+  return redirect("/app/tiers");
 };
 
 const mockProducts = [
@@ -33,6 +67,7 @@ const mockProducts = [
 ];
 
 export default function CreateTierPage() {
+  const submit = useSubmit();
   const [tierName, setTierName] = useState("Pirate Tier");
   const [description, setDescription] = useState(
     "A bold and adventurous subscription tier featuring swashbuckling costumes, rugged styles, and treasures fit for little explorers who love high-seas adventures.",
@@ -55,19 +90,16 @@ export default function CreateTierPage() {
     { label: "Archived", value: "archived" },
   ];
 
-  const handleCreateTier = () => {
-    console.log("Create tier clicked", {
-      tierName,
-      description,
-      status,
-      selectedProducts,
-      rules: {
-        neverSentBefore,
-        sameSizeAsLastSent,
-        onlyOfferActive,
-      },
-    });
-  };
+const handleCreateTier = () => {
+  const formData = new FormData();
+
+  formData.append("tierName", tierName);
+  formData.append("description", description);
+  formData.append("status", status);
+  formData.append("selectedProducts", JSON.stringify(selectedProducts));
+
+  submit(formData, { method: "post" });
+};
 
   const handleAddProduct = (product: string) => {
     if (!selectedProducts.includes(product)) {

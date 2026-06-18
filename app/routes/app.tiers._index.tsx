@@ -1,8 +1,7 @@
-import type { LoaderFunctionArgs } from "@remix-run/node"; //Loader to ensure only admins can access the tier list page
-import { useState } from "react";//useState hook for managing local state of tiers
-//UI components from Polaris for building the tier list page
+import type { LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
 import {
-
   Page,
   Card,
   Text,
@@ -13,89 +12,66 @@ import {
   Badge,
   Pagination,
 } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";//Shopify App Bridge component for consistent title bars across the app
+import { TitleBar } from "@shopify/app-bridge-react";
 
-import { authenticate } from "../shopify.server";//import custom authentication function to ensure only admins can access this page
+import { authenticate } from "../shopify.server";
+import db from "../db.server";
 
-//Custom authentication function to ensure only admins can access this page
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
-  return null;
+
+  const tiers = await db.tier.findMany({
+    orderBy: {
+      updatedAt: "desc",
+    },
+    include: {
+      products: true,
+    },
+  });
+
+  return json({ tiers });
 };
-//Define the structure of a subscription tier for consistent data handling and rendering
-//TypeScript will ensure the data matches this structure throughout the component 
-type Tier = {
-  id: string;
-  name: string;
-  activeProducts: number;
-  lastUpdated: string;
-  availability: "Active" | "Draft";
-};
-//Mock data for subscription tiers to demonstrate the tier list page functionality
-const mockTiers: Tier[] = [
-  {
-    id: "twirl",
-    name: "Twirl",
-    activeProducts: 12,
-    lastUpdated: "Oct 8, 2025",
-    availability: "Active",
-  },
-  {
-    id: "deluxe",
-    name: "Deluxe",
-    activeProducts: 9,
-    lastUpdated: "Oct 6, 2025",
-    availability: "Active",
-  },
-  {
-    id: "adventure",
-    name: "Adventure",
-    activeProducts: 15,
-    lastUpdated: "Sept 30, 2025",
-    availability: "Draft",
-  },
-];
-//Main React component for the tier list page, displaying all subscription tiers in a structured format with actions for each tier
+
 export default function TierListPage() {
-  const [tiers] = useState<Tier[]>(mockTiers);
+  const { tiers } = useLoaderData<typeof loader>();
 
-  const rowMarkup = tiers.map(
-    ({ id, name, activeProducts, lastUpdated, availability }, index) => ( //destructure tier properties for easier access and map over the tiers to create a row for each tier in the IndexTable
-      <IndexTable.Row id={id} key={id} position={index}> 
-        <IndexTable.Cell>
-          <Text as="span" variant="bodyMd" fontWeight="semibold">
-            {name}
-          </Text>
-        </IndexTable.Cell>
+  const rowMarkup = tiers.map((tier, index) => (
+    <IndexTable.Row id={tier.id} key={tier.id} position={index}>
+      <IndexTable.Cell>
+        <Text as="span" variant="bodyMd" fontWeight="semibold">
+          {tier.name}
+        </Text>
+      </IndexTable.Cell>
 
-        <IndexTable.Cell>{activeProducts}</IndexTable.Cell>
+      <IndexTable.Cell>{tier.products.length}</IndexTable.Cell>
 
-        <IndexTable.Cell>{lastUpdated}</IndexTable.Cell>
+      <IndexTable.Cell>
+        {new Date(tier.updatedAt).toLocaleDateString()}
+      </IndexTable.Cell>
 
-        <IndexTable.Cell>
-          {availability === "Active" ? (
-            <Badge tone="success">Active</Badge>
-          ) : (
-            <Badge tone="attention">Draft</Badge>
-          )}
-        </IndexTable.Cell>
+      <IndexTable.Cell>
+        {tier.isActive ? (
+          <Badge tone="success">Active</Badge>
+        ) : (
+          <Badge tone="attention">Hidden</Badge>
+        )}
+      </IndexTable.Cell>
 
-        <IndexTable.Cell>
-          <InlineStack gap="200">
-            <Button url={`/app/tiers/${id}`} variant="plain">
-              View
-            </Button>
-            <Button url={`/app/tiers/${id}`} variant="plain">
-              Edit
-            </Button>
-            <Button variant="plain" tone="critical">
-              Delete
-            </Button>
-          </InlineStack>
-        </IndexTable.Cell>
-      </IndexTable.Row>
-    ),
-  );
+      <IndexTable.Cell>
+        <InlineStack gap="200">
+          <Button url={`/app/tiers/${tier.id}`} variant="plain">
+            View
+          </Button>
+          <Button url={`/app/tiers/${tier.id}`} variant="plain">
+            Edit
+          </Button>
+          <Button variant="plain" tone="critical">
+            Delete
+          </Button>
+        </InlineStack>
+      </IndexTable.Cell>
+    </IndexTable.Row>
+  ));
 
   return (
     <Page

@@ -82,7 +82,7 @@ const dashboardItems: DashboardItem[] = [
   {
     title: "Edit Tier",
     description: "Manage active subscription tiers.",
-    url: "/app/tiers/demo",
+    url: "/app/tiers",
     icon: "✏️",
   },
   {
