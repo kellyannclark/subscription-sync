@@ -1,6 +1,6 @@
-import type { LoaderFunctionArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
+import { useLoaderData, useSubmit } from "@remix-run/react";
 import {
   Page,
   Card,
@@ -32,8 +32,35 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return json({ tiers });
 };
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  await authenticate.admin(request);
+
+  const formData = await request.formData();
+  const tierId = formData.get("tierId") as string;
+  const isActive = formData.get("isActive") === "true";
+
+  await db.tier.update({
+    where: { id: tierId },
+    data: {
+      isActive,
+    },
+  });
+
+  return redirect("/app/tiers");
+};
+
 export default function TierListPage() {
   const { tiers } = useLoaderData<typeof loader>();
+  const submit = useSubmit();
+
+  const handleToggleTier = (tierId: string, currentStatus: boolean) => {
+    const formData = new FormData();
+
+    formData.append("tierId", tierId);
+    formData.append("isActive", String(!currentStatus));
+
+    submit(formData, { method: "post" });
+  };
 
   const rowMarkup = tiers.map((tier, index) => (
     <IndexTable.Row id={tier.id} key={tier.id} position={index}>
@@ -62,11 +89,17 @@ export default function TierListPage() {
           <Button url={`/app/tiers/${tier.id}`} variant="plain">
             View
           </Button>
+
           <Button url={`/app/tiers/${tier.id}`} variant="plain">
             Edit
           </Button>
-          <Button variant="plain" tone="critical">
-            Delete
+
+          <Button
+            variant="plain"
+            tone={tier.isActive ? "critical" : undefined}
+            onClick={() => handleToggleTier(tier.id, tier.isActive)}
+          >
+            {tier.isActive ? "Archive" : "Restore"}
           </Button>
         </InlineStack>
       </IndexTable.Cell>
