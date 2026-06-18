@@ -30,3 +30,55 @@ model Session {
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
 }
+
+model Tier {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products    AssignedProduct[]
+}
+
+model AssignedProduct {
+  id            String   @id @default(cuid())
+
+  tierId        String
+  tier          Tier     @relation(fields: [tierId], references: [id])
+
+  sku           String
+  productName   String
+
+  forceInclude  Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+}
+
+model PreferenceSubmission {
+  id            String   @id @default(cuid())
+
+  customerEmail String
+
+  month         String
+
+  size          String?
+
+  style         String?
+
+  notes         String?
+
+  submittedAt   DateTime @default(now())
+}
+
+model Settings {
+  id                  String   @id @default(cuid())
+
+  reminderDaysBefore  Int      @default(7)
+
+  senderEmail         String?
+
+  updatedAt           DateTime @updatedAt
+}
