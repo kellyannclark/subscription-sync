@@ -28,7 +28,7 @@ type DashboardItem = {
 //List of dashboard items with their respective details for rendering on the dashboard
 const dashboardItems: DashboardItem[] = [
   {
-    title: "Current Cycle",
+    title: "Daily Queue",
     description:
       "Track submissions, automation, and reminders for the current subscription period.",
     url: "/app/daily-queue",
