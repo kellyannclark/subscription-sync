@@ -25,6 +25,7 @@ import {
 } from "@shopify/polaris";
 
 import { authenticate } from "../shopify.server";
+import db from "../db.server";
 
 type QueueStatus =
   | "Due Today"
@@ -60,94 +61,71 @@ type QueueStats = {
   syncStatus: "Connected" | "Warning" | "Error";
 };
 
-const queueSubscribers: QueueSubscriber[] = [
-  {
-    id: "anna-jones",
-    name: "Anna Jones",
-    email: "anna@email.com",
-    tier: "Twirl",
-    nextShipDate: "Oct 21",
-    selectionDeadline: "Oct 18",
-    autoSelectDate: "Oct 19",
-    orderCreationDate: "Oct 20",
-    autoSelection: true,
-    status: "Order Ready",
-  },
-  {
-    id: "weston-clark",
-    name: "Weston Clark",
-    email: "weston@email.com",
-    tier: "Adventure",
-    nextShipDate: "Oct 21",
-    selectionDeadline: "Oct 18",
-    autoSelectDate: "Oct 19",
-    orderCreationDate: "Oct 20",
-    autoSelection: false,
-    status: "Needs Review",
-  },
-  {
-    id: "sadie-brown",
-    name: "Sadie Brown",
-    email: "sadie.brown@email.com",
-    tier: "Classic",
-    nextShipDate: "Oct 22",
-    selectionDeadline: "Oct 19",
-    autoSelectDate: "Oct 20",
-    orderCreationDate: "Oct 21",
-    autoSelection: true,
-    status: "Auto-Select Needed",
-  },
-  {
-    id: "mia-thompson",
-    name: "Mia Thompson",
-    email: "mia.t@email.com",
-    tier: "Deluxe",
-    nextShipDate: "Oct 23",
-    selectionDeadline: "Oct 20",
-    autoSelectDate: "Oct 21",
-    orderCreationDate: "Oct 22",
-    autoSelection: true,
-    status: "Pending Selection",
-  },
-  {
-    id: "oliver-smith",
-    name: "Oliver Smith",
-    email: "oliver.smith@email.com",
-    tier: "Twirl",
-    nextShipDate: "Oct 20",
-    selectionDeadline: "Oct 17",
-    autoSelectDate: "Oct 18",
-    orderCreationDate: "Oct 19",
-    autoSelection: true,
-    status: "Due Today",
-  },
-  {
-    id: "grace-lee",
-    name: "Grace Lee",
-    email: "grace.lee@email.com",
-    tier: "Adventure",
-    nextShipDate: "Oct 21",
-    selectionDeadline: "Oct 18",
-    autoSelectDate: "Oct 19",
-    orderCreationDate: "Oct 20",
-    autoSelection: true,
-    status: "Due Tomorrow",
-  },
-];
-
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
+  const subscribers = await db.subscriber.findMany({
+    orderBy: {
+      nextShipDate: "asc",
+    },
+    include: {
+      tier: true,
+      preferenceSubmissions: {
+        orderBy: {
+          submittedAt: "desc",
+        },
+        take: 1,
+      },
+      selections: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+      },
+    },
+  });
+
+  const queueSubscribers: QueueSubscriber[] = subscribers.map((subscriber) => {
+    const status = getQueueStatus(
+      subscriber.status,
+      subscriber.nextShipDate,
+      subscriber.nextSelectionDeadline,
+      subscriber.autoSelectionDate,
+    );
+
+    return {
+      id: subscriber.id,
+      name: subscriber.name,
+      email: subscriber.email,
+      tier: subscriber.tier?.name ?? "No tier",
+      nextShipDate: formatDate(subscriber.nextShipDate),
+      selectionDeadline: formatDate(subscriber.nextSelectionDeadline),
+      autoSelectDate: formatDate(subscriber.autoSelectionDate),
+      orderCreationDate: formatDate(getOrderCreationDate(subscriber.nextShipDate)),
+      autoSelection: Boolean(subscriber.autoSelectionDate),
+      status,
+    };
+  });
+
   const stats: QueueStats = {
     queueDate: "Today’s Fulfillment Queue",
-    dueToday: 1,
-    dueTomorrow: 1,
-    pendingSelections: 1,
-    autoSelectNeeded: 1,
-    ordersReady: 1,
-    needsReview: 1,
-    lastReminderSent: "Oct 17, 9:00 AM",
-    lastSync: "Oct 17, 4:37 PM",
+    dueToday: queueSubscribers.filter((item) => item.status === "Due Today")
+      .length,
+    dueTomorrow: queueSubscribers.filter(
+      (item) => item.status === "Due Tomorrow",
+    ).length,
+    pendingSelections: queueSubscribers.filter(
+      (item) => item.status === "Pending Selection",
+    ).length,
+    autoSelectNeeded: queueSubscribers.filter(
+      (item) => item.status === "Auto-Select Needed",
+    ).length,
+    ordersReady: queueSubscribers.filter((item) => item.status === "Order Ready")
+      .length,
+    needsReview: queueSubscribers.filter((item) => item.status === "Needs Review")
+      .length,
+    lastReminderSent: "Not connected yet",
+    lastSync: "Local Prisma data",
     syncStatus: "Connected",
   };
 
@@ -212,8 +190,12 @@ export default function DailyQueuePage() {
     return queueSubscribers.filter((subscriber) => {
       if (filter === "due-today") return subscriber.status === "Due Today";
       if (filter === "due-tomorrow") return subscriber.status === "Due Tomorrow";
-      if (filter === "pending-selection") return subscriber.status === "Pending Selection";
-      if (filter === "auto-select-needed") return subscriber.status === "Auto-Select Needed";
+      if (filter === "pending-selection") {
+        return subscriber.status === "Pending Selection";
+      }
+      if (filter === "auto-select-needed") {
+        return subscriber.status === "Auto-Select Needed";
+      }
       if (filter === "order-ready") return subscriber.status === "Order Ready";
       if (filter === "needs-review") return subscriber.status === "Needs Review";
 
@@ -400,11 +382,15 @@ export default function DailyQueuePage() {
 
                           <IndexTable.Cell>{subscriber.email}</IndexTable.Cell>
                           <IndexTable.Cell>{subscriber.tier}</IndexTable.Cell>
-                          <IndexTable.Cell>{subscriber.nextShipDate}</IndexTable.Cell>
+                          <IndexTable.Cell>
+                            {subscriber.nextShipDate}
+                          </IndexTable.Cell>
                           <IndexTable.Cell>
                             {subscriber.selectionDeadline}
                           </IndexTable.Cell>
-                          <IndexTable.Cell>{subscriber.autoSelectDate}</IndexTable.Cell>
+                          <IndexTable.Cell>
+                            {subscriber.autoSelectDate}
+                          </IndexTable.Cell>
                           <IndexTable.Cell>
                             {subscriber.orderCreationDate}
                           </IndexTable.Cell>
@@ -433,7 +419,10 @@ export default function DailyQueuePage() {
                     Queue Health
                   </Text>
 
-                  <InfoRow label="Last reminder sent" value={stats.lastReminderSent} />
+                  <InfoRow
+                    label="Last reminder sent"
+                    value={stats.lastReminderSent}
+                  />
                   <InfoRow label="Last sync" value={stats.lastSync} />
                   <InfoRow
                     label="Automation mode"
@@ -519,4 +508,66 @@ function StatusBadge({ status }: { status: QueueStatus }) {
   }
 
   return <Badge tone="critical">Needs Review</Badge>;
+}
+
+function getQueueStatus(
+  currentStatus: string,
+  nextShipDate: Date,
+  selectionDeadline: Date,
+  autoSelectionDate: Date | null,
+): QueueStatus {
+  if (
+    currentStatus === "Pending Selection" ||
+    currentStatus === "Auto-Select Needed" ||
+    currentStatus === "Order Ready" ||
+    currentStatus === "Needs Review"
+  ) {
+    return currentStatus;
+  }
+
+  const today = startOfDay(new Date());
+  const tomorrow = addDays(today, 1);
+  const shipDate = startOfDay(new Date(nextShipDate));
+  const deadline = startOfDay(new Date(selectionDeadline));
+
+  if (sameDay(shipDate, today)) return "Due Today";
+  if (sameDay(shipDate, tomorrow)) return "Due Tomorrow";
+
+  if (deadline < today && autoSelectionDate) {
+    return "Auto-Select Needed";
+  }
+
+  return "Pending Selection";
+}
+
+function getOrderCreationDate(nextShipDate: Date) {
+  const date = new Date(nextShipDate);
+  date.setDate(date.getDate() - 1);
+  return date;
+}
+
+function formatDate(date: string | Date | null) {
+  if (!date) return "Not set";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
+function startOfDay(date: Date) {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function addDays(date: Date, days: number) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function sameDay(firstDate: Date, secondDate: Date) {
+  return firstDate.getTime() === secondDate.getTime();
 }
