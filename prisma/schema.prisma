@@ -159,3 +159,15 @@ model Selection {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+
+  eventType   String
+  description String
+  status      String   @default("Success")
+  user        String   @default("System")
+  source      String   @default("SubscriptionSync")
+
+  createdAt   DateTime @default(now())
+}
