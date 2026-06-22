@@ -82,6 +82,7 @@ export default function SubscriberViewPage() {
     subscriber.preferenceSubmissions as PreferenceSubmissionRow[];
 
   const shipments = subscriber.shipments as ShipmentRow[];
+  const selections = subscriber.selections;
 
   return (
     <Page
@@ -206,6 +207,64 @@ export default function SubscriberViewPage() {
                 </div>
               </BlockStack>
             </Card>
+            <Card>
+                <BlockStack gap="300">
+                  <Text as="h2" variant="headingMd">
+                    Selection History
+                  </Text>
+
+                  <div style={{ overflowX: "auto" }}>
+                    <table
+                      style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                      }}
+                    >
+                      <thead>
+                        <tr>
+                          <TableHeader>Month</TableHeader>
+                          <TableHeader>Product</TableHeader>
+                          <TableHeader>Status</TableHeader>
+                          <TableHeader>Source</TableHeader>
+                          <TableHeader>Created</TableHeader>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {selections.length > 0 ? (
+                          selections.map((selection) => (
+                            <tr key={selection.id}>
+                              <TableCell>{selection.month}</TableCell>
+
+                              <TableCell>
+                                {selection.productName ?? "—"}
+                              </TableCell>
+
+                              <TableCell>
+                                <Badge>{selection.status}</Badge>
+                              </TableCell>
+
+                              <TableCell>
+                                {selection.source}
+                              </TableCell>
+
+                              <TableCell>
+                                {formatDate(selection.createdAt)}
+                              </TableCell>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <TableCell colSpan={5}>
+                              No selection history available yet.
+                            </TableCell>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </BlockStack>
+              </Card>
 
             <Card>
               <BlockStack gap="300">
