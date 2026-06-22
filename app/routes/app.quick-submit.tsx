@@ -6,7 +6,7 @@ import {
   useLoaderData,
   useNavigation,
 } from "@remix-run/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Banner,
   BlockStack,
@@ -18,34 +18,15 @@ import {
   Page,
   Select,
   Text,
-  TextField,
 } from "@shopify/polaris";
 
 import { authenticate } from "../shopify.server";
+import db from "../db.server";
 
 type MonthlySelection = {
   month: string;
   product: string;
 };
-
-type Customer = {
-  id: string;
-  name: string;
-  email: string;
-  tier: string;
-  subscriptionStartDate: string;
-  nextShipDate: string;
-  nextSelectionDeadline: string;
-};
-
-const productOptions = [
-  { label: "Start typing to search products...", value: "" },
-  { label: "Belle Dress", value: "belle-dress" },
-  { label: "Ariel Dress", value: "ariel-dress" },
-  { label: "Cinderella Dress", value: "cinderella-dress" },
-  { label: "Rapunzel Dress", value: "rapunzel-dress" },
-  { label: "Pirate Adventure Set", value: "pirate-adventure-set" },
-];
 
 const initialSelections: MonthlySelection[] = [
   { month: "January", product: "" },
@@ -65,19 +46,40 @@ const initialSelections: MonthlySelection[] = [
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  const customer: Customer = {
-    id: "john-doe",
-    name: "John Doe",
-    email: "john@example.com",
-    tier: "Twirl Subscription",
-    subscriptionStartDate: "January 2025",
-    nextShipDate: "October 21, 2025",
-    nextSelectionDeadline: "October 18, 2025",
-  };
+  const subscribers = await db.subscriber.findMany({
+    orderBy: {
+      name: "asc",
+    },
+    include: {
+      tier: true,
+    },
+  });
+
+  const assignedProducts = await db.assignedProduct.findMany({
+    orderBy: {
+      productName: "asc",
+    },
+  });
+
+  const uniqueProducts = Array.from(
+    new Map(
+      assignedProducts.map((product) => [
+        product.productName,
+        {
+          label: product.productName,
+          value: product.productName,
+        },
+      ]),
+    ).values(),
+  );
 
   return json({
-    customer,
+    subscribers,
     selections: initialSelections,
+    productOptions: [
+      { label: "Select a product", value: "" },
+      ...uniqueProducts,
+    ],
   });
 };
 
@@ -94,23 +96,90 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     });
   }
 
+  const subscriberId = String(formData.get("subscriberId") ?? "");
+  const months = formData.getAll("month");
+  const products = formData.getAll("product");
+
+  if (!subscriberId) {
+    return json({
+      success: false,
+      message: "Choose a subscriber before saving preferences.",
+    });
+  }
+
+  const selectedItems = months
+    .map((month, index) => ({
+      month: String(month),
+      productName: String(products[index] ?? ""),
+    }))
+    .filter((item) => item.productName.length > 0);
+
+  if (selectedItems.length === 0) {
+    return json({
+      success: false,
+      message: "Choose at least one product before saving.",
+    });
+  }
+
+  await db.$transaction(async (tx) => {
+  for (const item of selectedItems) {
+    await tx.selection.create({
+      data: {
+        subscriberId,
+        month: item.month,
+        productName: item.productName,
+        status: "Manual Selection",
+        source: "Quick Submit",
+      },
+    });
+  }
+
+      await tx.subscriber.update({
+        where: {
+          id: subscriberId,
+        },
+        data: {
+          status: "Order Ready",
+        },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          eventType: "Quick Submit",
+          description: `Saved ${selectedItems.length} manual selection(s).`,
+          status: "Success",
+          user: "Admin",
+          source: "SubscriptionSync",
+        },
+      });
+    });
+
   return json({
     success: true,
-    message: "Customer preferences saved successfully.",
+    message: "Customer selections saved successfully.",
   });
 };
 
 export default function QuickSubmitPage() {
-  const { customer, selections } = useLoaderData<typeof loader>();
+  const { subscribers, selections, productOptions } =
+    useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
 
   const isSubmitting = navigation.state === "submitting";
 
   const [intent, setIntent] = useState("save");
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedSubscriberId, setSelectedSubscriberId] = useState(
+    subscribers[0]?.id ?? "",
+  );
   const [monthlySelections, setMonthlySelections] =
     useState<MonthlySelection[]>(selections);
+
+  const selectedSubscriber = useMemo(() => {
+    return subscribers.find(
+      (subscriber) => subscriber.id === selectedSubscriberId,
+    );
+  }, [subscribers, selectedSubscriberId]);
 
   const updateSelection = (month: string, product: string) => {
     setMonthlySelections((currentSelections) =>
@@ -122,7 +191,6 @@ export default function QuickSubmitPage() {
 
   const clearForm = () => {
     setIntent("clear");
-    setCustomerSearch("");
     setMonthlySelections((currentSelections) =>
       currentSelections.map((selection) => ({
         ...selection,
@@ -142,15 +210,13 @@ export default function QuickSubmitPage() {
     >
       <Form method="post">
         <input type="hidden" name="intent" value={intent} />
-        <input type="hidden" name="customerId" value={customer.id} />
+        <input type="hidden" name="subscriberId" value={selectedSubscriberId} />
 
-        {monthlySelections.map((selection, index) => (
-          <input
-            key={selection.month}
-            type="hidden"
-            name={`selections[${index}][product]`}
-            value={selection.product}
-          />
+        {monthlySelections.map((selection) => (
+          <div key={selection.month}>
+            <input type="hidden" name="month" value={selection.month} />
+            <input type="hidden" name="product" value={selection.product} />
+          </div>
         ))}
 
         <BlockStack gap="500">
@@ -174,49 +240,64 @@ export default function QuickSubmitPage() {
                       requires a substitution.
                     </Text>
 
-                    <InlineStack align="space-between" gap="400" wrap>
-                      <BlockStack gap="100">
-                        <Text as="p" fontWeight="semibold">
-                          Customer: {customer.name}
-                        </Text>
-                        <Text as="p">Email: {customer.email}</Text>
-                        <Text as="p">
-                          Subscription Tier: {customer.tier}
-                        </Text>
-                        <Text as="p">
-                          Subscription Start: {customer.subscriptionStartDate}
-                        </Text>
-                        <Text as="p">
-                          Next Ship Date: {customer.nextShipDate}
-                        </Text>
-                        <Text as="p">
-                          Selection Deadline:{" "}
-                          {customer.nextSelectionDeadline}
-                        </Text>
-                      </BlockStack>
+                    <Select
+                      label="Subscriber"
+                      value={selectedSubscriberId}
+                      onChange={setSelectedSubscriberId}
+                      options={[
+                        { label: "Choose a subscriber", value: "" },
+                        ...subscribers.map((subscriber) => ({
+                          label: `${subscriber.name} — ${subscriber.email}`,
+                          value: subscriber.id,
+                        })),
+                      ]}
+                    />
 
-                      <div style={{ minWidth: "320px" }}>
-                        <TextField
-                          label="Customer search"
-                          labelHidden
-                          value={customerSearch}
-                          onChange={setCustomerSearch}
-                          placeholder="Start typing name, email, or customer ID"
-                          autoComplete="off"
-                        />
-                      </div>
-                    </InlineStack>
+                    {selectedSubscriber ? (
+                      <InlineStack align="space-between" gap="400" wrap>
+                        <BlockStack gap="100">
+                          <Text as="p" fontWeight="semibold">
+                            Customer: {selectedSubscriber.name}
+                          </Text>
+                          <Text as="p">Email: {selectedSubscriber.email}</Text>
+                          <Text as="p">
+                            Subscription Tier:{" "}
+                            {selectedSubscriber.tier?.name ?? "No tier"}
+                          </Text>
+                          <Text as="p">
+                            Subscription Start:{" "}
+                            {formatDate(selectedSubscriber.subscriptionStartDate)}
+                          </Text>
+                          <Text as="p">
+                            Next Ship Date:{" "}
+                            {formatDate(selectedSubscriber.nextShipDate)}
+                          </Text>
+                          <Text as="p">
+                            Selection Deadline:{" "}
+                            {formatDate(
+                              selectedSubscriber.nextSelectionDeadline,
+                            )}
+                          </Text>
+                        </BlockStack>
+                      </InlineStack>
+                    ) : (
+                      <Text as="p" tone="subdued">
+                        Choose a subscriber to begin.
+                      </Text>
+                    )}
                   </BlockStack>
                 </Card>
 
                 <InlineGrid columns={{ xs: 1, md: 2 }} gap="400">
                   <MonthlySelectionCard
                     selections={firstHalf}
+                    productOptions={productOptions}
                     onChange={updateSelection}
                   />
 
                   <MonthlySelectionCard
                     selections={secondHalf}
+                    productOptions={productOptions}
                     onChange={updateSelection}
                   />
                 </InlineGrid>
@@ -250,9 +331,11 @@ export default function QuickSubmitPage() {
 
 function MonthlySelectionCard({
   selections,
+  productOptions,
   onChange,
 }: {
   selections: MonthlySelection[];
+  productOptions: { label: string; value: string }[];
   onChange: (month: string, product: string) => void;
 }) {
   return (
@@ -283,4 +366,14 @@ function MonthlySelectionCard({
       </BlockStack>
     </Card>
   );
+}
+
+function formatDate(date: string | Date | null) {
+  if (!date) return "Not set";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
 }
