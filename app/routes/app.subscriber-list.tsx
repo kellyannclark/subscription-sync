@@ -16,6 +16,7 @@ import {
 } from "@shopify/polaris";
 
 import { authenticate } from "../shopify.server";
+import db from "../db.server";
 
 type SubscriberStatus =
   | "Active"
@@ -24,88 +25,29 @@ type SubscriberStatus =
   | "Order Ready"
   | "Needs Review";
 
-type Subscriber = {
-  id: string;
-  name: string;
-  email: string;
-  tier: string;
-  subscriptionStartDate: string;
-  nextShipDate: string;
-  nextSelectionDeadline: string;
-  status: SubscriberStatus;
-};
-
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  const subscribers: Subscriber[] = [
-    {
-      id: "anna-jones",
-      name: "Anna Jones",
-      email: "anna@email.com",
-      tier: "Twirl",
-      subscriptionStartDate: "Sept 21",
-      nextShipDate: "Oct 21",
-      nextSelectionDeadline: "Oct 18",
-      status: "Order Ready",
+  const subscribers = await db.subscriber.findMany({
+    orderBy: {
+      updatedAt: "desc",
     },
-    {
-      id: "weston-clark",
-      name: "Weston Clark",
-      email: "weston@email.com",
-      tier: "Adventure",
-      subscriptionStartDate: "Sept 22",
-      nextShipDate: "Oct 22",
-      nextSelectionDeadline: "Oct 19",
-      status: "Needs Review",
+    include: {
+      tier: true,
     },
-    {
-      id: "sadie-brown",
-      name: "Sadie Brown",
-      email: "sadie.brown@email.com",
-      tier: "Classic",
-      subscriptionStartDate: "Sept 23",
-      nextShipDate: "Oct 23",
-      nextSelectionDeadline: "Oct 20",
-      status: "Pending Selection",
-    },
-    {
-      id: "mia-thompson",
-      name: "Mia Thompson",
-      email: "mia.t@email.com",
-      tier: "Deluxe",
-      subscriptionStartDate: "Sept 24",
-      nextShipDate: "Oct 24",
-      nextSelectionDeadline: "Oct 21",
-      status: "Auto-Select Needed",
-    },
-    {
-      id: "oliver-smith",
-      name: "Oliver Smith",
-      email: "oliver.smith@email.com",
-      tier: "Twirl",
-      subscriptionStartDate: "Sept 25",
-      nextShipDate: "Oct 25",
-      nextSelectionDeadline: "Oct 22",
-      status: "Active",
-    },
-    {
-      id: "grace-lee",
-      name: "Grace Lee",
-      email: "grace.lee@email.com",
-      tier: "Adventure",
-      subscriptionStartDate: "Sept 26",
-      nextShipDate: "Oct 26",
-      nextSelectionDeadline: "Oct 23",
-      status: "Active",
-    },
-  ];
+  });
 
-  return json({ subscribers });
+  const tiers = await db.tier.findMany({
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  return json({ subscribers, tiers });
 };
 
 export default function SubscriberListPage() {
-  const { subscribers } = useLoaderData<typeof loader>();
+  const { subscribers, tiers } = useLoaderData<typeof loader>();
 
   const [searchValue, setSearchValue] = useState("");
   const [tierFilter, setTierFilter] = useState("all");
@@ -118,7 +60,7 @@ export default function SubscriberListPage() {
         subscriber.email.toLowerCase().includes(searchValue.toLowerCase());
 
       const matchesTier =
-        tierFilter === "all" || subscriber.tier === tierFilter;
+        tierFilter === "all" || subscriber.tier?.name === tierFilter;
 
       const matchesStatus =
         statusFilter === "all" || subscriber.status === statusFilter;
@@ -126,6 +68,14 @@ export default function SubscriberListPage() {
       return matchesSearch && matchesTier && matchesStatus;
     });
   }, [subscribers, searchValue, tierFilter, statusFilter]);
+
+  const tierOptions = [
+    { label: "All tiers", value: "all" },
+    ...tiers.map((tier) => ({
+      label: tier.name,
+      value: tier.name,
+    })),
+  ];
 
   return (
     <Page
@@ -139,9 +89,10 @@ export default function SubscriberListPage() {
             <Card>
               <BlockStack gap="400">
                 <Text as="p" tone="subdued">
-                  Each subscriber has their own subscription start date, selection
-                  deadline, and next shipping date. Orders are handled through a
-                  rolling daily queue instead of one shared monthly cycle.
+                  Each subscriber has their own subscription start date,
+                  selection deadline, and next shipping date. Orders are handled
+                  through a rolling daily queue instead of one shared monthly
+                  cycle.
                 </Text>
 
                 <InlineStack gap="300" wrap>
@@ -162,13 +113,7 @@ export default function SubscriberListPage() {
                       labelHidden
                       value={tierFilter}
                       onChange={setTierFilter}
-                      options={[
-                        { label: "All tiers", value: "all" },
-                        { label: "Twirl", value: "Twirl" },
-                        { label: "Adventure", value: "Adventure" },
-                        { label: "Classic", value: "Classic" },
-                        { label: "Deluxe", value: "Deluxe" },
-                      ]}
+                      options={tierOptions}
                     />
                   </div>
 
@@ -231,20 +176,24 @@ export default function SubscriberListPage() {
 
                     <IndexTable.Cell>{subscriber.email}</IndexTable.Cell>
 
-                    <IndexTable.Cell>{subscriber.tier}</IndexTable.Cell>
-
                     <IndexTable.Cell>
-                      {subscriber.subscriptionStartDate}
-                    </IndexTable.Cell>
-
-                    <IndexTable.Cell>{subscriber.nextShipDate}</IndexTable.Cell>
-
-                    <IndexTable.Cell>
-                      {subscriber.nextSelectionDeadline}
+                      {subscriber.tier?.name ?? "No tier"}
                     </IndexTable.Cell>
 
                     <IndexTable.Cell>
-                      <StatusBadge status={subscriber.status} />
+                      {formatDate(subscriber.subscriptionStartDate)}
+                    </IndexTable.Cell>
+
+                    <IndexTable.Cell>
+                      {formatDate(subscriber.nextShipDate)}
+                    </IndexTable.Cell>
+
+                    <IndexTable.Cell>
+                      {formatDate(subscriber.nextSelectionDeadline)}
+                    </IndexTable.Cell>
+
+                    <IndexTable.Cell>
+                      <StatusBadge status={subscriber.status as SubscriberStatus} />
                     </IndexTable.Cell>
 
                     <IndexTable.Cell>
@@ -281,4 +230,13 @@ function StatusBadge({ status }: { status: SubscriberStatus }) {
   }
 
   return <Badge tone="critical">Needs Review</Badge>;
+}
+
+function formatDate(date: string | Date | null) {
+  if (!date) return "Not set";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(date));
 }

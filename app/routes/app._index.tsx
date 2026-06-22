@@ -55,12 +55,7 @@ const dashboardItems: DashboardItem[] = [
     url: "/app/subscriber-list",
     icon: "👥",
   },
-  {
-    title: "Subscriber View",
-    description: "Access detailed subscriber profiles.",
-    url: "/app/subscriber-view/demo",
-    icon: "🔍",
-  },
+
   {
     title: "Subscriber Form",
     description: "Preview the live form subscribers fill out.",

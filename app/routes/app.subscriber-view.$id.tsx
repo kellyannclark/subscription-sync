@@ -1,10 +1,10 @@
+import db from "../db.server";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import {
   Badge,
   BlockStack,
-  Box,
   Card,
   InlineGrid,
   InlineStack,
@@ -16,93 +16,27 @@ import {
 
 import { authenticate } from "../shopify.server";
 
-type SubmissionHistory = {
-  month: string;
-  selectionStatus: string;
-  formSubmitted: string;
-  product: string;
-  source: string;
-};
-
-type Subscriber = {
-  id: string;
-  name: string;
-  email: string;
-  tier: string;
-  autoSelection: boolean;
-  defaultTag: string;
-  renewalDate: string;
-  currentMonth: string;
-  currentSize: string;
-  currentStyle: string;
-  currentTheme: string;
-  currentFormSubmitted: string;
-  history: SubmissionHistory[];
-};
-
-const mockSubscribers: Subscriber[] = [
-  {
-    id: "anna-jones",
-    name: "Anna Jones",
-    email: "anna.jones@email.com",
-    tier: "Twirl",
-    autoSelection: true,
-    defaultTag: "SubscriptionSync-Auto",
-    renewalDate: "March 2026",
-    currentMonth: "October 2025",
-    currentSize: "Medium",
-    currentStyle: "Style",
-    currentTheme: "Princess",
-    currentFormSubmitted: "Oct. 3",
-    history: [
-      {
-        month: "Sept 2025",
-        selectionStatus: "Form Submitted",
-        formSubmitted: "Sept. 15",
-        product: "Belle Dress",
-        source: "Customer Form",
-      },
-      {
-        month: "Oct 2025",
-        selectionStatus: "Auto Selected",
-        formSubmitted: "—",
-        product: "Ariel Dress",
-        source: "Automation",
-      },
-      {
-        month: "Nov 2025",
-        selectionStatus: "Pending",
-        formSubmitted: "—",
-        product: "—",
-        source: "—",
-      },
-    ],
-  },
-  {
-    id: "weston-clark",
-    name: "Weston Clark",
-    email: "weston@email.com",
-    tier: "Adventure",
-    autoSelection: false,
-    defaultTag: "SubscriptionSync-Auto",
-    renewalDate: "April 2026",
-    currentMonth: "October 2025",
-    currentSize: "Large",
-    currentStyle: "Adventure",
-    currentTheme: "Pirate",
-    currentFormSubmitted: "Oct. 2",
-    history: [],
-  },
-];
-
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  const subscriberId = params.id ?? "anna-jones";
+  const subscriberId = params.id;
 
-  const subscriber =
-    mockSubscribers.find((item) => item.id === subscriberId) ??
-    mockSubscribers[0];
+  if (!subscriberId) {
+    throw new Response("Subscriber ID is required", { status: 400 });
+  }
+
+  const subscriber = await db.subscriber.findUnique({
+    where: {
+      id: subscriberId,
+    },
+    include: {
+      tier: true,
+    },
+  });
+
+  if (!subscriber) {
+    throw new Response("Subscriber not found", { status: 404 });
+  }
 
   return json({ subscriber });
 };
@@ -110,10 +44,12 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 export default function SubscriberViewPage() {
   const { subscriber } = useLoaderData<typeof loader>();
 
+  const autoSelectionEnabled = Boolean(subscriber.autoSelectionDate);
+
   return (
     <Page
       title="Customer View"
-      subtitle="Review a customer's profile, monthly selections, and form submission history."
+      subtitle="Review a customer's profile, subscription schedule, and selection history."
       backAction={{ content: "Subscriber List", url: "/app/subscriber-list" }}
     >
       <Layout>
@@ -139,35 +75,48 @@ export default function SubscriberViewPage() {
 
                   <InfoRow label="Name" value={subscriber.name} />
                   <InfoRow label="Email" value={subscriber.email} />
-                  <InfoRow label="Subscription Tier" value={subscriber.tier} />
+                  <InfoRow
+                    label="Subscription Tier"
+                    value={subscriber.tier?.name ?? "No tier assigned"}
+                  />
+
+                  <InlineStack align="space-between">
+                    <Text as="span">Status</Text>
+                    <StatusBadge status={subscriber.status} />
+                  </InlineStack>
 
                   <InlineStack align="space-between">
                     <Text as="span">Auto Selection</Text>
-                    {subscriber.autoSelection ? (
-                      <Badge tone="success">Enabled</Badge>
+                    {autoSelectionEnabled ? (
+                      <Badge tone="success">Scheduled</Badge>
                     ) : (
-                      <Badge tone="critical">Disabled</Badge>
+                      <Badge tone="attention">Not scheduled</Badge>
                     )}
                   </InlineStack>
-
-                  <InfoRow label="Default Tag" value={subscriber.defaultTag} />
-                  <InfoRow label="Renewal Date" value={subscriber.renewalDate} />
                 </BlockStack>
               </Card>
 
               <Card>
                 <BlockStack gap="300">
                   <Text as="h2" variant="headingMd">
-                    Current Preferences Summary
+                    Subscription Schedule
                   </Text>
 
-                  <InfoRow label="Month" value={subscriber.currentMonth} />
-                  <InfoRow label="Size" value={subscriber.currentSize} />
-                  <InfoRow label="Style" value={subscriber.currentStyle} />
-                  <InfoRow label="Theme" value={subscriber.currentTheme} />
                   <InfoRow
-                    label="Form Submitted"
-                    value={subscriber.currentFormSubmitted}
+                    label="Subscription Start Date"
+                    value={formatDate(subscriber.subscriptionStartDate)}
+                  />
+                  <InfoRow
+                    label="Next Ship Date"
+                    value={formatDate(subscriber.nextShipDate)}
+                  />
+                  <InfoRow
+                    label="Next Selection Deadline"
+                    value={formatDate(subscriber.nextSelectionDeadline)}
+                  />
+                  <InfoRow
+                    label="Auto-Selection Date"
+                    value={formatDate(subscriber.autoSelectionDate)}
                   />
                 </BlockStack>
               </Card>
@@ -177,6 +126,11 @@ export default function SubscriberViewPage() {
               <BlockStack gap="300">
                 <Text as="h2" variant="headingMd">
                   Form Submission History
+                </Text>
+
+                <Text as="p" tone="subdued">
+                  Preference submissions will appear here after we connect the
+                  preference form records to subscribers.
                 </Text>
 
                 <div style={{ overflowX: "auto" }}>
@@ -197,35 +151,11 @@ export default function SubscriberViewPage() {
                     </thead>
 
                     <tbody>
-                      {subscriber.history.length > 0 ? (
-                        subscriber.history.map((item) => (
-                          <tr key={item.month}>
-                            <TableCell>{item.month}</TableCell>
-                            <TableCell>
-                              <Badge
-                                tone={
-                                  item.selectionStatus === "Form Submitted"
-                                    ? "success"
-                                    : item.selectionStatus === "Auto Selected"
-                                      ? "info"
-                                      : "attention"
-                                }
-                              >
-                                {item.selectionStatus}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{item.formSubmitted}</TableCell>
-                            <TableCell>{item.product}</TableCell>
-                            <TableCell>{item.source}</TableCell>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <TableCell colSpan={5}>
-                            No submission history available yet.
-                          </TableCell>
-                        </tr>
-                      )}
+                      <tr>
+                        <TableCell colSpan={5}>
+                          No submission history available yet.
+                        </TableCell>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
@@ -240,6 +170,26 @@ export default function SubscriberViewPage() {
       </Layout>
     </Page>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "Active") {
+    return <Badge tone="success">Active</Badge>;
+  }
+
+  if (status === "Pending Selection") {
+    return <Badge tone="info">Pending Selection</Badge>;
+  }
+
+  if (status === "Auto-Select Needed") {
+    return <Badge tone="warning">Auto-Select Needed</Badge>;
+  }
+
+  if (status === "Order Ready") {
+    return <Badge tone="success">Order Ready</Badge>;
+  }
+
+  return <Badge tone="critical">Needs Review</Badge>;
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -289,4 +239,14 @@ function TableCell({
       {children}
     </td>
   );
+}
+
+function formatDate(date: string | Date | null) {
+  if (!date) return "Not set";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
 }

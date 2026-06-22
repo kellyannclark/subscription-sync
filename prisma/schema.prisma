@@ -41,6 +41,7 @@ model Tier {
   updatedAt   DateTime @updatedAt
 
   products    AssignedProduct[]
+  subscribers Subscriber[]
 }
 
 model AssignedProduct {
@@ -81,4 +82,35 @@ model Settings {
   senderEmail         String?
 
   updatedAt           DateTime @updatedAt
+}
+
+model Subscriber {
+  id                    String   @id @default(cuid())
+  name                  String
+  email                 String
+  status                String   @default("Active")
+
+  subscriptionStartDate DateTime
+  nextShipDate          DateTime
+  nextSelectionDeadline DateTime
+  autoSelectionDate     DateTime?
+
+  tierId                String?
+  tier                  Tier?    @relation(fields: [tierId], references: [id])
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model Shipment {
+  id            String   @id @default(cuid())
+
+  subscriberId  String
+  subscriber    Subscriber @relation(fields: [subscriberId], references: [id])
+
+  shipDate      DateTime
+  status        String
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
