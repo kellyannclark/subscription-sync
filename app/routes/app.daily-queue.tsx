@@ -149,33 +149,218 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
 
-  if (intent === "send-reminders") {
-    return json({
-      success: true,
-      message: "Reminder job started for subscribers with upcoming deadlines.",
+if (intent === "send-reminders") {
+  const reminderSubscribers = await db.subscriber.findMany({
+    where: {
+      selections: {
+        none: {},
+      },
+      status: {
+        not: "Order Ready",
+      },
+    },
+    orderBy: {
+      nextSelectionDeadline: "asc",
+    },
+  });
+
+  await db.$transaction(async (tx) => {
+    for (const subscriber of reminderSubscribers) {
+      await tx.activityLog.create({
+        data: {
+          eventType: "Reminder",
+          description: `Reminder prepared for ${subscriber.name} (${subscriber.email}) before selection deadline ${formatDate(
+            subscriber.nextSelectionDeadline,
+          )}.`,
+          status: "Success",
+          user: "Admin",
+          source: "Daily Queue",
+        },
+      });
+    }
+
+    await tx.activityLog.create({
+      data: {
+        eventType: "Reminder",
+        description: `Prepared ${reminderSubscribers.length} reminder(s) from the daily queue.`,
+        status: "Success",
+        user: "Admin",
+        source: "Daily Queue",
+      },
     });
-  }
+  });
+
+  return json({
+    success: true,
+    message: `Prepared ${reminderSubscribers.length} reminder(s).`,
+  });
+}
 
   if (intent === "run-auto-selection") {
-    return json({
-      success: true,
-      message: "Auto-selection job started for eligible subscribers.",
-    });
-  }
+  const eligibleSubscribers = await db.subscriber.findMany({
+    where: {
+      selections: {
+        none: {},
+      },
+      tierId: {
+        not: null,
+      },
+    },
+    include: {
+      tier: {
+        include: {
+          products: true,
+        },
+      },
+    },
+  });
 
-  if (intent === "create-orders") {
-    return json({
-      success: true,
-      message: "Order creation job started for subscribers ready to ship.",
+  let createdSelections = 0;
+
+  await db.$transaction(async (tx) => {
+    for (const subscriber of eligibleSubscribers) {
+      const product = subscriber.tier?.products[0];
+
+      if (!product) {
+        await tx.activityLog.create({
+          data: {
+            eventType: "Auto-Select",
+            description: `Skipped ${subscriber.name}: no products assigned to tier.`,
+            status: "Warning",
+            user: "Admin",
+            source: "Daily Queue",
+          },
+        });
+
+        continue;
+      }
+
+      await tx.selection.create({
+        data: {
+          subscriberId: subscriber.id,
+          month: getMonthLabel(subscriber.nextShipDate),
+          productName: product.productName,
+          status: "Auto Selected",
+          source: "Daily Queue",
+        },
+      });
+
+      await tx.subscriber.update({
+        where: {
+          id: subscriber.id,
+        },
+        data: {
+          status: "Order Ready",
+        },
+      });
+
+      createdSelections += 1;
+    }
+
+    await tx.activityLog.create({
+      data: {
+        eventType: "Auto-Select",
+        description: `Auto-selected ${createdSelections} product(s) from the daily queue.`,
+        status: "Success",
+        user: "Admin",
+        source: "Daily Queue",
+      },
     });
-  }
+  });
+
+  return json({
+    success: true,
+    message: `Auto-selected ${createdSelections} product(s).`,
+  });
+}
+
+if (intent === "create-orders") {
+  const readySubscribers = await db.subscriber.findMany({
+    where: {
+      selections: {
+        some: {},
+      },
+      shipments: {
+        none: {},
+      },
+    },
+    include: {
+      selections: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: 1,
+      },
+    },
+  });
+
+  await db.$transaction(async (tx) => {
+    for (const subscriber of readySubscribers) {
+      const latestSelection = subscriber.selections[0];
+
+      await tx.shipment.create({
+        data: {
+          subscriberId: subscriber.id,
+          shipDate: subscriber.nextShipDate,
+          status: "Pending",
+          productName: latestSelection?.productName ?? "Manual selection",
+          notes: "Created from Daily Queue",
+        },
+      });
+
+      await tx.subscriber.update({
+        where: {
+          id: subscriber.id,
+        },
+        data: {
+          status: "Order Ready",
+        },
+      });
+    }
+
+    await tx.activityLog.create({
+      data: {
+        eventType: "Order",
+        description: `Created ${readySubscribers.length} shipment record(s) from the daily queue.`,
+        status: "Success",
+        user: "Admin",
+        source: "Daily Queue",
+      },
+    });
+  });
+
+  return json({
+    success: true,
+    message: `Created ${readySubscribers.length} shipment record(s).`,
+  });
+}
 
   if (intent === "sync-now") {
+    await db.activityLog.create({
+      data: {
+        eventType: "Sync",
+        description: "Started Shopify and Appstle sync.",
+        status: "Success",
+        user: "Admin",
+        source: "Daily Queue",
+      },
+    });
+
     return json({
       success: true,
       message: "Shopify and Appstle sync started successfully.",
     });
   }
+
+  await db.activityLog.create({
+    data: {
+      eventType: "Daily Queue",
+      description: "Daily queue action completed.",
+      status: "Success",
+      user: "Admin",
+      source: "Daily Queue",
+    },
+  });
 
   return json({
     success: true,
@@ -600,4 +785,11 @@ function addDays(date: Date, days: number) {
 
 function sameDay(firstDate: Date, secondDate: Date) {
   return firstDate.getTime() === secondDate.getTime();
+}
+
+function getMonthLabel(date: string | Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(date));
 }
