@@ -44,7 +44,6 @@ type QueueSubscriber = {
   selectionDeadline: string;
   autoSelectDate: string;
   orderCreationDate: string;
-  autoSelection: boolean;
   status: QueueStatus;
 };
 
@@ -82,16 +81,27 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
         },
         take: 1,
       },
+      shipments: {
+        orderBy: {
+          shipDate: "desc",
+        },
+        take: 1,
+      },
     },
   });
 
   const queueSubscribers: QueueSubscriber[] = subscribers.map((subscriber) => {
-    const status = getQueueStatus(
-      subscriber.status,
-      subscriber.nextShipDate,
-      subscriber.nextSelectionDeadline,
-      subscriber.autoSelectionDate,
-    );
+    const latestSelection = subscriber.selections[0];
+    const latestShipment = subscriber.shipments[0];
+
+    const status = getQueueStatus({
+      currentStatus: subscriber.status,
+      nextShipDate: subscriber.nextShipDate,
+      selectionDeadline: subscriber.nextSelectionDeadline,
+      autoSelectionDate: subscriber.autoSelectionDate,
+      hasSelection: Boolean(latestSelection),
+      hasShipment: Boolean(latestShipment),
+    });
 
     return {
       id: subscriber.id,
@@ -101,8 +111,9 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       nextShipDate: formatDate(subscriber.nextShipDate),
       selectionDeadline: formatDate(subscriber.nextSelectionDeadline),
       autoSelectDate: formatDate(subscriber.autoSelectionDate),
-      orderCreationDate: formatDate(getOrderCreationDate(subscriber.nextShipDate)),
-      autoSelection: Boolean(subscriber.autoSelectionDate),
+      orderCreationDate: formatDate(
+        getOrderCreationDate(subscriber.nextShipDate),
+      ),
       status,
     };
   });
@@ -510,30 +521,49 @@ function StatusBadge({ status }: { status: QueueStatus }) {
   return <Badge tone="critical">Needs Review</Badge>;
 }
 
-function getQueueStatus(
-  currentStatus: string,
-  nextShipDate: Date,
-  selectionDeadline: Date,
-  autoSelectionDate: Date | null,
-): QueueStatus {
-  if (
-    currentStatus === "Pending Selection" ||
-    currentStatus === "Auto-Select Needed" ||
-    currentStatus === "Order Ready" ||
-    currentStatus === "Needs Review"
-  ) {
-    return currentStatus;
+function getQueueStatus({
+  currentStatus,
+  nextShipDate,
+  selectionDeadline,
+  autoSelectionDate,
+  hasSelection,
+  hasShipment,
+}: {
+  currentStatus: string;
+  nextShipDate: Date;
+  selectionDeadline: Date;
+  autoSelectionDate: Date | null;
+  hasSelection: boolean;
+  hasShipment: boolean;
+}): QueueStatus {
+  if (currentStatus === "Needs Review") {
+    return "Needs Review";
+  }
+
+  if (hasShipment) {
+    return "Order Ready";
+  }
+
+  if (hasSelection) {
+    return "Order Ready";
   }
 
   const today = startOfDay(new Date());
   const tomorrow = addDays(today, 1);
   const shipDate = startOfDay(new Date(nextShipDate));
   const deadline = startOfDay(new Date(selectionDeadline));
+  const autoDate = autoSelectionDate
+    ? startOfDay(new Date(autoSelectionDate))
+    : null;
 
   if (sameDay(shipDate, today)) return "Due Today";
   if (sameDay(shipDate, tomorrow)) return "Due Tomorrow";
 
-  if (deadline < today && autoSelectionDate) {
+  if (autoDate && autoDate <= today) {
+    return "Auto-Select Needed";
+  }
+
+  if (deadline <= today) {
     return "Auto-Select Needed";
   }
 
