@@ -61,27 +61,46 @@ model AssignedProduct {
 model PreferenceSubmission {
   id            String   @id @default(cuid())
 
+  subscriberId  String?
+  subscriber    Subscriber? @relation(fields: [subscriberId], references: [id])
+
   customerEmail String
-
   month         String
-
   size          String?
-
   style         String?
-
   notes         String?
 
   submittedAt   DateTime @default(now())
 }
 
 model Settings {
-  id                  String   @id @default(cuid())
+  id                      String   @id @default(cuid())
 
-  reminderDaysBefore  Int      @default(7)
+  automationEnabled       Boolean  @default(true)
 
-  senderEmail         String?
+  selectionDeadlineOffset Int      @default(7)
+  autoSelectionOffset     Int      @default(2)
+  orderCreationOffset     Int      @default(1)
 
-  updatedAt           DateTime @updatedAt
+  reminder14Days          Boolean  @default(true)
+  reminder7Days           Boolean  @default(true)
+  reminder3Days           Boolean  @default(true)
+  reminder1Day            Boolean  @default(true)
+
+  senderEmail             String?
+
+  hideOutOfStock          Boolean  @default(true)
+  hideDiscontinued        Boolean  @default(true)
+  allowBackorders         Boolean  @default(false)
+
+  autoCreateOrders        Boolean  @default(true)
+  requireManualReview     Boolean  @default(false)
+
+  autoOrderTag            String?  @default("SubscriptionSync-Auto")
+  customerSelectedTag     String?  @default("MonthlySelection")
+  modifiedOrderTag        String?  @default("AppstleSync")
+
+  updatedAt               DateTime @updatedAt
 }
 
 model Subscriber {
@@ -98,8 +117,14 @@ model Subscriber {
   tierId                String?
   tier                  Tier?    @relation(fields: [tierId], references: [id])
 
+  shipments             Shipment[]
+  preferenceSubmissions PreferenceSubmission[]
+  selections            Selection[]
+
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+
+ 
 }
 
 model Shipment {
@@ -109,7 +134,27 @@ model Shipment {
   subscriber    Subscriber @relation(fields: [subscriberId], references: [id])
 
   shipDate      DateTime
-  status        String
+  status        String   @default("Pending")
+  productName   String?
+  trackingUrl   String?
+  notes         String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Selection {
+  id            String   @id @default(cuid())
+
+  subscriberId  String
+  subscriber    Subscriber @relation(fields: [subscriberId], references: [id])
+
+  month         String
+  status        String   @default("Pending")
+
+  productName   String?
+  source        String   @default("Customer Form")
+  notes         String?
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

@@ -25,6 +25,7 @@ import {
 } from "@shopify/polaris";
 
 import { authenticate } from "../shopify.server";
+import db from "../db.server";
 
 type SettingsData = {
   automationEnabled: boolean;
@@ -55,30 +56,56 @@ type SettingsData = {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
+  const existingSettings = await db.settings.findFirst();
+
+  const savedSettings =
+    existingSettings ??
+    (await db.settings.create({
+      data: {
+        automationEnabled: true,
+        selectionDeadlineOffset: 7,
+        autoSelectionOffset: 2,
+        orderCreationOffset: 1,
+        reminder14Days: true,
+        reminder7Days: true,
+        reminder3Days: true,
+        reminder1Day: true,
+        senderEmail: "support@littleadventures.com",
+        hideOutOfStock: true,
+        hideDiscontinued: true,
+        allowBackorders: false,
+        autoCreateOrders: true,
+        requireManualReview: false,
+        autoOrderTag: "SubscriptionSync-Auto",
+        customerSelectedTag: "MonthlySelection",
+        modifiedOrderTag: "AppstleSync",
+      },
+    }));
+
   const settings: SettingsData = {
-    automationEnabled: true,
-    selectionDeadlineOffset: "7",
-    autoSelectionOffset: "2",
-    orderCreationOffset: "1",
-    autoOrderTag: "SubscriptionSync-Auto",
-    customerSelectedTag: "MonthlySelection",
-    modifiedOrderTag: "AppstleSync",
-    hideOutOfStock: true,
-    hideDiscontinued: true,
-    allowBackorders: false,
-    autoCreateOrders: true,
-    requireManualReview: false,
-    reminder14Days: true,
-    reminder7Days: true,
-    reminder3Days: true,
-    reminder1Day: true,
-    emailSender: "support@littleadventures.com",
+    automationEnabled: savedSettings.automationEnabled,
+    selectionDeadlineOffset: String(savedSettings.selectionDeadlineOffset),
+    autoSelectionOffset: String(savedSettings.autoSelectionOffset),
+    orderCreationOffset: String(savedSettings.orderCreationOffset),
+    autoOrderTag: savedSettings.autoOrderTag ?? "SubscriptionSync-Auto",
+    customerSelectedTag: savedSettings.customerSelectedTag ?? "MonthlySelection",
+    modifiedOrderTag: savedSettings.modifiedOrderTag ?? "AppstleSync",
+    hideOutOfStock: savedSettings.hideOutOfStock,
+    hideDiscontinued: savedSettings.hideDiscontinued,
+    allowBackorders: savedSettings.allowBackorders,
+    autoCreateOrders: savedSettings.autoCreateOrders,
+    requireManualReview: savedSettings.requireManualReview,
+    reminder14Days: savedSettings.reminder14Days,
+    reminder7Days: savedSettings.reminder7Days,
+    reminder3Days: savedSettings.reminder3Days,
+    reminder1Day: savedSettings.reminder1Day,
+    emailSender: savedSettings.senderEmail ?? "",
     testSubscriberEmail: "",
     storeUrl: "https://littleadventures.com",
     shopifyConnected: true,
-    appstleConnected: true,
+    appstleConnected: false,
     databaseConnected: true,
-    lastSync: "Oct 6, 2025 · 4:37 PM",
+    lastSync: formatDateTime(savedSettings.updatedAt),
   };
 
   return json({ settings });
@@ -117,6 +144,46 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return json({
       success: true,
       message: "Test order generation started.",
+    });
+  }
+
+  const existingSettings = await db.settings.findFirst();
+
+  const data = {
+    automationEnabled: formData.get("automationEnabled") === "true",
+    selectionDeadlineOffset: Number(formData.get("selectionDeadlineOffset") ?? 7),
+    autoSelectionOffset: Number(formData.get("autoSelectionOffset") ?? 2),
+    orderCreationOffset: Number(formData.get("orderCreationOffset") ?? 1),
+
+    reminder14Days: formData.get("reminder14Days") === "true",
+    reminder7Days: formData.get("reminder7Days") === "true",
+    reminder3Days: formData.get("reminder3Days") === "true",
+    reminder1Day: formData.get("reminder1Day") === "true",
+
+    senderEmail: String(formData.get("emailSender") ?? ""),
+
+    hideOutOfStock: formData.get("hideOutOfStock") === "true",
+    hideDiscontinued: formData.get("hideDiscontinued") === "true",
+    allowBackorders: formData.get("allowBackorders") === "true",
+
+    autoCreateOrders: formData.get("autoCreateOrders") === "true",
+    requireManualReview: formData.get("requireManualReview") === "true",
+
+    autoOrderTag: String(formData.get("autoOrderTag") ?? ""),
+    customerSelectedTag: String(formData.get("customerSelectedTag") ?? ""),
+    modifiedOrderTag: String(formData.get("modifiedOrderTag") ?? ""),
+  };
+
+  if (existingSettings) {
+    await db.settings.update({
+      where: {
+        id: existingSettings.id,
+      },
+      data,
+    });
+  } else {
+    await db.settings.create({
+      data,
     });
   }
 
@@ -591,4 +658,16 @@ export default function SettingsPage() {
       </Form>
     </Page>
   );
+}
+
+function formatDateTime(date: string | Date | null) {
+  if (!date) return "Not synced yet";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(date));
 }
