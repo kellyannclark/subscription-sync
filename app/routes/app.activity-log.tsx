@@ -17,71 +17,20 @@ import {
 } from "@shopify/polaris";
 
 import { authenticate } from "../shopify.server";
+import db from "../db.server";
 
 type LogStatus = "Success" | "Warning" | "Error";
-
-type ActivityLog = {
-  id: string;
-  timestamp: string;
-  type: string;
-  description: string;
-  status: LogStatus;
-  user: string;
-  source: string;
-};
-
-const mockLogs: ActivityLog[] = [
-  {
-    id: "1",
-    timestamp: "Oct 9, 10:34 AM",
-    type: "Sync",
-    description: "Pulled 245 subscribers from Appstle",
-    status: "Success",
-    user: "System",
-    source: "Appstle",
-  },
-  {
-    id: "2",
-    timestamp: "Oct 9, 10:36 AM",
-    type: "Auto-Select",
-    description: "Assigned 15 products to pending subscribers",
-    status: "Success",
-    user: "System",
-    source: "SubscriptionSync",
-  },
-  {
-    id: "3",
-    timestamp: "Oct 9, 10:38 AM",
-    type: "Reminder",
-    description: "Sent reminder emails to 43 subscribers",
-    status: "Success",
-    user: "Kelly Clark",
-    source: "Email Service",
-  },
-  {
-    id: "4",
-    timestamp: "Oct 9, 10:40 AM",
-    type: "Sync",
-    description: "Failed to push order #302 to Shopify",
-    status: "Error",
-    user: "System",
-    source: "Shopify",
-  },
-  {
-    id: "5",
-    timestamp: "Oct 9, 11:15 AM",
-    type: "Order",
-    description: "Created 12 ready orders from the daily queue",
-    status: "Success",
-    user: "System",
-    source: "Shopify",
-  },
-];
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  return json({ logs: mockLogs });
+  const logs = await db.activityLog.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return json({ logs });
 };
 
 export default function ActivityLogPage() {
@@ -98,7 +47,9 @@ export default function ActivityLogPage() {
         log.user.toLowerCase().includes(searchValue.toLowerCase()) ||
         log.source.toLowerCase().includes(searchValue.toLowerCase());
 
-      const matchesType = typeFilter === "all" || log.type === typeFilter;
+      const matchesType =
+        typeFilter === "all" || log.eventType === typeFilter;
+
       const matchesStatus =
         statusFilter === "all" || log.status === statusFilter;
 
@@ -146,6 +97,8 @@ export default function ActivityLogPage() {
                         { label: "Auto-Select", value: "Auto-Select" },
                         { label: "Reminder", value: "Reminder" },
                         { label: "Order", value: "Order" },
+                        { label: "Settings", value: "Settings" },
+                        { label: "Quick Submit", value: "Quick Submit" },
                       ]}
                     />
                   </div>
@@ -187,13 +140,20 @@ export default function ActivityLogPage() {
               >
                 {filteredLogs.map((log, index) => (
                   <IndexTable.Row id={log.id} key={log.id} position={index}>
-                    <IndexTable.Cell>{log.timestamp}</IndexTable.Cell>
-                    <IndexTable.Cell>{log.type}</IndexTable.Cell>
-                    <IndexTable.Cell>{log.description}</IndexTable.Cell>
                     <IndexTable.Cell>
-                      <StatusBadge status={log.status} />
+                      {formatDateTime(log.createdAt)}
                     </IndexTable.Cell>
+
+                    <IndexTable.Cell>{log.eventType}</IndexTable.Cell>
+
+                    <IndexTable.Cell>{log.description}</IndexTable.Cell>
+
+                    <IndexTable.Cell>
+                      <StatusBadge status={log.status as LogStatus} />
+                    </IndexTable.Cell>
+
                     <IndexTable.Cell>{log.user}</IndexTable.Cell>
+
                     <IndexTable.Cell>{log.source}</IndexTable.Cell>
                   </IndexTable.Row>
                 ))}
@@ -225,4 +185,16 @@ function StatusBadge({ status }: { status: LogStatus }) {
   }
 
   return <Badge tone="critical">Error</Badge>;
+}
+
+function formatDateTime(date: string | Date | null) {
+  if (!date) return "Not available";
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(date));
 }
