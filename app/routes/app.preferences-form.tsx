@@ -351,15 +351,6 @@ export default function SubscriberFormPage() {
                   ))}
                 </BlockStack>
 
-                <TextField
-                  label="Additional notes"
-                  value={notes}
-                  onChange={setNotes}
-                  multiline={4}
-                  autoComplete="off"
-                  placeholder="Anything you'd like us to know about style preferences, fit, or special requests?"
-                />
-                <input type="hidden" name="notes" value={notes} />
               </BlockStack>
             </Card>
 
