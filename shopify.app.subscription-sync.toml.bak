@@ -2,11 +2,12 @@
 
 client_id = "188ccf1d41284c331ee1b521244b165b"
 name = "subscription-sync"
+handle = "subscription-sync-2"
 application_url = "https://subscription-sync-lyart.vercel.app"
 embedded = true
-handle = "subscription-sync-2"
 
 [build]
+include_config_on_deploy = true
 automatically_update_urls_on_dev = true
 
 [webhooks]
@@ -21,11 +22,12 @@ api_version = "2025-07"
   uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_products"
 
 [auth]
-redirect_urls = [ "https://subscription-sync-lyart.vercel.app/auth/callback" ]
+redirect_urls = [
+  "https://subscription-sync-lyart.vercel.app/auth/callback"
+]
 
 [pos]
 embedded = false
