@@ -7,8 +7,7 @@ application_url = "https://subscription-sync-lyart.vercel.app"
 embedded = true
 
 [build]
-include_config_on_deploy = true
-automatically_update_urls_on_dev = false
+automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2025-07"
