@@ -1,9 +1,11 @@
 import "@shopify/shopify-app-remix/adapters/node";
+
 import {
   ApiVersion,
   AppDistribution,
   shopifyApp,
 } from "@shopify/shopify-app-remix/server";
+
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
@@ -15,19 +17,27 @@ const shopify = shopifyApp({
   appUrl: process.env.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
   sessionStorage: new PrismaSessionStorage(prisma),
-  distribution: AppDistribution.AppStore,
+
+  // SubscriptionSync is intended only for Little Adventures.
+  distribution: AppDistribution.SingleMerchant,
+
   future: {
     unstable_newEmbeddedAuthStrategy: true,
     removeRest: true,
   },
+
   ...(process.env.SHOP_CUSTOM_DOMAIN
-    ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
+    ? {
+        customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN],
+      }
     : {}),
 });
 
 export default shopify;
+
 export const apiVersion = ApiVersion.January25;
-export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
+export const addDocumentResponseHeaders =
+  shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;
 export const login = shopify.login;
