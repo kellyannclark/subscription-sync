@@ -10,7 +10,7 @@ embedded = true
 automatically_update_urls_on_dev = true
 
 [webhooks]
-api_version = "2025-07"
+api_version = "2025-01"
 
   [[webhooks.subscriptions]]
   topics = [ "app/uninstalled" ]
@@ -21,7 +21,7 @@ api_version = "2025-07"
   uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-scopes = "write_products"
+scopes = "read_products,read_inventory,read_locations,read_customers,read_orders,write_orders"
 
 [auth]
 redirect_urls = [
