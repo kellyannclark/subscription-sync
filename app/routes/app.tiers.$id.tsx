@@ -4,7 +4,10 @@ import type {
 } from "@remix-run/node";
 
 import { json, redirect } from "@remix-run/node";
-import { useLoaderData, useSubmit } from "@remix-run/react";
+import {
+  useLoaderData,
+  useSubmit,
+} from "@remix-run/react";
 import { useState } from "react";
 
 import {
@@ -46,19 +49,33 @@ export const loader = async ({
 }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  const profile = await db.fulfillmentProfile.findUnique({
-    where: {
-      id: params.id,
-    },
-    include: {
-      products: true,
-    },
-  });
+  if (!params.id) {
+    throw new Response(
+      "Missing fulfillment profile ID",
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const profile =
+    await db.fulfillmentProfile.findUnique({
+      where: {
+        id: params.id,
+      },
+      include: {
+        products: true,
+        subscribers: true,
+      },
+    });
 
   if (!profile) {
-    throw new Response("Fulfillment profile not found", {
-      status: 404,
-    });
+    throw new Response(
+      "Fulfillment profile not found",
+      {
+        status: 404,
+      },
+    );
   }
 
   return json({ profile });
@@ -71,12 +88,52 @@ export const action = async ({
   await authenticate.admin(request);
 
   if (!params.id) {
-    throw new Response("Missing profile ID", {
-      status: 400,
-    });
+    throw new Response(
+      "Missing fulfillment profile ID",
+      {
+        status: 400,
+      },
+    );
   }
 
   const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  /*
+   * DELETE PROFILE
+   *
+   * Only allow permanent deletion when the profile
+   * is not assigned to any subscribers.
+   */
+  if (intent === "delete") {
+    const subscriberCount =
+      await db.subscriber.count({
+        where: {
+          fulfillmentProfileId: params.id,
+        },
+      });
+
+    if (subscriberCount > 0) {
+      throw new Response(
+        "This fulfillment profile cannot be deleted because subscribers are assigned to it. Archive or hide the profile instead.",
+        {
+          status: 409,
+        },
+      );
+    }
+
+    await db.fulfillmentProfile.delete({
+      where: {
+        id: params.id,
+      },
+    });
+
+    return redirect("/app/tiers");
+  }
+
+  /*
+   * SAVE PROFILE
+   */
 
   const name = String(
     formData.get("name") ?? "",
@@ -95,7 +152,9 @@ export const action = async ({
   );
 
   const selectionDeadlineOffset = Number(
-    formData.get("selectionDeadlineOffset") ?? 7,
+    formData.get(
+      "selectionDeadlineOffset",
+    ) ?? 7,
   );
 
   const reminder14Days =
@@ -111,7 +170,8 @@ export const action = async ({
     formData.get("reminder1Day") === "true";
 
   const autoSelectEnabled =
-    formData.get("autoSelectEnabled") === "true";
+    formData.get("autoSelectEnabled") ===
+    "true";
 
   const autoSelectOffset = Number(
     formData.get("autoSelectOffset") ?? 2,
@@ -121,10 +181,13 @@ export const action = async ({
     formData.get("hideOutOfStock") === "true";
 
   const allowBackorders =
-    formData.get("allowBackorders") === "true";
+    formData.get("allowBackorders") ===
+    "true";
 
   const requireInventoryCheck =
-    formData.get("requireInventoryCheck") === "true";
+    formData.get(
+      "requireInventoryCheck",
+    ) === "true";
 
   const emailSubject = String(
     formData.get("emailSubject") ?? "",
@@ -134,18 +197,20 @@ export const action = async ({
     formData.get("emailTemplate") ?? "",
   ).trim();
 
-  const assignedProductsRaw = String(
-    formData.get("assignedProducts") ?? "[]",
-  );
-
   const assignedProducts = JSON.parse(
-    assignedProductsRaw,
+    String(
+      formData.get("assignedProducts") ??
+        "[]",
+    ),
   ) as AssignedProduct[];
 
   if (!name) {
-    throw new Response("Profile name is required.", {
-      status: 400,
-    });
+    throw new Response(
+      "Profile name is required.",
+      {
+        status: 400,
+      },
+    );
   }
 
   await db.fulfillmentProfile.update({
@@ -154,7 +219,9 @@ export const action = async ({
     },
     data: {
       name,
-      isActive: status === "active",
+
+      isActive:
+        status === "active",
 
       appstlePlanName:
         appstlePlanName || null,
@@ -182,12 +249,17 @@ export const action = async ({
 
       products: {
         deleteMany: {},
-        create: assignedProducts.map((product) => ({
-          sku: product.sku,
-          productName: product.productName,
-          forceInclude: product.forceInclude,
-          isActive: true,
-        })),
+
+        create: assignedProducts.map(
+          (product) => ({
+            sku: product.sku,
+            productName:
+              product.productName,
+            forceInclude:
+              product.forceInclude,
+            isActive: true,
+          }),
+        ),
       },
     },
   });
@@ -201,9 +273,8 @@ export default function EditFulfillmentProfilePage() {
 
   const submit = useSubmit();
 
-  const [name, setName] = useState(
-    profile.name,
-  );
+  const [name, setName] =
+    useState(profile.name);
 
   const [
     appstlePlanName,
@@ -222,57 +293,77 @@ export default function EditFulfillmentProfilePage() {
     selectionOpenOffset,
     setSelectionOpenOffset,
   ] = useState(
-    String(profile.selectionOpenOffset),
+    String(
+      profile.selectionOpenOffset,
+    ),
   );
 
   const [
     selectionDeadlineOffset,
     setSelectionDeadlineOffset,
   ] = useState(
-    String(profile.selectionDeadlineOffset),
+    String(
+      profile.selectionDeadlineOffset,
+    ),
   );
 
   const [
     reminder14Days,
     setReminder14Days,
-  ] = useState(profile.reminder14Days);
+  ] = useState(
+    profile.reminder14Days,
+  );
 
   const [
     reminder7Days,
     setReminder7Days,
-  ] = useState(profile.reminder7Days);
+  ] = useState(
+    profile.reminder7Days,
+  );
 
   const [
     reminder3Days,
     setReminder3Days,
-  ] = useState(profile.reminder3Days);
+  ] = useState(
+    profile.reminder3Days,
+  );
 
   const [
     reminder1Day,
     setReminder1Day,
-  ] = useState(profile.reminder1Day);
+  ] = useState(
+    profile.reminder1Day,
+  );
 
   const [
     autoSelectEnabled,
     setAutoSelectEnabled,
-  ] = useState(profile.autoSelectEnabled);
+  ] = useState(
+    profile.autoSelectEnabled,
+  );
 
   const [
     autoSelectOffset,
     setAutoSelectOffset,
   ] = useState(
-    String(profile.autoSelectOffset),
+    String(
+      profile.autoSelectOffset,
+    ),
   );
 
   const [
     hideOutOfStock,
     setHideOutOfStock,
-  ] = useState(profile.hideOutOfStock);
+  ] = useState(
+    profile.hideOutOfStock,
+  );
 
   const [
     allowBackorders,
     setAllowBackorders,
-  ] = useState(profile.allowBackorders);
+  ] = useState(
+    profile.allowBackorders,
+  );
 
   const [
     requireInventoryCheck,
@@ -303,14 +394,20 @@ export default function EditFulfillmentProfilePage() {
   const [
     assignedProducts,
     setAssignedProducts,
-  ] = useState<AssignedProduct[]>(
-    profile.products.map((product) => ({
-      sku: product.sku,
-      productName:
-        product.productName,
-      forceInclude:
-        product.forceInclude,
-    })),
+  ] = useState<
+    AssignedProduct[]
+  >(
+    profile.products.map(
+      (product) => ({
+        sku: product.sku,
+
+        productName:
+          product.productName,
+
+        forceInclude:
+          product.forceInclude,
+      }),
+    ),
   );
 
   const statusOptions = [
@@ -325,18 +422,23 @@ export default function EditFulfillmentProfilePage() {
   ];
 
   const filteredSearchProducts =
-    mockSearchProducts.filter((product) =>
-      product
-        .toLowerCase()
-        .includes(
-          searchValue.toLowerCase(),
-        ),
+    mockSearchProducts.filter(
+      (product) =>
+        product
+          .toLowerCase()
+          .includes(
+            searchValue.toLowerCase(),
+          ),
     );
 
   const handleSaveChanges = () => {
-    const formData = new FormData();
+    const formData =
+      new FormData();
 
-    formData.append("name", name);
+    formData.append(
+      "name",
+      name,
+    );
 
     formData.append(
       "appstlePlanName",
@@ -360,27 +462,37 @@ export default function EditFulfillmentProfilePage() {
 
     formData.append(
       "reminder14Days",
-      String(reminder14Days),
+      String(
+        reminder14Days,
+      ),
     );
 
     formData.append(
       "reminder7Days",
-      String(reminder7Days),
+      String(
+        reminder7Days,
+      ),
     );
 
     formData.append(
       "reminder3Days",
-      String(reminder3Days),
+      String(
+        reminder3Days,
+      ),
     );
 
     formData.append(
       "reminder1Day",
-      String(reminder1Day),
+      String(
+        reminder1Day,
+      ),
     );
 
     formData.append(
       "autoSelectEnabled",
-      String(autoSelectEnabled),
+      String(
+        autoSelectEnabled,
+      ),
     );
 
     formData.append(
@@ -390,17 +502,23 @@ export default function EditFulfillmentProfilePage() {
 
     formData.append(
       "hideOutOfStock",
-      String(hideOutOfStock),
+      String(
+        hideOutOfStock,
+      ),
     );
 
     formData.append(
       "allowBackorders",
-      String(allowBackorders),
+      String(
+        allowBackorders,
+      ),
     );
 
     formData.append(
       "requireInventoryCheck",
-      String(requireInventoryCheck),
+      String(
+        requireInventoryCheck,
+      ),
     );
 
     formData.append(
@@ -420,9 +538,42 @@ export default function EditFulfillmentProfilePage() {
       ),
     );
 
-    submit(formData, {
-      method: "post",
-    });
+    submit(
+      formData,
+      {
+        method: "post",
+      },
+    );
+  };
+
+  const handleDeleteProfile = () => {
+    const confirmed =
+      window.confirm(
+        `Delete "${profile.name}" permanently?
+
+This cannot be undone.
+
+If subscribers are assigned to this profile, SubscriptionSync will block the deletion.`,
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const formData =
+      new FormData();
+
+    formData.append(
+      "intent",
+      "delete",
+    );
+
+    submit(
+      formData,
+      {
+        method: "post",
+      },
+    );
   };
 
   const handleAddProduct = (
@@ -441,10 +592,13 @@ export default function EditFulfillmentProfilePage() {
 
     const alreadyAssigned =
       assignedProducts.some(
-        (item) => item.sku === sku,
+        (item) =>
+          item.sku === sku,
       );
 
-    if (alreadyAssigned) return;
+    if (alreadyAssigned) {
+      return;
+    }
 
     setAssignedProducts(
       (current) => [
@@ -471,22 +625,25 @@ export default function EditFulfillmentProfilePage() {
     );
   };
 
-  const handleToggleForceInclude = (
-    sku: string | null,
-  ) => {
-    setAssignedProducts(
-      (current) =>
-        current.map((item) =>
-          item.sku === sku
-            ? {
-                ...item,
-                forceInclude:
-                  !item.forceInclude,
-              }
-            : item,
-        ),
-    );
-  };
+  const handleToggleForceInclude =
+    (
+      sku: string | null,
+    ) => {
+      setAssignedProducts(
+        (current) =>
+          current.map(
+            (item) =>
+              item.sku === sku
+                ? {
+                    ...item,
+
+                    forceInclude:
+                      !item.forceInclude,
+                  }
+                : item,
+          ),
+      );
+    };
 
   const reminderCount = [
     reminder14Days,
@@ -506,7 +663,8 @@ export default function EditFulfillmentProfilePage() {
           url: "/app/tiers",
         }}
         primaryAction={{
-          content: "Save Changes",
+          content:
+            "Save Changes",
           onAction:
             handleSaveChanges,
         }}
@@ -514,6 +672,8 @@ export default function EditFulfillmentProfilePage() {
         <TitleBar title="Edit Fulfillment Profile" />
 
         <BlockStack gap="500">
+          {/* HERO */}
+
           <div className="ss-hero">
             <InlineStack
               align="space-between"
@@ -535,7 +695,8 @@ export default function EditFulfillmentProfilePage() {
                   tone="subdued"
                 >
                   Appstle manages the subscription.
-                  SubscriptionSync manages the monthly selection and fulfillment workflow.
+                  SubscriptionSync manages the monthly
+                  selection and fulfillment workflow.
                 </Text>
               </BlockStack>
 
@@ -559,13 +720,15 @@ export default function EditFulfillmentProfilePage() {
                   variant="bodySm"
                   tone="subdued"
                 >
-                  Profile ID: {profile.id}
+                  Profile ID:{" "}
+                  {profile.id}
                 </Text>
               </BlockStack>
             </InlineStack>
           </div>
 
-          {/* PROFILE */}
+          {/* PROFILE DETAILS */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -583,7 +746,9 @@ export default function EditFulfillmentProfilePage() {
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Define the tier name, status, and corresponding Appstle subscription plan.
+                  Define the tier name, status, and
+                  corresponding Appstle subscription
+                  plan.
                 </Text>
               </BlockStack>
 
@@ -596,14 +761,18 @@ export default function EditFulfillmentProfilePage() {
 
               <Select
                 label="Status"
-                options={statusOptions}
+                options={
+                  statusOptions
+                }
                 value={status}
                 onChange={setStatus}
               />
 
               <TextField
                 label="Linked Appstle Plan"
-                value={appstlePlanName}
+                value={
+                  appstlePlanName
+                }
                 onChange={
                   setAppstlePlanName
                 }
@@ -615,6 +784,7 @@ export default function EditFulfillmentProfilePage() {
           </Card>
 
           {/* SELECTION WINDOW */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -632,7 +802,10 @@ export default function EditFulfillmentProfilePage() {
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  These settings determine when the customer can make their monthly selection relative to the upcoming Appstle order date.
+                  These settings determine when the
+                  customer can make their monthly
+                  selection relative to the upcoming
+                  Appstle order date.
                 </Text>
               </BlockStack>
 
@@ -674,6 +847,7 @@ export default function EditFulfillmentProfilePage() {
           </Card>
 
           {/* REMINDERS */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -691,7 +865,9 @@ export default function EditFulfillmentProfilePage() {
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Choose which reminders SubscriptionSync should send before the selection deadline.
+                  Choose which reminders SubscriptionSync
+                  should send before the selection
+                  deadline.
                 </Text>
               </BlockStack>
 
@@ -760,6 +936,7 @@ export default function EditFulfillmentProfilePage() {
           </Card>
 
           {/* AUTO SELECTION */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -777,7 +954,9 @@ export default function EditFulfillmentProfilePage() {
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Define what happens when a customer does not submit a selection before the deadline.
+                  Define what happens when a customer
+                  does not submit a selection before the
+                  deadline.
                 </Text>
               </BlockStack>
 
@@ -813,6 +992,7 @@ export default function EditFulfillmentProfilePage() {
           </Card>
 
           {/* INVENTORY */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -830,7 +1010,9 @@ export default function EditFulfillmentProfilePage() {
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Control how Shopify inventory affects the products and sizes available to the customer.
+                  Control how Shopify inventory affects
+                  the products and sizes available to the
+                  customer.
                 </Text>
               </BlockStack>
 
@@ -883,6 +1065,7 @@ export default function EditFulfillmentProfilePage() {
           </Card>
 
           {/* PRODUCTS */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -900,14 +1083,20 @@ export default function EditFulfillmentProfilePage() {
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Choose the products customers in this tier may select. These are still temporary sandbox products until we connect directly to Shopify products and variants.
+                  Choose the products customers in this
+                  tier may select. These are temporary
+                  sandbox products until we connect
+                  directly to Shopify products and
+                  variants.
                 </Text>
               </BlockStack>
 
               <TextField
                 label="Search products"
                 labelHidden
-                value={searchValue}
+                value={
+                  searchValue
+                }
                 onChange={
                   setSearchValue
                 }
@@ -959,7 +1148,8 @@ export default function EditFulfillmentProfilePage() {
 
               <Divider />
 
-              {assignedProducts.length === 0 ? (
+              {assignedProducts.length ===
+              0 ? (
                 <Box
                   padding="400"
                   background="bg-surface-secondary"
@@ -970,7 +1160,8 @@ export default function EditFulfillmentProfilePage() {
                     variant="bodyMd"
                     tone="subdued"
                   >
-                    No products assigned to this fulfillment profile yet.
+                    No products assigned to this
+                    fulfillment profile yet.
                   </Text>
                 </Box>
               ) : (
@@ -994,7 +1185,9 @@ export default function EditFulfillmentProfilePage() {
                               variant="bodyMd"
                               fontWeight="semibold"
                             >
-                              {item.productName}
+                              {
+                                item.productName
+                              }
                             </Text>
 
                             <Text
@@ -1050,6 +1243,7 @@ export default function EditFulfillmentProfilePage() {
           </Card>
 
           {/* EMAIL */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -1067,13 +1261,17 @@ export default function EditFulfillmentProfilePage() {
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Configure the email customers will eventually receive when it is time to make their monthly selection.
+                  Configure the email customers will
+                  eventually receive when it is time to
+                  make their monthly selection.
                 </Text>
               </BlockStack>
 
               <TextField
                 label="Email subject"
-                value={emailSubject}
+                value={
+                  emailSubject
+                }
                 onChange={
                   setEmailSubject
                 }
@@ -1082,7 +1280,9 @@ export default function EditFulfillmentProfilePage() {
 
               <TextField
                 label="Email template"
-                value={emailTemplate}
+                value={
+                  emailTemplate
+                }
                 onChange={
                   setEmailTemplate
                 }
@@ -1094,6 +1294,7 @@ export default function EditFulfillmentProfilePage() {
           </Card>
 
           {/* SUMMARY */}
+
           <Card>
             <BlockStack gap="300">
               <BlockStack gap="100">
@@ -1114,7 +1315,8 @@ export default function EditFulfillmentProfilePage() {
                 <SummaryBox
                   label="Status"
                   value={
-                    status === "active"
+                    status ===
+                    "active"
                       ? "Active"
                       : "Hidden"
                   }
@@ -1174,31 +1376,66 @@ export default function EditFulfillmentProfilePage() {
                   Selection Window:
                 </strong>{" "}
                 Opens{" "}
-                {selectionOpenOffset} days
-                before order and closes{" "}
-                {selectionDeadlineOffset} days
-                before order.
+                {selectionOpenOffset}{" "}
+                days before order and
+                closes{" "}
+                {
+                  selectionDeadlineOffset
+                }{" "}
+                days before order.
               </Text>
 
-              <InlineStack
-                align="end"
-                gap="200"
-              >
-                <Button
-                  url="/app/tiers"
-                  variant="plain"
-                >
-                  Cancel
-                </Button>
+              <Divider />
 
-                <Button
-                  variant="primary"
-                  onClick={
-                    handleSaveChanges
-                  }
-                >
-                  Save Changes
-                </Button>
+              {/* DELETE + SAVE ACTIONS */}
+
+              <InlineStack
+                align="space-between"
+                blockAlign="center"
+                gap="300"
+              >
+                <BlockStack gap="050">
+                  <Button
+                    tone="critical"
+                    variant="plain"
+                    onClick={
+                      handleDeleteProfile
+                    }
+                  >
+                    Delete Profile
+                  </Button>
+
+                  {profile.subscribers
+                    .length > 0 && (
+                    <Text
+                      as="p"
+                      variant="bodySm"
+                      tone="subdued"
+                    >
+                      Profiles with
+                      assigned subscribers
+                      cannot be deleted.
+                    </Text>
+                  )}
+                </BlockStack>
+
+                <InlineStack gap="200">
+                  <Button
+                    url="/app/tiers"
+                    variant="plain"
+                  >
+                    Cancel
+                  </Button>
+
+                  <Button
+                    variant="primary"
+                    onClick={
+                      handleSaveChanges
+                    }
+                  >
+                    Save Changes
+                  </Button>
+                </InlineStack>
               </InlineStack>
             </BlockStack>
           </Card>
@@ -1252,7 +1489,9 @@ function ToggleSetting({
         }
         onClick={onToggle}
       >
-        {enabled ? "On" : "Off"}
+        {enabled
+          ? "On"
+          : "Off"}
       </Button>
     </InlineStack>
   );
