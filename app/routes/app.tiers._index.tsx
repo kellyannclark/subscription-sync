@@ -1,6 +1,10 @@
-import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
+import type {
+  LoaderFunctionArgs,
+  ActionFunctionArgs,
+} from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { useLoaderData, useSubmit } from "@remix-run/react";
+
 import {
   Page,
   Card,
@@ -12,6 +16,7 @@ import {
   Badge,
   Pagination,
 } from "@shopify/polaris";
+
 import { TitleBar } from "@shopify/app-bridge-react";
 
 import { authenticate } from "../shopify.server";
@@ -20,27 +25,38 @@ import db from "../db.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
-  const tiers = await db.tier.findMany({
+  const profiles = await db.fulfillmentProfile.findMany({
     orderBy: {
       updatedAt: "desc",
     },
     include: {
       products: true,
+      subscribers: true,
     },
   });
 
-  return json({ tiers });
+  return json({ profiles });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   await authenticate.admin(request);
 
   const formData = await request.formData();
-  const tierId = formData.get("tierId") as string;
+
+  const profileId = formData.get("profileId");
+
+  if (typeof profileId !== "string") {
+    throw new Response("Missing fulfillment profile ID", {
+      status: 400,
+    });
+  }
+
   const isActive = formData.get("isActive") === "true";
 
-  await db.tier.update({
-    where: { id: tierId },
+  await db.fulfillmentProfile.update({
+    where: {
+      id: profileId,
+    },
     data: {
       isActive,
     },
@@ -49,35 +65,83 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return redirect("/app/tiers");
 };
 
-export default function TierListPage() {
-  const { tiers } = useLoaderData<typeof loader>();
+export default function FulfillmentProfileListPage() {
+  const { profiles } = useLoaderData<typeof loader>();
   const submit = useSubmit();
 
-  const handleToggleTier = (tierId: string, currentStatus: boolean) => {
+  const handleToggleProfile = (
+    profileId: string,
+    currentStatus: boolean,
+  ) => {
     const formData = new FormData();
 
-    formData.append("tierId", tierId);
-    formData.append("isActive", String(!currentStatus));
+    formData.append("profileId", profileId);
+    formData.append(
+      "isActive",
+      String(!currentStatus),
+    );
 
-    submit(formData, { method: "post" });
+    submit(formData, {
+      method: "post",
+    });
   };
 
-  const rowMarkup = tiers.map((tier, index) => (
-    <IndexTable.Row id={tier.id} key={tier.id} position={index}>
+  const rowMarkup = profiles.map((profile, index) => (
+    <IndexTable.Row
+      id={profile.id}
+      key={profile.id}
+      position={index}
+    >
       <IndexTable.Cell>
-        <Text as="span" variant="bodyMd" fontWeight="semibold">
-          {tier.name}
-        </Text>
+        <BlockStack gap="050">
+          <Text as="span" fontWeight="semibold">
+            {profile.name}
+          </Text>
+
+          {profile.description && (
+            <Text
+              as="span"
+              variant="bodySm"
+              tone="subdued"
+            >
+              {profile.description}
+            </Text>
+          )}
+        </BlockStack>
       </IndexTable.Cell>
 
-      <IndexTable.Cell>{tier.products.length}</IndexTable.Cell>
-
       <IndexTable.Cell>
-        {new Date(tier.updatedAt).toLocaleDateString()}
+        {profile.appstlePlanName ? (
+          <Badge tone="info">
+            {profile.appstlePlanName}
+          </Badge>
+        ) : (
+          <Text
+            as="span"
+            variant="bodySm"
+            tone="subdued"
+          >
+            Not linked
+          </Text>
+        )}
       </IndexTable.Cell>
 
       <IndexTable.Cell>
-        {tier.isActive ? (
+        {profile.subscribers.length}
+      </IndexTable.Cell>
+
+      <IndexTable.Cell>
+        {profile.products.length}
+      </IndexTable.Cell>
+
+      <IndexTable.Cell>
+        {new Date(
+          profile.updatedAt,
+        ).toLocaleDateString()}
+      </IndexTable.Cell>
+
+      <IndexTable.Cell>
+        {profile.isActive ? (
           <Badge tone="success">Active</Badge>
         ) : (
           <Badge tone="attention">Hidden</Badge>
@@ -86,20 +150,37 @@ export default function TierListPage() {
 
       <IndexTable.Cell>
         <InlineStack gap="200">
-          <Button url={`/app/tiers/${tier.id}`} variant="plain">
+          <Button
+            url={`/app/tiers/${profile.id}`}
+            variant="plain"
+          >
             View
           </Button>
 
-          <Button url={`/app/tiers/${tier.id}`} variant="plain">
+          <Button
+            url={`/app/tiers/${profile.id}`}
+            variant="plain"
+          >
             Edit
           </Button>
 
           <Button
             variant="plain"
-            tone={tier.isActive ? "critical" : undefined}
-            onClick={() => handleToggleTier(tier.id, tier.isActive)}
+            tone={
+              profile.isActive
+                ? "critical"
+                : undefined
+            }
+            onClick={() =>
+              handleToggleProfile(
+                profile.id,
+                profile.isActive,
+              )
+            }
           >
-            {tier.isActive ? "Archive" : "Restore"}
+            {profile.isActive
+              ? "Archive"
+              : "Restore"}
           </Button>
         </InlineStack>
       </IndexTable.Cell>
@@ -107,59 +188,140 @@ export default function TierListPage() {
   ));
 
   return (
-    <Page
-      title="Tier List"
-      primaryAction={{
-        content: "Create New Tier",
-        url: "/app/tiers/new",
-      }}
-      secondaryActions={[
-        {
-          content: "Sync Now",
-          onAction: () => {
-            console.log("Sync triggered");
-          },
-        },
-      ]}
-    >
-      <TitleBar title="Tier List" />
+    <div className="ss-dashboard">
+      <Page
+        title="Fulfillment Profiles"
+        subtitle="Configure the operational rules behind each Little Adventures subscription tier."
+        primaryAction={{
+          content: "Create New Profile",
+          url: "/app/tiers/new",
+        }}
+      >
+        <TitleBar title="Fulfillment Profiles" />
 
-      <BlockStack gap="500">
-        <Card>
+        <BlockStack gap="500">
+          <div className="ss-hero">
+            <BlockStack gap="200">
+              <Text
+                as="h2"
+                variant="headingLg"
+              >
+                Subscription Fulfillment Setup
+              </Text>
+
+              <Text
+                as="p"
+                variant="bodyMd"
+                tone="subdued"
+              >
+                Each fulfillment profile connects an
+                Appstle subscription plan to the
+                SubscriptionSync rules used for monthly
+                selections, products, sizes, inventory,
+                reminders, and fulfillment.
+              </Text>
+            </BlockStack>
+          </div>
+
           <BlockStack gap="300">
-            <Text as="p" variant="bodyMd" tone="subdued">
-              View all subscription tiers and open individual pages to edit
-              details or manage products and size availability.
-            </Text>
+            <BlockStack gap="100">
+              <div className="ss-section-accent" />
+
+              <Text
+                as="h2"
+                variant="headingLg"
+              >
+                Fulfillment Profiles
+              </Text>
+
+              <Text
+                as="p"
+                variant="bodyMd"
+                tone="subdued"
+              >
+                Little Adventures can continue to think of
+                these as subscription tiers. SubscriptionSync
+                uses the profile to define how each tier is
+                fulfilled.
+              </Text>
+            </BlockStack>
+
+            <Card padding="0">
+              <IndexTable
+                resourceName={{
+                  singular: "fulfillment profile",
+                  plural: "fulfillment profiles",
+                }}
+                itemCount={profiles.length}
+                headings={[
+                  {
+                    title: "Profile",
+                  },
+                  {
+                    title: "Linked Appstle Plan",
+                  },
+                  {
+                    title: "Subscribers",
+                  },
+                  {
+                    title: "Eligible Products",
+                  },
+                  {
+                    title: "Last Updated",
+                  },
+                  {
+                    title: "Status",
+                  },
+                  {
+                    title: "Actions",
+                  },
+                ]}
+                selectable={false}
+              >
+                {rowMarkup}
+              </IndexTable>
+
+              {profiles.length === 0 && (
+                <div
+                  style={{
+                    padding: "32px",
+                    textAlign: "center",
+                  }}
+                >
+                  <BlockStack gap="200">
+                    <Text
+                      as="p"
+                      variant="headingMd"
+                    >
+                      No fulfillment profiles yet
+                    </Text>
+
+                    <Text
+                      as="p"
+                      variant="bodyMd"
+                      tone="subdued"
+                    >
+                      Create a fulfillment profile to link
+                      an Appstle subscription plan with its
+                      monthly selection and fulfillment
+                      rules.
+                    </Text>
+                  </BlockStack>
+                </div>
+              )}
+            </Card>
           </BlockStack>
-        </Card>
 
-        <Card padding="0">
-          <IndexTable
-            resourceName={{ singular: "tier", plural: "tiers" }}
-            itemCount={tiers.length}
-            headings={[
-              { title: "Tier Name" },
-              { title: "Active Products" },
-              { title: "Last Updated" },
-              { title: "Availability" },
-              { title: "Actions" },
-            ]}
-            selectable={false}
-          >
-            {rowMarkup}
-          </IndexTable>
-        </Card>
-
-        <InlineStack align="center">
-          <Pagination
-            hasPrevious={false}
-            onPrevious={() => {}}
-            hasNext={false}
-            onNext={() => {}}
-          />
-        </InlineStack>
-      </BlockStack>
-    </Page>
+          <InlineStack align="center">
+            <Pagination
+              hasPrevious={false}
+              onPrevious={() => {}}
+              hasNext={false}
+              onNext={() => {}}
+            />
+          </InlineStack>
+        </BlockStack>
+      </Page>
+    </div>
   );
 }

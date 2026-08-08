@@ -1,7 +1,12 @@
-import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
+import type {
+  LoaderFunctionArgs,
+  ActionFunctionArgs,
+} from "@remix-run/node";
+
+import { redirect } from "@remix-run/node";
 import { useSubmit } from "@remix-run/react";
 import { useState } from "react";
+
 import {
   Page,
   Card,
@@ -14,39 +19,131 @@ import {
   Box,
   Divider,
 } from "@shopify/polaris";
+
 import { TitleBar } from "@shopify/app-bridge-react";
+
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
+
   return null;
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  console.log("ACTION IS RUNNING");
-
   await authenticate.admin(request);
 
   const formData = await request.formData();
 
-  const tierName = formData.get("tierName") as string;
-  const description = formData.get("description") as string;
-  const status = formData.get("status") as string;
+  const name = String(formData.get("name") ?? "").trim();
+
+  const appstlePlanName = String(
+    formData.get("appstlePlanName") ?? "",
+  ).trim();
+
+  const status = String(
+    formData.get("status") ?? "active",
+  );
+
+  const selectionOpenOffset = Number(
+    formData.get("selectionOpenOffset") ?? 14,
+  );
+
+  const selectionDeadlineOffset = Number(
+    formData.get("selectionDeadlineOffset") ?? 7,
+  );
+
+  const autoSelectOffset = Number(
+    formData.get("autoSelectOffset") ?? 2,
+  );
+
+  const reminder14Days =
+    formData.get("reminder14Days") === "true";
+
+  const reminder7Days =
+    formData.get("reminder7Days") === "true";
+
+  const reminder3Days =
+    formData.get("reminder3Days") === "true";
+
+  const reminder1Day =
+    formData.get("reminder1Day") === "true";
+
+  const autoSelectEnabled =
+    formData.get("autoSelectEnabled") === "true";
+
+  const hideOutOfStock =
+    formData.get("hideOutOfStock") === "true";
+
+  const allowBackorders =
+    formData.get("allowBackorders") === "true";
+
+  const requireInventoryCheck =
+    formData.get("requireInventoryCheck") === "true";
+
+  const emailSubject = String(
+    formData.get("emailSubject") ?? "",
+  ).trim();
+
+  const emailTemplate = String(
+    formData.get("emailTemplate") ?? "",
+  ).trim();
+
+  const selectedProductsRaw = String(
+    formData.get("selectedProducts") ?? "[]",
+  );
+
   const selectedProducts = JSON.parse(
-    formData.get("selectedProducts") as string,
+    selectedProductsRaw,
   ) as string[];
 
-  await db.tier.create({
+  if (!name) {
+    throw new Response("Profile name is required.", {
+      status: 400,
+    });
+  }
+
+  await db.fulfillmentProfile.create({
     data: {
-      name: tierName,
-      description,
+      name,
       isActive: status === "active",
+
+      appstlePlanName: appstlePlanName || null,
+
+      selectionOpenOffset,
+      selectionDeadlineOffset,
+
+      reminder14Days,
+      reminder7Days,
+      reminder3Days,
+      reminder1Day,
+
+      autoSelectEnabled,
+      autoSelectOffset,
+
+      hideOutOfStock,
+      allowBackorders,
+      requireInventoryCheck,
+
+      emailSubject: emailSubject || null,
+      emailTemplate: emailTemplate || null,
+
       products: {
-        create: selectedProducts.map((product) => ({
-          sku: product.split(" ")[0],
-          productName: product,
-        })),
+        create: selectedProducts.map((product) => {
+          const firstSpaceIndex = product.indexOf(" ");
+
+          const sku =
+            firstSpaceIndex > -1
+              ? product.substring(0, firstSpaceIndex)
+              : product;
+
+          return {
+            sku,
+            productName: product,
+            isActive: true,
+          };
+        }),
       },
     },
   });
@@ -66,284 +163,847 @@ const mockProducts = [
   "50478 Snow White XL",
 ];
 
-export default function CreateTierPage() {
+export default function CreateFulfillmentProfilePage() {
   const submit = useSubmit();
-  const [tierName, setTierName] = useState("Pirate Tier");
-  const [description, setDescription] = useState(
-    "A bold and adventurous subscription tier featuring swashbuckling costumes, rugged styles, and treasures fit for little explorers who love high-seas adventures.",
-  );
+
+  const [name, setName] = useState("");
+
+  const [appstlePlanName, setAppstlePlanName] =
+    useState("");
+
   const [status, setStatus] = useState("active");
-  const [searchValue, setSearchValue] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState<string[]>(mockProducts);
 
-  const [neverSentBefore, setNeverSentBefore] = useState(true);
-  const [sameSizeAsLastSent, setSameSizeAsLastSent] = useState(true);
-  const [onlyOfferActive, setOnlyOfferActive] = useState(true);
+  const [
+    selectionOpenOffset,
+    setSelectionOpenOffset,
+  ] = useState("14");
 
-  const filteredProducts = mockProducts.filter((product) =>
-    product.toLowerCase().includes(searchValue.toLowerCase()),
+  const [
+    selectionDeadlineOffset,
+    setSelectionDeadlineOffset,
+  ] = useState("7");
+
+  const [reminder14Days, setReminder14Days] =
+    useState(true);
+
+  const [reminder7Days, setReminder7Days] =
+    useState(true);
+
+  const [reminder3Days, setReminder3Days] =
+    useState(true);
+
+  const [reminder1Day, setReminder1Day] =
+    useState(true);
+
+  const [
+    autoSelectEnabled,
+    setAutoSelectEnabled,
+  ] = useState(true);
+
+  const [autoSelectOffset, setAutoSelectOffset] =
+    useState("2");
+
+  const [hideOutOfStock, setHideOutOfStock] =
+    useState(true);
+
+  const [allowBackorders, setAllowBackorders] =
+    useState(false);
+
+  const [
+    requireInventoryCheck,
+    setRequireInventoryCheck,
+  ] = useState(true);
+
+  const [emailSubject, setEmailSubject] =
+    useState(
+      "It's time to make your monthly selection!",
+    );
+
+  const [emailTemplate, setEmailTemplate] =
+    useState(
+      `Hi {{customer_name}},
+
+It's time to make your monthly Little Adventures selection.
+
+Use the link below to choose from the products and sizes currently available for your subscription.
+
+{{selection_link}}
+
+Thank you!
+
+Little Adventures`,
+    );
+
+  const [searchValue, setSearchValue] =
+    useState("");
+
+  const [
+    selectedProducts,
+    setSelectedProducts,
+  ] = useState<string[]>([]);
+
+  const filteredProducts = mockProducts.filter(
+    (product) =>
+      product
+        .toLowerCase()
+        .includes(searchValue.toLowerCase()),
   );
 
   const statusOptions = [
-    { label: "Active", value: "active" },
-    { label: "Hidden", value: "hidden" },
-    { label: "Archived", value: "archived" },
+    {
+      label: "Active",
+      value: "active",
+    },
+    {
+      label: "Hidden",
+      value: "hidden",
+    },
   ];
 
-const handleCreateTier = () => {
-  const formData = new FormData();
+  const handleToggleProduct = (
+    product: string,
+  ) => {
+    setSelectedProducts((current) => {
+      if (current.includes(product)) {
+        return current.filter(
+          (item) => item !== product,
+        );
+      }
 
-  formData.append("tierName", tierName);
-  formData.append("description", description);
-  formData.append("status", status);
-  formData.append("selectedProducts", JSON.stringify(selectedProducts));
+      return [...current, product];
+    });
+  };
 
-  submit(formData, { method: "post" });
-};
+  const handleCreateProfile = () => {
+    const formData = new FormData();
 
-  const handleAddProduct = (product: string) => {
-    if (!selectedProducts.includes(product)) {
-      setSelectedProducts((prev) => [...prev, product]);
-    }
+    formData.append("name", name);
+
+    formData.append(
+      "appstlePlanName",
+      appstlePlanName,
+    );
+
+    formData.append("status", status);
+
+    formData.append(
+      "selectionOpenOffset",
+      selectionOpenOffset,
+    );
+
+    formData.append(
+      "selectionDeadlineOffset",
+      selectionDeadlineOffset,
+    );
+
+    formData.append(
+      "reminder14Days",
+      String(reminder14Days),
+    );
+
+    formData.append(
+      "reminder7Days",
+      String(reminder7Days),
+    );
+
+    formData.append(
+      "reminder3Days",
+      String(reminder3Days),
+    );
+
+    formData.append(
+      "reminder1Day",
+      String(reminder1Day),
+    );
+
+    formData.append(
+      "autoSelectEnabled",
+      String(autoSelectEnabled),
+    );
+
+    formData.append(
+      "autoSelectOffset",
+      autoSelectOffset,
+    );
+
+    formData.append(
+      "hideOutOfStock",
+      String(hideOutOfStock),
+    );
+
+    formData.append(
+      "allowBackorders",
+      String(allowBackorders),
+    );
+
+    formData.append(
+      "requireInventoryCheck",
+      String(requireInventoryCheck),
+    );
+
+    formData.append(
+      "emailSubject",
+      emailSubject,
+    );
+
+    formData.append(
+      "emailTemplate",
+      emailTemplate,
+    );
+
+    formData.append(
+      "selectedProducts",
+      JSON.stringify(selectedProducts),
+    );
+
+    submit(formData, {
+      method: "post",
+    });
   };
 
   return (
-  <Page
-    title="Create New Tier"
-    backAction={{ content: "Tiers", url: "/app/tiers" }}
-    primaryAction={{
-      content: "Create Tier",
-      onAction: handleCreateTier,
-    }}
-  >
-    <TitleBar />
+    <div className="ss-dashboard">
+      <Page
+        title="Create Fulfillment Profile"
+        subtitle="Configure how a Little Adventures subscription tier moves from Appstle subscription to monthly customer selection and fulfillment."
+        backAction={{
+          content: "Fulfillment Profiles",
+          url: "/app/tiers",
+        }}
+        primaryAction={{
+          content: "Create Profile",
+          onAction: handleCreateProfile,
+        }}
+      >
+        <TitleBar title="Create Fulfillment Profile" />
 
-    <BlockStack gap="500">
-      <Text as="p" variant="bodyMd" tone="subdued">
-        Create a new subscription tier and assign eligible products.
-      </Text>
-
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h2" variant="headingLg">
-            Tier Details
-          </Text>
-
-          <InlineStack gap="400" align="space-between">
-            <Box width="30%">
-              <Text as="span" variant="bodyMd" fontWeight="medium">
-                Tier Name:
+        <BlockStack gap="500">
+          <div className="ss-hero">
+            <BlockStack gap="200">
+              <Text as="h2" variant="headingLg">
+                Build the Operational Rules for This Tier
               </Text>
-            </Box>
-            <Box width="70%">
+
+              <Text
+                as="p"
+                variant="bodyMd"
+                tone="subdued"
+              >
+                Appstle manages the subscription itself.
+                This fulfillment profile tells
+                SubscriptionSync how to manage the
+                customer selection, available products,
+                inventory rules, reminders, and
+                fulfillment workflow for that
+                subscription tier.
+              </Text>
+            </BlockStack>
+          </div>
+
+          {/* PROFILE DETAILS */}
+          <Card>
+            <BlockStack gap="400">
+              <BlockStack gap="100">
+                <div className="ss-section-accent" />
+
+                <Text
+                  as="h2"
+                  variant="headingLg"
+                >
+                  Profile Details
+                </Text>
+
+                <Text
+                  as="p"
+                  variant="bodyMd"
+                  tone="subdued"
+                >
+                  Give this profile the tier name Little
+                  Adventures will recognize inside
+                  SubscriptionSync.
+                </Text>
+              </BlockStack>
+
               <TextField
-                label="Tier Name"
-                labelHidden
-                value={tierName}
-                onChange={setTierName}
+                label="Tier / Profile Name"
+                value={name}
+                onChange={setName}
                 autoComplete="off"
+                placeholder="Example: Princess Traditional"
               />
-            </Box>
-          </InlineStack>
 
-          <InlineStack gap="400" align="space-between" blockAlign="start">
-            <Box width="30%">
-              <Text as="span" variant="bodyMd" fontWeight="medium">
-                Description:
-              </Text>
-            </Box>
-            <Box width="70%">
-              <TextField
-                label="Description"
-                labelHidden
-                value={description}
-                onChange={setDescription}
-                multiline={6}
-                autoComplete="off"
-              />
-            </Box>
-          </InlineStack>
-
-          <InlineStack gap="400" align="space-between" blockAlign="center">
-            <Box width="30%">
-              <Text as="span" variant="bodyMd" fontWeight="medium">
-                Status:
-              </Text>
-            </Box>
-            <Box width="70%">
               <Select
                 label="Status"
-                labelHidden
                 options={statusOptions}
-                onChange={setStatus}
                 value={status}
+                onChange={setStatus}
               />
-            </Box>
-          </InlineStack>
+            </BlockStack>
+          </Card>
 
-          <Text as="p" variant="bodySm" tone="subdued">
-            (Active | Hidden | Archived)
-          </Text>
-        </BlockStack>
-      </Card>
+          {/* APPSTLE */}
+          <Card>
+            <BlockStack gap="400">
+              <BlockStack gap="100">
+                <div className="ss-section-accent" />
 
-      <Card>
-        <BlockStack gap="400">
-          <Text as="h2" variant="headingLg">
-            Assign Products
-          </Text>
-
-          <TextField
-            label="Search products"
-            labelHidden
-            value={searchValue}
-            onChange={setSearchValue}
-            autoComplete="off"
-            placeholder="Start typing..."
-          />
-
-          <Text as="h4" variant="bodyMd" fontWeight="medium">
-            Product List:
-          </Text>
-
-          <Box
-            padding="300"
-            borderWidth="025"
-            borderColor="border"
-            borderRadius="200"
-            minHeight="220px"
-          >
-            <BlockStack gap="200">
-              {filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <InlineStack
-                    key={product}
-                    align="space-between"
-                    blockAlign="center"
-                  >
-                    <Text as="span" variant="bodyMd">
-                      {product}
-                    </Text>
-                    <Button
-                      size="slim"
-                      variant="plain"
-                      onClick={() => handleAddProduct(product)}
-                    >
-                      Add
-                    </Button>
-                  </InlineStack>
-                ))
-              ) : (
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  No products found.
+                <Text
+                  as="h2"
+                  variant="headingLg"
+                >
+                  Appstle Connection
                 </Text>
+
+                <Text
+                  as="p"
+                  variant="bodyMd"
+                  tone="subdued"
+                >
+                  Link this profile to the corresponding
+                  Appstle subscription plan.
+                </Text>
+              </BlockStack>
+
+              <TextField
+                label="Linked Appstle Plan"
+                value={appstlePlanName}
+                onChange={setAppstlePlanName}
+                autoComplete="off"
+                placeholder="Example: Princess Subscription - Traditional"
+                helpText="For now this is entered manually. Later, the Appstle integration can populate and sync this automatically."
+              />
+            </BlockStack>
+          </Card>
+
+          {/* SELECTION WINDOW */}
+          <Card>
+            <BlockStack gap="400">
+              <BlockStack gap="100">
+                <div className="ss-section-accent" />
+
+                <Text
+                  as="h2"
+                  variant="headingLg"
+                >
+                  Customer Selection Window
+                </Text>
+
+                <Text
+                  as="p"
+                  variant="bodyMd"
+                  tone="subdued"
+                >
+                  These dates are calculated from the
+                  customer's upcoming Appstle order date.
+                </Text>
+              </BlockStack>
+
+              <InlineStack gap="400" wrap>
+                <Box minWidth="240px">
+                  <TextField
+                    label="Selection opens"
+                    value={selectionOpenOffset}
+                    onChange={setSelectionOpenOffset}
+                    type="number"
+                    autoComplete="off"
+                    suffix="days before order"
+                  />
+                </Box>
+
+                <Box minWidth="240px">
+                  <TextField
+                    label="Selection deadline"
+                    value={selectionDeadlineOffset}
+                    onChange={
+                      setSelectionDeadlineOffset
+                    }
+                    type="number"
+                    autoComplete="off"
+                    suffix="days before order"
+                  />
+                </Box>
+              </InlineStack>
+            </BlockStack>
+          </Card>
+
+          {/* REMINDERS */}
+          <Card>
+            <BlockStack gap="400">
+              <BlockStack gap="100">
+                <div className="ss-section-accent" />
+
+                <Text
+                  as="h2"
+                  variant="headingLg"
+                >
+                  Reminder Schedule
+                </Text>
+
+                <Text
+                  as="p"
+                  variant="bodyMd"
+                  tone="subdued"
+                >
+                  Choose which reminders
+                  SubscriptionSync should send before
+                  the customer's selection deadline.
+                </Text>
+              </BlockStack>
+
+              <ToggleSetting
+                label="14-day reminder"
+                description="Send a reminder 14 days before the selection deadline."
+                enabled={reminder14Days}
+                onToggle={() =>
+                  setReminder14Days(
+                    (current) => !current,
+                  )
+                }
+              />
+
+              <Divider />
+
+              <ToggleSetting
+                label="7-day reminder"
+                description="Send a reminder 7 days before the selection deadline."
+                enabled={reminder7Days}
+                onToggle={() =>
+                  setReminder7Days(
+                    (current) => !current,
+                  )
+                }
+              />
+
+              <Divider />
+
+              <ToggleSetting
+                label="3-day reminder"
+                description="Send a reminder 3 days before the selection deadline."
+                enabled={reminder3Days}
+                onToggle={() =>
+                  setReminder3Days(
+                    (current) => !current,
+                  )
+                }
+              />
+
+              <Divider />
+
+              <ToggleSetting
+                label="1-day reminder"
+                description="Send a final reminder 1 day before the selection deadline."
+                enabled={reminder1Day}
+                onToggle={() =>
+                  setReminder1Day(
+                    (current) => !current,
+                  )
+                }
+              />
+            </BlockStack>
+          </Card>
+
+          {/* AUTO SELECT */}
+          <Card>
+            <BlockStack gap="400">
+              <BlockStack gap="100">
+                <div className="ss-section-accent" />
+
+                <Text
+                  as="h2"
+                  variant="headingLg"
+                >
+                  Auto Selection
+                </Text>
+
+                <Text
+                  as="p"
+                  variant="bodyMd"
+                  tone="subdued"
+                >
+                  Define what happens when a customer
+                  does not submit a selection before
+                  the deadline.
+                </Text>
+              </BlockStack>
+
+              <ToggleSetting
+                label="Enable Auto Selection"
+                description="Allow SubscriptionSync to move customers who do not submit a selection into the automatic selection workflow."
+                enabled={autoSelectEnabled}
+                onToggle={() =>
+                  setAutoSelectEnabled(
+                    (current) => !current,
+                  )
+                }
+              />
+
+              {autoSelectEnabled && (
+                <TextField
+                  label="Auto selection timing"
+                  value={autoSelectOffset}
+                  onChange={setAutoSelectOffset}
+                  type="number"
+                  autoComplete="off"
+                  suffix="days after deadline"
+                />
               )}
             </BlockStack>
-          </Box>
+          </Card>
 
-          <Text as="p" variant="bodySm" tone="subdued">
-            Searchable list from Shopify SKUs
-          </Text>
-        </BlockStack>
-      </Card>
+          {/* INVENTORY */}
+          <Card>
+            <BlockStack gap="400">
+              <BlockStack gap="100">
+                <div className="ss-section-accent" />
 
-      <Card>
-        <BlockStack gap="300">
-          <Text as="h2" variant="headingLg">
-            Tier Rules
-          </Text>
+                <Text
+                  as="h2"
+                  variant="headingLg"
+                >
+                  Inventory Rules
+                </Text>
 
-          <InlineStack align="space-between" blockAlign="center">
-            <Text as="span" variant="bodyMd">
-              Item never sent before
-            </Text>
-            <Button
-              size="slim"
-              variant={neverSentBefore ? "primary" : "secondary"}
-              onClick={() => setNeverSentBefore((prev) => !prev)}
-            >
-              {neverSentBefore ? "On" : "Off"}
-            </Button>
-          </InlineStack>
+                <Text
+                  as="p"
+                  variant="bodyMd"
+                  tone="subdued"
+                >
+                  Control which Shopify products and
+                  variants can be shown to customers.
+                </Text>
+              </BlockStack>
 
-          <InlineStack align="space-between" blockAlign="center">
-            <Text as="span" variant="bodyMd">
-              Same size as last size sent
-            </Text>
-            <Button
-              size="slim"
-              variant={sameSizeAsLastSent ? "primary" : "secondary"}
-              onClick={() => setSameSizeAsLastSent((prev) => !prev)}
-            >
-              {sameSizeAsLastSent ? "On" : "Off"}
-            </Button>
-          </InlineStack>
+              <ToggleSetting
+                label="Hide Out-of-Stock Products"
+                description="Do not show unavailable products or variants on the customer selection form."
+                enabled={hideOutOfStock}
+                onToggle={() =>
+                  setHideOutOfStock(
+                    (current) => !current,
+                  )
+                }
+              />
 
-          <InlineStack align="space-between" blockAlign="center">
-            <Text as="span" variant="bodyMd">
-              Only offer products marked Active
-            </Text>
-            <Button
-              size="slim"
-              variant={onlyOfferActive ? "primary" : "secondary"}
-              onClick={() => setOnlyOfferActive((prev) => !prev)}
-            >
-              {onlyOfferActive ? "On" : "Off"}
-            </Button>
-          </InlineStack>
-        </BlockStack>
-      </Card>
+              <Divider />
 
-      <Card>
-        <BlockStack gap="300">
-          <Text as="h2" variant="headingLg">
-            Tier Summary
-          </Text>
+              <ToggleSetting
+                label="Require Inventory Check"
+                description="Verify inventory before a customer selection moves into fulfillment."
+                enabled={requireInventoryCheck}
+                onToggle={() =>
+                  setRequireInventoryCheck(
+                    (current) => !current,
+                  )
+                }
+              />
 
-          <InlineStack gap="300" wrap>
-            <Box
-              padding="300"
-              background="bg-surface-secondary"
-              borderRadius="200"
-            >
-              <Text as="span" variant="headingMd">
-                Products: {selectedProducts.length}
+              <Divider />
+
+              <ToggleSetting
+                label="Allow Backorders"
+                description="Allow selections even when Shopify inventory is not currently available."
+                enabled={allowBackorders}
+                onToggle={() =>
+                  setAllowBackorders(
+                    (current) => !current,
+                  )
+                }
+              />
+            </BlockStack>
+          </Card>
+
+          {/* PRODUCTS */}
+          <Card>
+            <BlockStack gap="400">
+              <BlockStack gap="100">
+                <div className="ss-section-accent" />
+
+                <Text
+                  as="h2"
+                  variant="headingLg"
+                >
+                  Eligible Products
+                </Text>
+
+                <Text
+                  as="p"
+                  variant="bodyMd"
+                  tone="subdued"
+                >
+                  Choose the products customers in this
+                  tier may select. These are temporary
+                  sandbox products while we build the
+                  Shopify product and variant
+                  integration.
+                </Text>
+              </BlockStack>
+
+              <TextField
+                label="Search eligible products"
+                labelHidden
+                value={searchValue}
+                onChange={setSearchValue}
+                autoComplete="off"
+                placeholder="Search products..."
+                clearButton
+                onClearButtonClick={() =>
+                  setSearchValue("")
+                }
+              />
+
+              <Box
+                padding="300"
+                borderWidth="025"
+                borderColor="border"
+                borderRadius="200"
+                minHeight="220px"
+              >
+                <BlockStack gap="200">
+                  {filteredProducts.map((product) => {
+                    const selected =
+                      selectedProducts.includes(product);
+
+                    return (
+                      <InlineStack
+                        key={product}
+                        align="space-between"
+                        blockAlign="center"
+                      >
+                        <Text
+                          as="span"
+                          variant="bodyMd"
+                        >
+                          {product}
+                        </Text>
+
+                        <Button
+                          size="slim"
+                          variant={
+                            selected
+                              ? "primary"
+                              : "secondary"
+                          }
+                          onClick={() =>
+                            handleToggleProduct(product)
+                          }
+                        >
+                          {selected
+                            ? "Selected"
+                            : "Add"}
+                        </Button>
+                      </InlineStack>
+                    );
+                  })}
+                </BlockStack>
+              </Box>
+
+              <Text
+                as="p"
+                variant="bodySm"
+                tone="subdued"
+              >
+                {selectedProducts.length} eligible{" "}
+                {selectedProducts.length === 1
+                  ? "product"
+                  : "products"}{" "}
+                selected.
               </Text>
-            </Box>
+            </BlockStack>
+          </Card>
 
-            <Box
-              padding="300"
-              background="bg-surface-secondary"
-              borderRadius="200"
-            >
-              <Text as="span" variant="headingMd">
-                Status:{" "}
-                {statusOptions.find((option) => option.value === status)?.label}
+          {/* EMAIL */}
+          <Card>
+            <BlockStack gap="400">
+              <BlockStack gap="100">
+                <div className="ss-section-accent" />
+
+                <Text
+                  as="h2"
+                  variant="headingLg"
+                >
+                  Customer Selection Email
+                </Text>
+
+                <Text
+                  as="p"
+                  variant="bodyMd"
+                  tone="subdued"
+                >
+                  This email will eventually be sent
+                  when SubscriptionSync detects that a
+                  customer needs to make a monthly
+                  selection.
+                </Text>
+              </BlockStack>
+
+              <TextField
+                label="Email subject"
+                value={emailSubject}
+                onChange={setEmailSubject}
+                autoComplete="off"
+              />
+
+              <TextField
+                label="Email template"
+                value={emailTemplate}
+                onChange={setEmailTemplate}
+                multiline={10}
+                autoComplete="off"
+                helpText="Template variables such as {{customer_name}} and {{selection_link}} will be connected when we build the email automation."
+              />
+            </BlockStack>
+          </Card>
+
+          {/* SUMMARY */}
+          <Card>
+            <BlockStack gap="300">
+              <BlockStack gap="100">
+                <div className="ss-section-accent" />
+
+                <Text
+                  as="h2"
+                  variant="headingLg"
+                >
+                  Profile Summary
+                </Text>
+              </BlockStack>
+
+              <InlineStack gap="300" wrap>
+                <SummaryBox
+                  label="Status"
+                  value={
+                    status === "active"
+                      ? "Active"
+                      : "Hidden"
+                  }
+                />
+
+                <SummaryBox
+                  label="Eligible Products"
+                  value={String(
+                    selectedProducts.length,
+                  )}
+                />
+
+                <SummaryBox
+                  label="Selection Opens"
+                  value={`${selectionOpenOffset} days before`}
+                />
+
+                <SummaryBox
+                  label="Deadline"
+                  value={`${selectionDeadlineOffset} days before`}
+                />
+              </InlineStack>
+
+              <Divider />
+
+              <Text as="p" variant="bodyMd">
+                <strong>Linked Appstle Plan:</strong>{" "}
+                {appstlePlanName ||
+                  "Not linked yet"}
               </Text>
-            </Box>
-          </InlineStack>
 
-          <Divider />
+              <InlineStack align="end" gap="200">
+                <Button
+                  url="/app/tiers"
+                  variant="plain"
+                >
+                  Cancel
+                </Button>
 
-          <Text as="p" variant="bodyMd">
-            Rules:{" "}
-            {[
-              neverSentBefore ? "Never sent before" : null,
-              sameSizeAsLastSent ? "Same size as last sent" : null,
-              onlyOfferActive ? "Only offer Active products" : null,
-            ]
-              .filter(Boolean)
-              .join(", ")}
-          </Text>
-
-          <InlineStack align="end">
-            <Button url="/app/tiers" variant="plain">
-              Back
-            </Button>
-          </InlineStack>
+                <Button
+                  variant="primary"
+                  onClick={handleCreateProfile}
+                >
+                  Create Profile
+                </Button>
+              </InlineStack>
+            </BlockStack>
+          </Card>
         </BlockStack>
-      </Card>
-    </BlockStack>
-  </Page>
-);
+      </Page>
+    </div>
+  );
+}
+
+function ToggleSetting({
+  label,
+  description,
+  enabled,
+  onToggle,
+}: {
+  label: string;
+  description: string;
+  enabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <InlineStack
+      align="space-between"
+      blockAlign="center"
+      gap="400"
+    >
+      <BlockStack gap="050">
+        <Text
+          as="span"
+          variant="bodyMd"
+          fontWeight="semibold"
+        >
+          {label}
+        </Text>
+
+        <Text
+          as="span"
+          variant="bodySm"
+          tone="subdued"
+        >
+          {description}
+        </Text>
+      </BlockStack>
+
+      <Button
+        size="slim"
+        variant={
+          enabled ? "primary" : "secondary"
+        }
+        onClick={onToggle}
+      >
+        {enabled ? "On" : "Off"}
+      </Button>
+    </InlineStack>
+  );
+}
+
+function SummaryBox({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <Box
+      padding="300"
+      background="bg-surface-secondary"
+      borderRadius="200"
+    >
+      <BlockStack gap="050">
+        <Text
+          as="span"
+          variant="bodySm"
+          tone="subdued"
+        >
+          {label}
+        </Text>
+
+        <Text
+          as="span"
+          variant="headingMd"
+        >
+          {value}
+        </Text>
+      </BlockStack>
+    </Box>
+  );
 }

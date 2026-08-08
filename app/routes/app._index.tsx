@@ -38,7 +38,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     activeSubscribers,
     pendingSelections,
     pendingShipments,
-    activeTiers,
+    activeFulfillmentProfiles,
     recentActivity,
   ] = await Promise.all([
     db.subscriber.count({
@@ -77,7 +77,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     activeSubscribers,
     pendingSelections,
     pendingShipments,
-    activeTiers,
+    activeFulfillmentProfiles,
     recentActivity,
   });
 };
@@ -93,21 +93,21 @@ const operations: DashboardLink[] = [
   {
     title: "Daily Queue",
     description:
-      "Review upcoming deadlines, submissions, and monthly subscription activity.",
+      "Review upcoming deadlines, customer selections, auto-select needs, and fulfillment activity.",
     url: "/app/daily-queue",
     icon: CalendarIcon,
   },
   {
     title: "Quick Submit",
     description:
-      "Manually submit or record a subscriber's monthly selection.",
+      "Manually record a customer's monthly product selection when needed.",
     url: "/app/quick-submit",
     icon: ClipboardIcon,
   },
   {
     title: "Activity Log",
     description:
-      "Review sync activity, automation events, and administrative actions.",
+      "Review SubscriptionSync activity, automation events, and administrative actions.",
     url: "/app/activity-log",
     icon: ClockIcon,
   },
@@ -117,14 +117,14 @@ const subscriberTools: DashboardLink[] = [
   {
     title: "Subscribers",
     description:
-      "View Appstle subscription status, tiers, selections, and upcoming fulfillment activity.",
+      "View Appstle subscription status, fulfillment profile, selection status, and upcoming order activity.",
     url: "/app/subscriber-list",
     icon: PersonIcon,
   },
   {
     title: "Customer Selection Form",
     description:
-      "Preview the form customers use to submit monthly product and size selections.",
+      "Preview the form customers use to choose eligible monthly products and sizes.",
     url: "/app/preferences-form",
     icon: ClipboardIcon,
   },
@@ -132,23 +132,23 @@ const subscriberTools: DashboardLink[] = [
 
 const setupTools: DashboardLink[] = [
   {
-    title: "Subscription Tiers",
+    title: "Fulfillment Profiles",
     description:
-      "Manage the fulfillment profiles linked to Little Adventures subscription plans.",
+      "Manage the operational rules that connect each Appstle subscription plan to monthly selection and fulfillment.",
     url: "/app/tiers",
     icon: ProductIcon,
   },
   {
-    title: "Create Tier",
+    title: "Create Fulfillment Profile",
     description:
-      "Create a fulfillment profile with eligible products, sizes, and selection rules.",
+      "Configure a new profile with its Appstle plan, selection window, products, inventory rules, reminders, and email settings.",
     url: "/app/tiers/new",
     icon: PlusIcon,
   },
   {
     title: "Settings",
     description:
-      "Manage automation timing, inventory rules, tags, and fulfillment settings.",
+      "Manage global automation, order rules, Shopify tags, and application settings.",
     url: "/app/settings",
     icon: SettingsIcon,
   },
@@ -203,7 +203,11 @@ function NavigationCard({
       <div className="ss-nav-card">
         <Box padding="400">
           <BlockStack gap="300">
-            <InlineStack gap="300" blockAlign="center" wrap={false}>
+            <InlineStack
+              gap="300"
+              blockAlign="center"
+              wrap={false}
+            >
               <Box
                 background="bg-surface-secondary"
                 borderRadius="300"
@@ -253,12 +257,16 @@ function NavigationSection({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(240px, 1fr))",
           gap: "16px",
         }}
       >
         {items.map((item) => (
-          <NavigationCard key={item.title} {...item} />
+          <NavigationCard
+            key={item.title}
+            {...item}
+          />
         ))}
       </div>
     </BlockStack>
@@ -270,7 +278,7 @@ export default function Dashboard() {
     activeSubscribers,
     pendingSelections,
     pendingShipments,
-    activeTiers,
+    activeFulfillmentProfiles,
     recentActivity,
   } = useLoaderData<typeof loader>();
 
@@ -290,22 +298,30 @@ export default function Dashboard() {
                 >
                   <BlockStack gap="100">
                     <Text as="h1" variant="headingXl">
-                      Little Adventures Subscription Management
+                      Little Adventures Subscription Operations
                     </Text>
 
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      Manage customer selections, subscription tiers, and the
-                      monthly workflow between Appstle subscriptions and
-                      shipment fulfillment.
+                    <Text
+                      as="p"
+                      variant="bodyMd"
+                      tone="subdued"
+                    >
+                      Manage monthly customer selections,
+                      fulfillment profiles, and the workflow
+                      between Appstle subscriptions and shipment
+                      fulfillment.
                     </Text>
                   </BlockStack>
 
-                  <Badge tone="info">Development Sandbox</Badge>
+                  <Badge tone="info">
+                    Development Sandbox
+                  </Badge>
                 </InlineStack>
               </div>
             </Layout.Section>
           </Layout>
 
+          {/* CURRENT SNAPSHOT */}
           <BlockStack gap="300">
             <BlockStack gap="100">
               <div className="ss-section-accent" />
@@ -314,43 +330,49 @@ export default function Dashboard() {
                 Current Snapshot
               </Text>
 
-              <Text as="p" variant="bodyMd" tone="subdued">
-                A quick look at the subscription program right now.
+              <Text
+                as="p"
+                variant="bodyMd"
+                tone="subdued"
+              >
+                A quick look at the current selection and
+                fulfillment workload.
               </Text>
             </BlockStack>
 
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(200px, 1fr))",
                 gap: "16px",
               }}
             >
               <MetricCard
-                label="Total active subscribers"
+                label="Total Active Subscribers"
                 value={activeSubscribers}
                 description="Customers with an active Appstle subscription"
                 className="ss-metric-blue"
               />
 
               <MetricCard
-                label="Pending selections"
+                label="Pending Selections"
                 value={pendingSelections}
-                description="Monthly selections still waiting to be completed"
+                description="Monthly customer selections still waiting to be completed"
                 className="ss-metric-brand-blue"
               />
 
               <MetricCard
-                label="Pending shipments"
+                label="Pending Shipments"
                 value={pendingShipments}
                 description="Upcoming shipments that still need processing"
                 className="ss-metric-gold"
               />
 
               <MetricCard
-                label="Active tiers"
-                value={activeTiers}
-                description="SubscriptionSync fulfillment profiles currently active"
+                label="Active Fulfillment Profiles"
+                value={activeFulfillmentProfiles}
+                description="Operational profiles currently active in SubscriptionSync"
                 className="ss-metric-green"
               />
             </div>
@@ -358,30 +380,34 @@ export default function Dashboard() {
 
           <Divider />
 
+          {/* DAILY OPERATIONS */}
           <NavigationSection
             title="Daily Operations"
-            description="Manage the current selection and fulfillment workflow."
+            description="Manage the work happening between customer subscription and shipment fulfillment."
             items={operations}
           />
 
           <Divider />
 
+          {/* SUBSCRIBERS */}
           <NavigationSection
             title="Subscribers"
-            description="Review subscription status, selections, and customer fulfillment activity."
+            description="Review customer subscription information, monthly selections, and fulfillment status."
             items={subscriberTools}
           />
 
           <Divider />
 
+          {/* FULFILLMENT SETUP */}
           <NavigationSection
-            title="Subscription Setup"
-            description="Manage tiers, eligible products and sizes, and fulfillment settings."
+            title="Fulfillment Setup"
+            description="Configure how each Appstle subscription plan is handled inside SubscriptionSync."
             items={setupTools}
           />
 
           <Divider />
 
+          {/* RECENT ACTIVITY */}
           <BlockStack gap="300">
             <BlockStack gap="100">
               <div className="ss-section-accent" />
@@ -390,8 +416,13 @@ export default function Dashboard() {
                 Recent Activity
               </Text>
 
-              <Text as="p" variant="bodyMd" tone="subdued">
-                The latest activity recorded by SubscriptionSync.
+              <Text
+                as="p"
+                variant="bodyMd"
+                tone="subdued"
+              >
+                The latest activity recorded by
+                SubscriptionSync.
               </Text>
             </BlockStack>
 
@@ -402,66 +433,94 @@ export default function Dashboard() {
                     No activity yet
                   </Text>
 
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Subscription activity will appear here as you begin testing
-                    the sandbox.
+                  <Text
+                    as="p"
+                    variant="bodyMd"
+                    tone="subdued"
+                  >
+                    Subscription activity will appear here
+                    as you begin testing the sandbox.
                   </Text>
                 </BlockStack>
               ) : (
                 <BlockStack gap="300">
-                  {recentActivity.map((activity, index) => (
-                    <BlockStack key={activity.id} gap="300">
-                      <InlineStack
-                        align="space-between"
-                        blockAlign="start"
+                  {recentActivity.map(
+                    (activity, index) => (
+                      <BlockStack
+                        key={activity.id}
                         gap="300"
                       >
                         <InlineStack
-                          gap="300"
+                          align="space-between"
                           blockAlign="start"
-                          wrap={false}
+                          gap="300"
                         >
-                          <Box
-                            background="bg-surface-secondary"
-                            borderRadius="300"
-                            padding="200"
+                          <InlineStack
+                            gap="300"
+                            blockAlign="start"
+                            wrap={false}
                           >
-                            <Icon source={ListBulletedIcon} tone="base" />
-                          </Box>
+                            <Box
+                              background="bg-surface-secondary"
+                              borderRadius="300"
+                              padding="200"
+                            >
+                              <Icon
+                                source={
+                                  ListBulletedIcon
+                                }
+                                tone="base"
+                              />
+                            </Box>
 
-                          <BlockStack gap="100">
-                            <Text as="p" variant="headingSm">
-                              {activity.eventType}
-                            </Text>
+                            <BlockStack gap="100">
+                              <Text
+                                as="p"
+                                variant="headingSm"
+                              >
+                                {activity.eventType}
+                              </Text>
 
-                            <Text as="p" variant="bodyMd">
-                              {activity.description}
-                            </Text>
+                              <Text
+                                as="p"
+                                variant="bodyMd"
+                              >
+                                {activity.description}
+                              </Text>
 
-                            <Text as="p" variant="bodySm" tone="subdued">
-                              {new Date(
-                                activity.createdAt,
-                              ).toLocaleString()}
-                            </Text>
-                          </BlockStack>
+                              <Text
+                                as="p"
+                                variant="bodySm"
+                                tone="subdued"
+                              >
+                                {new Date(
+                                  activity.createdAt,
+                                ).toLocaleString()}
+                              </Text>
+                            </BlockStack>
+                          </InlineStack>
+
+                          <Badge
+                            tone={
+                              activity.status ===
+                              "Success"
+                                ? "success"
+                                : activity.status ===
+                                    "Failed"
+                                  ? "critical"
+                                  : "attention"
+                            }
+                          >
+                            {activity.status}
+                          </Badge>
                         </InlineStack>
 
-                        <Badge
-                          tone={
-                            activity.status === "Success"
-                              ? "success"
-                              : activity.status === "Failed"
-                                ? "critical"
-                                : "attention"
-                          }
-                        >
-                          {activity.status}
-                        </Badge>
-                      </InlineStack>
-
-                      {index < recentActivity.length - 1 && <Divider />}
-                    </BlockStack>
-                  ))}
+                        {index <
+                          recentActivity.length -
+                            1 && <Divider />}
+                      </BlockStack>
+                    ),
+                  )}
                 </BlockStack>
               )}
             </Card>
