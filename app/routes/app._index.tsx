@@ -43,7 +43,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   ] = await Promise.all([
     db.subscriber.count({
       where: {
-        status: "Active",
+        subscriptionStatus: "Active",
       },
     }),
 
@@ -59,7 +59,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       },
     }),
 
-    db.tier.count({
+    db.fulfillmentProfile.count({
       where: {
         isActive: true,
       },
@@ -117,14 +117,14 @@ const subscriberTools: DashboardLink[] = [
   {
     title: "Subscribers",
     description:
-      "View subscribers, subscription status, tiers, and upcoming shipment information.",
+      "View Appstle subscription status, tiers, selections, and upcoming fulfillment activity.",
     url: "/app/subscriber-list",
     icon: PersonIcon,
   },
   {
-    title: "Subscriber Form",
+    title: "Customer Selection Form",
     description:
-      "Preview the preference form subscribers use to submit their selections.",
+      "Preview the form customers use to submit monthly product and size selections.",
     url: "/app/preferences-form",
     icon: ClipboardIcon,
   },
@@ -134,21 +134,21 @@ const setupTools: DashboardLink[] = [
   {
     title: "Subscription Tiers",
     description:
-      "Review active tiers and the products assigned to each subscription.",
+      "Manage the fulfillment profiles linked to Little Adventures subscription plans.",
     url: "/app/tiers",
     icon: ProductIcon,
   },
   {
     title: "Create Tier",
     description:
-      "Create a new subscription tier and assign eligible products.",
+      "Create a fulfillment profile with eligible products, sizes, and selection rules.",
     url: "/app/tiers/new",
     icon: PlusIcon,
   },
   {
     title: "Settings",
     description:
-      "Manage automation timing, selection rules, tags, and fulfillment settings.",
+      "Manage automation timing, inventory rules, tags, and fulfillment settings.",
     url: "/app/settings",
     icon: SettingsIcon,
   },
@@ -294,8 +294,9 @@ export default function Dashboard() {
                     </Text>
 
                     <Text as="p" variant="bodyMd" tone="subdued">
-                      Manage customer selections, subscription tiers, and the monthly workflow between 
-                      Appstle subscriptions and shipment fulfillment.
+                      Manage customer selections, subscription tiers, and the
+                      monthly workflow between Appstle subscriptions and
+                      shipment fulfillment.
                     </Text>
                   </BlockStack>
 
@@ -326,16 +327,16 @@ export default function Dashboard() {
               }}
             >
               <MetricCard
-                label="Active subscribers"
+                label="Total active subscribers"
                 value={activeSubscribers}
-                description="Currently active subscription customers"
+                description="Customers with an active Appstle subscription"
                 className="ss-metric-blue"
               />
 
               <MetricCard
                 label="Pending selections"
                 value={pendingSelections}
-                description="Selections still waiting to be completed"
+                description="Monthly selections still waiting to be completed"
                 className="ss-metric-brand-blue"
               />
 
@@ -349,7 +350,7 @@ export default function Dashboard() {
               <MetricCard
                 label="Active tiers"
                 value={activeTiers}
-                description="Subscription tiers currently available"
+                description="SubscriptionSync fulfillment profiles currently active"
                 className="ss-metric-green"
               />
             </div>
@@ -359,7 +360,7 @@ export default function Dashboard() {
 
           <NavigationSection
             title="Daily Operations"
-            description="The tools used to manage the current subscription cycle."
+            description="Manage the current selection and fulfillment workflow."
             items={operations}
           />
 
@@ -367,7 +368,7 @@ export default function Dashboard() {
 
           <NavigationSection
             title="Subscribers"
-            description="Review subscriber information and customer selections."
+            description="Review subscription status, selections, and customer fulfillment activity."
             items={subscriberTools}
           />
 
@@ -375,7 +376,7 @@ export default function Dashboard() {
 
           <NavigationSection
             title="Subscription Setup"
-            description="Manage tiers, products, and application settings."
+            description="Manage tiers, eligible products and sizes, and fulfillment settings."
             items={setupTools}
           />
 

@@ -1,13 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -36,7 +30,6 @@ model Tier {
   name        String
   description String?
   isActive    Boolean  @default(true)
-
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -45,129 +38,202 @@ model Tier {
 }
 
 model AssignedProduct {
-  id            String   @id @default(cuid())
-
-  tierId        String
-  tier          Tier     @relation(fields: [tierId], references: [id])
-
-  sku           String
-  productName   String
-
-  forceInclude  Boolean  @default(false)
-
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  tierId       String
+  tier         Tier     @relation(fields: [tierId], references: [id])
+  sku          String
+  productName  String
+  forceInclude Boolean  @default(false)
+  createdAt    DateTime @default(now())
 }
 
 model PreferenceSubmission {
-  id            String   @id @default(cuid())
-
+  id            String      @id @default(cuid())
   subscriberId  String?
   subscriber    Subscriber? @relation(fields: [subscriberId], references: [id])
-
   customerEmail String
   month         String
   size          String?
   style         String?
   notes         String?
-
-  submittedAt   DateTime @default(now())
+  submittedAt   DateTime    @default(now())
 }
 
 model Settings {
-  id                      String   @id @default(cuid())
+  id                      String  @id @default(cuid())
+  automationEnabled       Boolean @default(true)
+  selectionDeadlineOffset Int     @default(7)
+  autoSelectionOffset     Int     @default(2)
+  orderCreationOffset     Int     @default(1)
 
-  automationEnabled       Boolean  @default(true)
+  reminder14Days Boolean @default(true)
+  reminder7Days  Boolean @default(true)
+  reminder3Days  Boolean @default(true)
+  reminder1Day   Boolean @default(true)
 
-  selectionDeadlineOffset Int      @default(7)
-  autoSelectionOffset     Int      @default(2)
-  orderCreationOffset     Int      @default(1)
+  senderEmail String?
 
-  reminder14Days          Boolean  @default(true)
-  reminder7Days           Boolean  @default(true)
-  reminder3Days           Boolean  @default(true)
-  reminder1Day            Boolean  @default(true)
+  hideOutOfStock   Boolean @default(true)
+  hideDiscontinued Boolean @default(true)
+  allowBackorders  Boolean @default(false)
 
-  senderEmail             String?
+  autoCreateOrders    Boolean @default(true)
+  requireManualReview Boolean @default(false)
 
-  hideOutOfStock          Boolean  @default(true)
-  hideDiscontinued        Boolean  @default(true)
-  allowBackorders         Boolean  @default(false)
+  autoOrderTag        String? @default("SubscriptionSync-Auto")
+  customerSelectedTag String? @default("MonthlySelection")
+  modifiedOrderTag    String? @default("AppstleSync")
 
-  autoCreateOrders        Boolean  @default(true)
-  requireManualReview     Boolean  @default(false)
-
-  autoOrderTag            String?  @default("SubscriptionSync-Auto")
-  customerSelectedTag     String?  @default("MonthlySelection")
-  modifiedOrderTag        String?  @default("AppstleSync")
-
-  updatedAt               DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 }
 
 model Subscriber {
-  id                    String   @id @default(cuid())
-  name                  String
-  email                 String
-  status                String   @default("Active")
+  id    String @id @default(cuid())
+  name  String
+  email String
 
+  // External system references
+  shopifyCustomerId     String?
+  appstleSubscriptionId String? @unique
+  appstlePlanId         String?
+  appstlePlanName       String?
+
+  // Appstle-owned subscription data
+  subscriptionStatus    String    @default("Active")
   subscriptionStartDate DateTime
+  nextOrderDate         DateTime?
+
+  // SubscriptionSync-owned workflow data
+  workflowStatus        String    @default("Waiting for Selection")
   nextShipDate          DateTime
   nextSelectionDeadline DateTime
   autoSelectionDate     DateTime?
+  selectionEmailSentAt  DateTime?
+  selectionSubmittedAt  DateTime?
 
-  tierId                String?
-  tier                  Tier?    @relation(fields: [tierId], references: [id])
+  tierId String?
+  tier   Tier?   @relation(fields: [tierId], references: [id])
+
+  fulfillmentProfileId String?
+  fulfillmentProfile   FulfillmentProfile? @relation(fields: [fulfillmentProfileId], references: [id])
 
   shipments             Shipment[]
   preferenceSubmissions PreferenceSubmission[]
   selections            Selection[]
 
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
- 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Shipment {
-  id            String   @id @default(cuid())
-
-  subscriberId  String
-  subscriber    Subscriber @relation(fields: [subscriberId], references: [id])
-
-  shipDate      DateTime
-  status        String   @default("Pending")
-  productName   String?
-  trackingUrl   String?
-  notes         String?
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String     @id @default(cuid())
+  subscriberId String
+  subscriber   Subscriber @relation(fields: [subscriberId], references: [id])
+  shipDate     DateTime
+  status       String     @default("Pending")
+  productName  String?
+  trackingUrl  String?
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model Selection {
-  id            String   @id @default(cuid())
-
-  subscriberId  String
-  subscriber    Subscriber @relation(fields: [subscriberId], references: [id])
-
-  month         String
-  status        String   @default("Pending")
-
-  productName   String?
-  source        String   @default("Customer Form")
-  notes         String?
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String     @id @default(cuid())
+  subscriberId String
+  subscriber   Subscriber @relation(fields: [subscriberId], references: [id])
+  month        String
+  status       String     @default("Pending")
+  productName  String?
+  source       String     @default("Customer Form")
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model ActivityLog {
   id          String   @id @default(cuid())
-
   eventType   String
   description String
   status      String   @default("Success")
   user        String   @default("System")
   source      String   @default("SubscriptionSync")
-
   createdAt   DateTime @default(now())
+}
+
+model FulfillmentProfile {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean @default(true)
+
+  // Linked Appstle subscription plan
+  appstlePlanId   String?
+  appstlePlanName String?
+  appstlePlanType String?
+
+  // Selection window
+  selectionOpenOffset     Int @default(14)
+  selectionDeadlineOffset Int @default(7)
+
+  // Reminder schedule
+  reminder14Days Boolean @default(true)
+  reminder7Days  Boolean @default(true)
+  reminder3Days  Boolean @default(true)
+  reminder1Day   Boolean @default(true)
+
+  // Auto-selection
+  autoSelectEnabled Boolean @default(true)
+  autoSelectOffset  Int     @default(2)
+  autoSelectRules   Json?
+
+  // Inventory
+  hideOutOfStock        Boolean @default(true)
+  allowBackorders       Boolean @default(false)
+  requireInventoryCheck Boolean @default(true)
+
+  // Selection email
+  emailSubject  String?
+  emailTemplate String?
+
+  // Relationships
+  products    FulfillmentProduct[]
+  subscribers Subscriber[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FulfillmentProduct {
+  id                   String             @id @default(cuid())
+  fulfillmentProfileId String
+  fulfillmentProfile   FulfillmentProfile @relation(fields: [fulfillmentProfileId], references: [id], onDelete: Cascade)
+
+  shopifyProductId String?
+  productName      String
+  sku              String?
+
+  forceInclude Boolean @default(false)
+  isActive     Boolean @default(true)
+
+  variants FulfillmentVariant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FulfillmentVariant {
+  id                   String             @id @default(cuid())
+  fulfillmentProductId String
+  fulfillmentProduct   FulfillmentProduct @relation(fields: [fulfillmentProductId], references: [id], onDelete: Cascade)
+
+  shopifyVariantId String?
+  variantName      String
+  sku              String?
+  size             String?
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
