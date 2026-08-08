@@ -1,130 +1,218 @@
-import type { LoaderFunctionArgs } from "@remix-run/node"; //needs a loader for authentication, even if it doesn't load any data
-import { //UI building blocks from Polaris 
+import type { LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { Link, useLoaderData } from "@remix-run/react";
+
+import {
   Page,
   Layout,
   Text,
   Card,
-  Button,
   BlockStack,
   InlineStack,
   Box,
+  Badge,
+  Icon,
+  Divider,
 } from "@shopify/polaris";
-import { Link } from "@remix-run/react";
-import { TitleBar } from "@shopify/app-bridge-react";  //Shopify App Bridge component for consistent title bars across the app
-import { authenticate } from "../shopify.server";//Custom authentication function to ensure only admins can access this dashboard
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {//Authenticate the user as an admin before allowing access to the dashboard
+import {
+  CalendarIcon,
+  PersonIcon,
+  ClipboardIcon,
+  ProductIcon,
+  SettingsIcon,
+  PlusIcon,
+  ListBulletedIcon,
+  ClockIcon,
+} from "@shopify/polaris-icons";
+
+import { TitleBar } from "@shopify/app-bridge-react";
+
+import { authenticate } from "../shopify.server";
+import db from "../db.server";
+
+export const loader = async ({ request }: LoaderFunctionArgs) => {
   await authenticate.admin(request);
-  return null;
+
+  const [
+    activeSubscribers,
+    pendingSelections,
+    pendingShipments,
+    activeTiers,
+    recentActivity,
+  ] = await Promise.all([
+    db.subscriber.count({
+      where: {
+        status: "Active",
+      },
+    }),
+
+    db.selection.count({
+      where: {
+        status: "Pending",
+      },
+    }),
+
+    db.shipment.count({
+      where: {
+        status: "Pending",
+      },
+    }),
+
+    db.tier.count({
+      where: {
+        isActive: true,
+      },
+    }),
+
+    db.activityLog.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 5,
+    }),
+  ]);
+
+  return json({
+    activeSubscribers,
+    pendingSelections,
+    pendingShipments,
+    activeTiers,
+    recentActivity,
+  });
 };
-//Define the structure of each dashboard item for consistent rendering
-type DashboardItem = {
+
+type DashboardLink = {
   title: string;
   description: string;
   url: string;
-  icon: string;
- 
+  icon: any;
 };
-//List of dashboard items with their respective details for rendering on the dashboard
-const dashboardItems: DashboardItem[] = [
+
+const operations: DashboardLink[] = [
   {
     title: "Daily Queue",
     description:
-      "Track submissions, automation, and reminders for the current subscription period.",
+      "Review upcoming deadlines, submissions, and monthly subscription activity.",
     url: "/app/daily-queue",
-    icon: "📅",
-  
+    icon: CalendarIcon,
   },
   {
     title: "Quick Submit",
-    description: "Manually submit a customer’s monthly selection.",
+    description:
+      "Manually submit or record a subscriber's monthly selection.",
     url: "/app/quick-submit",
-    icon: "⚡",
-  
+    icon: ClipboardIcon,
   },
   {
     title: "Activity Log",
     description:
-      "View a history of sync events, automation runs, and admin actions.",
+      "Review sync activity, automation events, and administrative actions.",
     url: "/app/activity-log",
-    icon: "📝",
-  },
-  {
-    title: "Subscriber List",
-    description: "View and filter all subscribers.",
-    url: "/app/subscriber-list",
-    icon: "👥",
-  },
-
-  {
-    title: "Subscriber Form",
-    description: "Preview the live form subscribers fill out.",
-    url: "/app/preferences-form",
-    icon: "🧾",
-  },
-  {
-    title: "Tier List",
-    description: "View all subscription tiers.",
-    url: "/app/tiers",
-    icon: "📚",
-  },
-  {
-    title: "Create Tier",
-    description: "Create a new subscription tier and add products.",
-    url: "/app/tiers/new",
-    icon: "➕",
-  },
-  {
-    title: "Edit Tier",
-    description: "Manage active subscription tiers.",
-    url: "/app/tiers",
-    icon: "✏️",
-  },
-  {
-    title: "Settings",
-    description: "Adjust global automation and tagging rules.",
-    url: "/app/settings",
-    icon: "⚙️",
+    icon: ClockIcon,
   },
 ];
 
-// Component for rendering each dashboard card
-function DashboardCard({ title, description, url, icon }: DashboardItem) {
+const subscriberTools: DashboardLink[] = [
+  {
+    title: "Subscribers",
+    description:
+      "View subscribers, subscription status, tiers, and upcoming shipment information.",
+    url: "/app/subscriber-list",
+    icon: PersonIcon,
+  },
+  {
+    title: "Subscriber Form",
+    description:
+      "Preview the preference form subscribers use to submit their selections.",
+    url: "/app/preferences-form",
+    icon: ClipboardIcon,
+  },
+];
+
+const setupTools: DashboardLink[] = [
+  {
+    title: "Subscription Tiers",
+    description:
+      "Review active tiers and the products assigned to each subscription.",
+    url: "/app/tiers",
+    icon: ProductIcon,
+  },
+  {
+    title: "Create Tier",
+    description:
+      "Create a new subscription tier and assign eligible products.",
+    url: "/app/tiers/new",
+    icon: PlusIcon,
+  },
+  {
+    title: "Settings",
+    description:
+      "Manage automation timing, selection rules, tags, and fulfillment settings.",
+    url: "/app/settings",
+    icon: SettingsIcon,
+  },
+];
+
+function MetricCard({
+  label,
+  value,
+  description,
+  className,
+}: {
+  label: string;
+  value: number;
+  description: string;
+  className: string;
+}) {
+  return (
+    <div className={`ss-metric-card ${className}`}>
+      <BlockStack gap="200">
+        <Text as="p" variant="bodyMd" tone="subdued">
+          {label}
+        </Text>
+
+        <Text as="p" variant="heading2xl">
+          {value}
+        </Text>
+
+        <Text as="p" variant="bodySm" tone="subdued">
+          {description}
+        </Text>
+      </BlockStack>
+    </div>
+  );
+}
+
+function NavigationCard({
+  title,
+  description,
+  url,
+  icon,
+}: DashboardLink) {
   return (
     <Link
       to={url}
       style={{
         textDecoration: "none",
         color: "inherit",
+        display: "block",
+        height: "100%",
       }}
     >
-      <Card>
-        <div
-          style={{
-            minHeight: "140px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-          }}
-        >
+      <div className="ss-nav-card">
+        <Box padding="400">
           <BlockStack gap="300">
-            <InlineStack gap="200" blockAlign="center">
-              <div
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "999px",
-                  backgroundColor: "#EEF2F6",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "18px",
-                }}
+            <InlineStack gap="300" blockAlign="center" wrap={false}>
+              <Box
+                background="bg-surface-secondary"
+                borderRadius="300"
+                padding="200"
               >
-                {icon}
-              </div>
+                <Icon source={icon} tone="base" />
+              </Box>
 
-              <Text as="h2" variant="headingMd">
+              <Text as="h3" variant="headingMd">
                 {title}
               </Text>
             </InlineStack>
@@ -133,58 +221,252 @@ function DashboardCard({ title, description, url, icon }: DashboardItem) {
               {description}
             </Text>
           </BlockStack>
-        </div>
-      </Card>
+        </Box>
+      </div>
     </Link>
   );
 }
-//Main dashboard component that renders the title bar and a grid of dashboard cards for navigation
-export default function Dashboard() {
+
+function NavigationSection({
+  title,
+  description,
+  items,
+}: {
+  title: string;
+  description: string;
+  items: DashboardLink[];
+}) {
   return (
-    <Page>
-      <TitleBar title="SubscriptionSync Dashboard" />
+    <BlockStack gap="300">
+      <BlockStack gap="100">
+        <div className="ss-section-accent" />
 
-      <BlockStack gap="500">
-        <Layout>
-          <Layout.Section>
-            <Card>
-              <BlockStack gap="300">
-                <Text as="h1" variant="headingLg">
-                  Welcome to SubscriptionSync
-                </Text>
+        <Text as="h2" variant="headingLg">
+          {title}
+        </Text>
 
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  This is your Little Adventures control center for managing
-                  customer subscriptions, preferences, and automated monthly
-                  selections.
-                </Text>
-
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  From here, you can review customer data, manage tiers,
-                  adjust settings, and prepare the app for monthly fulfillment
-                  decisions.
-                </Text>
-              </BlockStack>
-            </Card>
-          </Layout.Section>
-
-          <Layout.Section>
-            <Box>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                  gap: "16px",
-                }}
-              >
-                {dashboardItems.map((item) => (
-                  <DashboardCard key={item.title} {...item} />
-                ))}
-              </div>
-            </Box>
-          </Layout.Section>
-        </Layout>
+        <Text as="p" variant="bodyMd" tone="subdued">
+          {description}
+        </Text>
       </BlockStack>
-    </Page>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: "16px",
+        }}
+      >
+        {items.map((item) => (
+          <NavigationCard key={item.title} {...item} />
+        ))}
+      </div>
+    </BlockStack>
+  );
+}
+
+export default function Dashboard() {
+  const {
+    activeSubscribers,
+    pendingSelections,
+    pendingShipments,
+    activeTiers,
+    recentActivity,
+  } = useLoaderData<typeof loader>();
+
+  return (
+    <div className="ss-dashboard">
+      <Page>
+        <TitleBar title="SubscriptionSync" />
+
+        <BlockStack gap="600">
+          <Layout>
+            <Layout.Section>
+              <div className="ss-hero">
+                <InlineStack
+                  align="space-between"
+                  blockAlign="center"
+                  gap="300"
+                >
+                  <BlockStack gap="100">
+                    <Text as="h1" variant="headingXl">
+                      Little Adventures Subscription Management
+                    </Text>
+
+                    <Text as="p" variant="bodyMd" tone="subdued">
+                      Manage customer selections, subscription tiers, and the monthly workflow between 
+                      Appstle subscriptions and shipment fulfillment.
+                    </Text>
+                  </BlockStack>
+
+                  <Badge tone="info">Development Sandbox</Badge>
+                </InlineStack>
+              </div>
+            </Layout.Section>
+          </Layout>
+
+          <BlockStack gap="300">
+            <BlockStack gap="100">
+              <div className="ss-section-accent" />
+
+              <Text as="h2" variant="headingLg">
+                Current Snapshot
+              </Text>
+
+              <Text as="p" variant="bodyMd" tone="subdued">
+                A quick look at the subscription program right now.
+              </Text>
+            </BlockStack>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "16px",
+              }}
+            >
+              <MetricCard
+                label="Active subscribers"
+                value={activeSubscribers}
+                description="Currently active subscription customers"
+                className="ss-metric-blue"
+              />
+
+              <MetricCard
+                label="Pending selections"
+                value={pendingSelections}
+                description="Selections still waiting to be completed"
+                className="ss-metric-brand-blue"
+              />
+
+              <MetricCard
+                label="Pending shipments"
+                value={pendingShipments}
+                description="Upcoming shipments that still need processing"
+                className="ss-metric-gold"
+              />
+
+              <MetricCard
+                label="Active tiers"
+                value={activeTiers}
+                description="Subscription tiers currently available"
+                className="ss-metric-green"
+              />
+            </div>
+          </BlockStack>
+
+          <Divider />
+
+          <NavigationSection
+            title="Daily Operations"
+            description="The tools used to manage the current subscription cycle."
+            items={operations}
+          />
+
+          <Divider />
+
+          <NavigationSection
+            title="Subscribers"
+            description="Review subscriber information and customer selections."
+            items={subscriberTools}
+          />
+
+          <Divider />
+
+          <NavigationSection
+            title="Subscription Setup"
+            description="Manage tiers, products, and application settings."
+            items={setupTools}
+          />
+
+          <Divider />
+
+          <BlockStack gap="300">
+            <BlockStack gap="100">
+              <div className="ss-section-accent" />
+
+              <Text as="h2" variant="headingLg">
+                Recent Activity
+              </Text>
+
+              <Text as="p" variant="bodyMd" tone="subdued">
+                The latest activity recorded by SubscriptionSync.
+              </Text>
+            </BlockStack>
+
+            <Card>
+              {recentActivity.length === 0 ? (
+                <BlockStack gap="200">
+                  <Text as="p" variant="headingSm">
+                    No activity yet
+                  </Text>
+
+                  <Text as="p" variant="bodyMd" tone="subdued">
+                    Subscription activity will appear here as you begin testing
+                    the sandbox.
+                  </Text>
+                </BlockStack>
+              ) : (
+                <BlockStack gap="300">
+                  {recentActivity.map((activity, index) => (
+                    <BlockStack key={activity.id} gap="300">
+                      <InlineStack
+                        align="space-between"
+                        blockAlign="start"
+                        gap="300"
+                      >
+                        <InlineStack
+                          gap="300"
+                          blockAlign="start"
+                          wrap={false}
+                        >
+                          <Box
+                            background="bg-surface-secondary"
+                            borderRadius="300"
+                            padding="200"
+                          >
+                            <Icon source={ListBulletedIcon} tone="base" />
+                          </Box>
+
+                          <BlockStack gap="100">
+                            <Text as="p" variant="headingSm">
+                              {activity.eventType}
+                            </Text>
+
+                            <Text as="p" variant="bodyMd">
+                              {activity.description}
+                            </Text>
+
+                            <Text as="p" variant="bodySm" tone="subdued">
+                              {new Date(
+                                activity.createdAt,
+                              ).toLocaleString()}
+                            </Text>
+                          </BlockStack>
+                        </InlineStack>
+
+                        <Badge
+                          tone={
+                            activity.status === "Success"
+                              ? "success"
+                              : activity.status === "Failed"
+                                ? "critical"
+                                : "attention"
+                          }
+                        >
+                          {activity.status}
+                        </Badge>
+                      </InlineStack>
+
+                      {index < recentActivity.length - 1 && <Divider />}
+                    </BlockStack>
+                  ))}
+                </BlockStack>
+              )}
+            </Card>
+          </BlockStack>
+        </BlockStack>
+      </Page>
+    </div>
   );
 }

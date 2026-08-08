@@ -1,0 +1,77 @@
+:root {
+  --ss-accent: #5aa7a2;
+
+  --ss-bg-warm: #fcfbf8;
+  --ss-bg-brand-blue: #eef7fd;
+  --ss-bg-blue: #f7fbfd;
+  --ss-bg-gold: #fff9f2;
+  --ss-bg-green: #f6fbf7;
+
+  --ss-border: #e7e3de;
+  --ss-shadow: 0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.04);
+
+  --ss-radius: 14px;
+}
+
+.ss-dashboard {
+  background: var(--ss-bg-warm);
+}
+
+.ss-hero {
+  background: var(--ss-bg-brand-blue);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  padding: 24px;
+  box-shadow: var(--ss-shadow);
+}
+
+.ss-metric-card {
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  padding: 20px;
+  box-shadow: var(--ss-shadow);
+}
+
+.ss-metric-blue {
+  background: var(--ss-bg-blue);
+}
+
+.ss-metric-brand-blue {
+  background: var(--ss-bg-brand-blue);
+}
+
+.ss-metric-gold {
+  background: var(--ss-bg-gold);
+}
+
+.ss-metric-green {
+  background: var(--ss-bg-green);
+}
+
+.ss-nav-card {
+  height: 100%;
+  background: #ffffff;
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.ss-nav-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ss-shadow);
+  border-color: var(--ss-accent);
+  background: #fdfefe;
+}
+
+.ss-section-accent {
+  width: 34px;
+  height: 3px;
+  background: var(--ss-accent);
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
