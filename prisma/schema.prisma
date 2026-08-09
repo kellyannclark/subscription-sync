@@ -111,9 +111,11 @@ model Subscriber {
   selectionEmailSentAt  DateTime?
   selectionSubmittedAt  DateTime?
 
+  // Legacy tier relationship
   tierId String?
   tier   Tier?   @relation(fields: [tierId], references: [id])
 
+  // New fulfillment profile relationship
   fulfillmentProfileId String?
   fulfillmentProfile   FulfillmentProfile? @relation(fields: [fulfillmentProfileId], references: [id])
 
@@ -236,4 +238,74 @@ model FulfillmentVariant {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// REUSABLE PRODUCT CATALOG
+// ============================================================
+//
+// These models hold product and variant data imported from the
+// Little Adventures Shopify product export.
+//
+// Products in this catalog are NOT automatically assigned to a
+// Fulfillment Profile. They become the searchable pool of products
+// the Little Adventures team can choose from when configuring a
+// profile.
+//
+// Later, this catalog can be synchronized directly from Shopify
+// instead of being populated from a CSV.
+// ============================================================
+
+model CatalogProduct {
+  id String @id @default(cuid())
+
+  // Shopify references
+  shopifyProductId String?
+  handle           String?
+
+  // Product information
+  productName String
+  category    String?
+  productType String?
+  vendor      String?
+
+  // Product state
+  isActive Boolean @default(true)
+
+  // Relationships
+  variants CatalogVariant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([productType])
+  @@index([productName])
+}
+
+model CatalogVariant {
+  id String @id @default(cuid())
+
+  catalogProductId String
+  catalogProduct   CatalogProduct @relation(fields: [catalogProductId], references: [id], onDelete: Cascade)
+
+  // Shopify references
+  shopifyVariantId String?
+
+  // Variant information
+  variantName String
+  sku         String?
+  size        String?
+
+  // Inventory data copied from the Shopify export
+  inventoryQty Int?
+
+  // Variant state
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sku])
+  @@index([size])
 }

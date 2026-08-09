@@ -3,11 +3,16 @@ import type {
   ActionFunctionArgs,
 } from "@remix-run/node";
 
-import { json, redirect } from "@remix-run/node";
+import {
+  json,
+  redirect,
+} from "@remix-run/node";
+
 import {
   useLoaderData,
   useSubmit,
 } from "@remix-run/react";
+
 import { useState } from "react";
 
 import {
@@ -21,6 +26,7 @@ import {
   Button,
   Box,
   Divider,
+  Badge,
 } from "@shopify/polaris";
 
 import { TitleBar } from "@shopify/app-bridge-react";
@@ -28,20 +34,9 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
-const mockSearchProducts = [
-  "50341 Pirate Vest S",
-  "50912 Belle Dress M",
-  "51142 Mermaid Gown L",
-  "52010 Snow White XS",
-  "52155 Rapunzel Dress M",
-  "53022 Tinker Bell S",
-];
-
-type AssignedProduct = {
-  sku: string | null;
-  productName: string;
-  forceInclude: boolean;
-};
+/* ============================================================
+   LOADER
+   ============================================================ */
 
 export const loader = async ({
   request,
@@ -63,8 +58,14 @@ export const loader = async ({
       where: {
         id: params.id,
       },
+
       include: {
-        products: true,
+        products: {
+          include: {
+            variants: true,
+          },
+        },
+
         subscribers: true,
       },
     });
@@ -78,8 +79,26 @@ export const loader = async ({
     );
   }
 
-  return json({ profile });
+  const eligibleProductCount =
+    profile.products.length;
+
+  const eligibleSkuCount =
+    profile.products.reduce(
+      (total, product) =>
+        total + product.variants.length,
+      0,
+    );
+
+  return json({
+    profile,
+    eligibleProductCount,
+    eligibleSkuCount,
+  });
 };
+
+/* ============================================================
+   ACTION
+   ============================================================ */
 
 export const action = async ({
   request,
@@ -96,20 +115,22 @@ export const action = async ({
     );
   }
 
-  const formData = await request.formData();
-  const intent = formData.get("intent");
+  const formData =
+    await request.formData();
 
-  /*
-   * DELETE PROFILE
-   *
-   * Only allow permanent deletion when the profile
-   * is not assigned to any subscribers.
-   */
+  const intent =
+    formData.get("intent");
+
+  /* ==========================================================
+     DELETE PROFILE
+     ========================================================== */
+
   if (intent === "delete") {
     const subscriberCount =
       await db.subscriber.count({
         where: {
-          fulfillmentProfileId: params.id,
+          fulfillmentProfileId:
+            params.id,
         },
       });
 
@@ -131,9 +152,9 @@ export const action = async ({
     return redirect("/app/tiers");
   }
 
-  /*
-   * SAVE PROFILE
-   */
+  /* ==========================================================
+     SAVE PROFILE RULES
+     ========================================================== */
 
   const name = String(
     formData.get("name") ?? "",
@@ -148,41 +169,54 @@ export const action = async ({
   );
 
   const selectionOpenOffset = Number(
-    formData.get("selectionOpenOffset") ?? 14,
+    formData.get(
+      "selectionOpenOffset",
+    ) ?? 14,
   );
 
-  const selectionDeadlineOffset = Number(
-    formData.get(
-      "selectionDeadlineOffset",
-    ) ?? 7,
-  );
+  const selectionDeadlineOffset =
+    Number(
+      formData.get(
+        "selectionDeadlineOffset",
+      ) ?? 7,
+    );
 
   const reminder14Days =
-    formData.get("reminder14Days") === "true";
-
-  const reminder7Days =
-    formData.get("reminder7Days") === "true";
-
-  const reminder3Days =
-    formData.get("reminder3Days") === "true";
-
-  const reminder1Day =
-    formData.get("reminder1Day") === "true";
-
-  const autoSelectEnabled =
-    formData.get("autoSelectEnabled") ===
+    formData.get("reminder14Days") ===
     "true";
 
+  const reminder7Days =
+    formData.get("reminder7Days") ===
+    "true";
+
+  const reminder3Days =
+    formData.get("reminder3Days") ===
+    "true";
+
+  const reminder1Day =
+    formData.get("reminder1Day") ===
+    "true";
+
+  const autoSelectEnabled =
+    formData.get(
+      "autoSelectEnabled",
+    ) === "true";
+
   const autoSelectOffset = Number(
-    formData.get("autoSelectOffset") ?? 2,
+    formData.get(
+      "autoSelectOffset",
+    ) ?? 2,
   );
 
   const hideOutOfStock =
-    formData.get("hideOutOfStock") === "true";
+    formData.get(
+      "hideOutOfStock",
+    ) === "true";
 
   const allowBackorders =
-    formData.get("allowBackorders") ===
-    "true";
+    formData.get(
+      "allowBackorders",
+    ) === "true";
 
   const requireInventoryCheck =
     formData.get(
@@ -190,19 +224,16 @@ export const action = async ({
     ) === "true";
 
   const emailSubject = String(
-    formData.get("emailSubject") ?? "",
+    formData.get(
+      "emailSubject",
+    ) ?? "",
   ).trim();
 
   const emailTemplate = String(
-    formData.get("emailTemplate") ?? "",
+    formData.get(
+      "emailTemplate",
+    ) ?? "",
   ).trim();
-
-  const assignedProducts = JSON.parse(
-    String(
-      formData.get("assignedProducts") ??
-        "[]",
-    ),
-  ) as AssignedProduct[];
 
   if (!name) {
     throw new Response(
@@ -213,10 +244,23 @@ export const action = async ({
     );
   }
 
+  /*
+   * IMPORTANT:
+   *
+   * We update ONLY the fulfillment profile rules here.
+   *
+   * Products and individual SKUs are managed separately at:
+   *
+   * /app/tiers/:id/products
+   *
+   * Saving this page will NOT overwrite or delete
+   * eligible products and SKUs.
+   */
   await db.fulfillmentProfile.update({
     where: {
       id: params.id,
     },
+
     data: {
       name,
 
@@ -246,35 +290,38 @@ export const action = async ({
 
       emailTemplate:
         emailTemplate || null,
-
-      products: {
-        deleteMany: {},
-
-        create: assignedProducts.map(
-          (product) => ({
-            sku: product.sku,
-            productName:
-              product.productName,
-            forceInclude:
-              product.forceInclude,
-            isActive: true,
-          }),
-        ),
-      },
     },
   });
 
-  return redirect("/app/tiers");
+  return redirect(
+    `/app/tiers/${params.id}`,
+  );
 };
 
+/* ============================================================
+   PAGE
+   ============================================================ */
+
 export default function EditFulfillmentProfilePage() {
-  const { profile } =
+  const {
+    profile,
+    eligibleProductCount,
+    eligibleSkuCount,
+  } =
     useLoaderData<typeof loader>();
 
   const submit = useSubmit();
 
-  const [name, setName] =
-    useState(profile.name);
+  /* ==========================================================
+     PROFILE DETAILS
+     ========================================================== */
+
+  const [
+    name,
+    setName,
+  ] = useState(
+    profile.name,
+  );
 
   const [
     appstlePlanName,
@@ -283,11 +330,18 @@ export default function EditFulfillmentProfilePage() {
     profile.appstlePlanName ?? "",
   );
 
-  const [status, setStatus] = useState(
+  const [
+    status,
+    setStatus,
+  ] = useState(
     profile.isActive
       ? "active"
       : "hidden",
   );
+
+  /* ==========================================================
+     SELECTION WINDOW
+     ========================================================== */
 
   const [
     selectionOpenOffset,
@@ -306,6 +360,10 @@ export default function EditFulfillmentProfilePage() {
       profile.selectionDeadlineOffset,
     ),
   );
+
+  /* ==========================================================
+     REMINDERS
+     ========================================================== */
 
   const [
     reminder14Days,
@@ -335,6 +393,10 @@ export default function EditFulfillmentProfilePage() {
     profile.reminder1Day,
   );
 
+  /* ==========================================================
+     AUTO SELECT
+     ========================================================== */
+
   const [
     autoSelectEnabled,
     setAutoSelectEnabled,
@@ -350,6 +412,10 @@ export default function EditFulfillmentProfilePage() {
       profile.autoSelectOffset,
     ),
   );
+
+  /* ==========================================================
+     INVENTORY
+     ========================================================== */
 
   const [
     hideOutOfStock,
@@ -372,6 +438,10 @@ export default function EditFulfillmentProfilePage() {
     profile.requireInventoryCheck,
   );
 
+  /* ==========================================================
+     EMAIL
+     ========================================================== */
+
   const [
     emailSubject,
     setEmailSubject,
@@ -386,50 +456,32 @@ export default function EditFulfillmentProfilePage() {
     profile.emailTemplate ?? "",
   );
 
-  const [
-    searchValue,
-    setSearchValue,
-  ] = useState("");
-
-  const [
-    assignedProducts,
-    setAssignedProducts,
-  ] = useState<
-    AssignedProduct[]
-  >(
-    profile.products.map(
-      (product) => ({
-        sku: product.sku,
-
-        productName:
-          product.productName,
-
-        forceInclude:
-          product.forceInclude,
-      }),
-    ),
-  );
+  /* ==========================================================
+     OPTIONS
+     ========================================================== */
 
   const statusOptions = [
     {
       label: "Active",
       value: "active",
     },
+
     {
       label: "Hidden",
       value: "hidden",
     },
   ];
 
-  const filteredSearchProducts =
-    mockSearchProducts.filter(
-      (product) =>
-        product
-          .toLowerCase()
-          .includes(
-            searchValue.toLowerCase(),
-          ),
-    );
+  const reminderCount = [
+    reminder14Days,
+    reminder7Days,
+    reminder3Days,
+    reminder1Day,
+  ].filter(Boolean).length;
+
+  /* ==========================================================
+     SAVE
+     ========================================================== */
 
   const handleSaveChanges = () => {
     const formData =
@@ -531,13 +583,6 @@ export default function EditFulfillmentProfilePage() {
       emailTemplate,
     );
 
-    formData.append(
-      "assignedProducts",
-      JSON.stringify(
-        assignedProducts,
-      ),
-    );
-
     submit(
       formData,
       {
@@ -545,6 +590,10 @@ export default function EditFulfillmentProfilePage() {
       },
     );
   };
+
+  /* ==========================================================
+     DELETE
+     ========================================================== */
 
   const handleDeleteProfile = () => {
     const confirmed =
@@ -576,81 +625,9 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
     );
   };
 
-  const handleAddProduct = (
-    productString: string,
-  ) => {
-    const firstSpaceIndex =
-      productString.indexOf(" ");
-
-    const sku =
-      firstSpaceIndex > -1
-        ? productString.substring(
-            0,
-            firstSpaceIndex,
-          )
-        : productString;
-
-    const alreadyAssigned =
-      assignedProducts.some(
-        (item) =>
-          item.sku === sku,
-      );
-
-    if (alreadyAssigned) {
-      return;
-    }
-
-    setAssignedProducts(
-      (current) => [
-        ...current,
-        {
-          sku,
-          productName:
-            productString,
-          forceInclude: false,
-        },
-      ],
-    );
-  };
-
-  const handleRemoveProduct = (
-    sku: string | null,
-  ) => {
-    setAssignedProducts(
-      (current) =>
-        current.filter(
-          (item) =>
-            item.sku !== sku,
-        ),
-    );
-  };
-
-  const handleToggleForceInclude =
-    (
-      sku: string | null,
-    ) => {
-      setAssignedProducts(
-        (current) =>
-          current.map(
-            (item) =>
-              item.sku === sku
-                ? {
-                    ...item,
-
-                    forceInclude:
-                      !item.forceInclude,
-                  }
-                : item,
-          ),
-      );
-    };
-
-  const reminderCount = [
-    reminder14Days,
-    reminder7Days,
-    reminder3Days,
-    reminder1Day,
-  ].filter(Boolean).length;
+  /* ==========================================================
+     RENDER
+     ========================================================== */
 
   return (
     <div className="ss-dashboard">
@@ -672,7 +649,10 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
         <TitleBar title="Edit Fulfillment Profile" />
 
         <BlockStack gap="500">
-          {/* HERO */}
+
+          {/* ==================================================
+              HERO
+              ================================================== */}
 
           <div className="ss-hero">
             <InlineStack
@@ -694,9 +674,11 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Appstle manages the subscription.
-                  SubscriptionSync manages the monthly
-                  selection and fulfillment workflow.
+                  Appstle manages the
+                  subscription.
+                  SubscriptionSync manages
+                  the customer selection
+                  and fulfillment workflow.
                 </Text>
               </BlockStack>
 
@@ -720,14 +702,23 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                   variant="bodySm"
                   tone="subdued"
                 >
-                  Profile ID:{" "}
-                  {profile.id}
+                  {
+                    profile.subscribers
+                      .length
+                  }{" "}
+                  assigned{" "}
+                  {profile.subscribers
+                    .length === 1
+                    ? "subscriber"
+                    : "subscribers"}
                 </Text>
               </BlockStack>
             </InlineStack>
           </div>
 
-          {/* PROFILE DETAILS */}
+          {/* ==================================================
+              PROFILE DETAILS
+              ================================================== */}
 
           <Card>
             <BlockStack gap="400">
@@ -746,9 +737,9 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Define the tier name, status, and
-                  corresponding Appstle subscription
-                  plan.
+                  Define the tier name,
+                  status, and corresponding
+                  Appstle subscription plan.
                 </Text>
               </BlockStack>
 
@@ -783,7 +774,9 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
             </BlockStack>
           </Card>
 
-          {/* SELECTION WINDOW */}
+          {/* ==================================================
+              SELECTION WINDOW
+              ================================================== */}
 
           <Card>
             <BlockStack gap="400">
@@ -802,9 +795,10 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  These settings determine when the
-                  customer can make their monthly
-                  selection relative to the upcoming
+                  These settings determine
+                  when the customer can make
+                  their monthly selection
+                  relative to the upcoming
                   Appstle order date.
                 </Text>
               </BlockStack>
@@ -846,7 +840,9 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
             </BlockStack>
           </Card>
 
-          {/* REMINDERS */}
+          {/* ==================================================
+              REMINDERS
+              ================================================== */}
 
           <Card>
             <BlockStack gap="400">
@@ -865,9 +861,10 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Choose which reminders SubscriptionSync
-                  should send before the selection
-                  deadline.
+                  Choose which reminders
+                  SubscriptionSync should
+                  send before the customer's
+                  selection deadline.
                 </Text>
               </BlockStack>
 
@@ -935,7 +932,9 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
             </BlockStack>
           </Card>
 
-          {/* AUTO SELECTION */}
+          {/* ==================================================
+              AUTO SELECT
+              ================================================== */}
 
           <Card>
             <BlockStack gap="400">
@@ -954,8 +953,9 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Define what happens when a customer
-                  does not submit a selection before the
+                  Define what happens when
+                  a customer does not submit
+                  a selection before the
                   deadline.
                 </Text>
               </BlockStack>
@@ -991,7 +991,9 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
             </BlockStack>
           </Card>
 
-          {/* INVENTORY */}
+          {/* ==================================================
+              INVENTORY
+              ================================================== */}
 
           <Card>
             <BlockStack gap="400">
@@ -1010,9 +1012,11 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Control how Shopify inventory affects
-                  the products and sizes available to the
-                  customer.
+                  Control how Shopify
+                  inventory affects the
+                  exact products and size
+                  variants available to
+                  customers.
                 </Text>
               </BlockStack>
 
@@ -1064,185 +1068,157 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
             </BlockStack>
           </Card>
 
-          {/* PRODUCTS */}
+          {/* ==================================================
+              ELIGIBLE PRODUCTS & SIZES
+              ================================================== */}
 
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
                 <div className="ss-section-accent" />
 
-                <Text
-                  as="h2"
-                  variant="headingLg"
+                <InlineStack
+                  align="space-between"
+                  blockAlign="center"
+                  gap="300"
+                  wrap
                 >
-                  Eligible Products
-                </Text>
+                  <BlockStack gap="100">
+                    <Text
+                      as="h2"
+                      variant="headingLg"
+                    >
+                      Eligible Products &
+                      Sizes
+                    </Text>
 
-                <Text
-                  as="p"
-                  variant="bodyMd"
-                  tone="subdued"
-                >
-                  Choose the products customers in this
-                  tier may select. These are temporary
-                  sandbox products until we connect
-                  directly to Shopify products and
-                  variants.
-                </Text>
+                    <Text
+                      as="p"
+                      variant="bodyMd"
+                      tone="subdued"
+                    >
+                      Manage the exact
+                      Little Adventures
+                      products, sizes, and
+                      SKUs customers in this
+                      fulfillment profile may
+                      select.
+                    </Text>
+                  </BlockStack>
+
+                  <Button
+                    variant="primary"
+                    url={`/app/tiers/${profile.id}/products`}
+                  >
+                    Manage Eligible Products
+                    & Sizes
+                  </Button>
+                </InlineStack>
               </BlockStack>
-
-              <TextField
-                label="Search products"
-                labelHidden
-                value={
-                  searchValue
-                }
-                onChange={
-                  setSearchValue
-                }
-                autoComplete="off"
-                placeholder="Search Shopify products..."
-                clearButton
-                onClearButtonClick={() =>
-                  setSearchValue("")
-                }
-              />
-
-              <Box
-                padding="300"
-                borderWidth="025"
-                borderColor="border"
-                borderRadius="200"
-              >
-                <BlockStack gap="200">
-                  {filteredSearchProducts.map(
-                    (product) => (
-                      <InlineStack
-                        key={product}
-                        align="space-between"
-                        blockAlign="center"
-                      >
-                        <Text
-                          as="span"
-                          variant="bodyMd"
-                        >
-                          {product}
-                        </Text>
-
-                        <Button
-                          size="slim"
-                          variant="plain"
-                          onClick={() =>
-                            handleAddProduct(
-                              product,
-                            )
-                          }
-                        >
-                          Add
-                        </Button>
-                      </InlineStack>
-                    ),
-                  )}
-                </BlockStack>
-              </Box>
 
               <Divider />
 
-              {assignedProducts.length ===
+              <InlineStack
+                gap="300"
+                wrap
+              >
+                <SummaryBox
+                  label="Eligible Products"
+                  value={String(
+                    eligibleProductCount,
+                  )}
+                />
+
+                <SummaryBox
+                  label="Eligible SKUs"
+                  value={String(
+                    eligibleSkuCount,
+                  )}
+                />
+              </InlineStack>
+
+              {eligibleSkuCount ===
               0 ? (
                 <Box
                   padding="400"
                   background="bg-surface-secondary"
                   borderRadius="200"
                 >
-                  <Text
-                    as="p"
-                    variant="bodyMd"
-                    tone="subdued"
-                  >
-                    No products assigned to this
-                    fulfillment profile yet.
-                  </Text>
+                  <BlockStack gap="150">
+                    <Text
+                      as="p"
+                      variant="bodyMd"
+                      fontWeight="semibold"
+                    >
+                      No eligible SKUs
+                      selected yet
+                    </Text>
+
+                    <Text
+                      as="p"
+                      variant="bodySm"
+                      tone="subdued"
+                    >
+                      Open Eligible Products
+                      & Sizes to choose the
+                      individual product
+                      variants customers in
+                      this profile may select.
+                    </Text>
+                  </BlockStack>
                 </Box>
               ) : (
-                <BlockStack gap="300">
-                  {assignedProducts.map(
-                    (item) => (
-                      <Box
-                        key={`${item.sku}-${item.productName}`}
-                        padding="300"
-                        background="bg-surface-secondary"
-                        borderRadius="200"
+                <Box
+                  padding="400"
+                  background="bg-surface-secondary"
+                  borderRadius="200"
+                >
+                  <InlineStack
+                    align="space-between"
+                    blockAlign="center"
+                    gap="300"
+                    wrap
+                  >
+                    <BlockStack gap="100">
+                      <Text
+                        as="p"
+                        variant="bodyMd"
+                        fontWeight="semibold"
                       >
-                        <InlineStack
-                          align="space-between"
-                          blockAlign="center"
-                          gap="300"
-                        >
-                          <BlockStack gap="050">
-                            <Text
-                              as="p"
-                              variant="bodyMd"
-                              fontWeight="semibold"
-                            >
-                              {
-                                item.productName
-                              }
-                            </Text>
+                        Product eligibility
+                        configured
+                      </Text>
 
-                            <Text
-                              as="p"
-                              variant="bodySm"
-                              tone="subdued"
-                            >
-                              SKU:{" "}
-                              {item.sku ??
-                                "Not set"}
-                            </Text>
-                          </BlockStack>
+                      <Text
+                        as="p"
+                        variant="bodySm"
+                        tone="subdued"
+                      >
+                        {
+                          eligibleSkuCount
+                        }{" "}
+                        individual SKUs are
+                        currently eligible
+                        across{" "}
+                        {
+                          eligibleProductCount
+                        }{" "}
+                        products.
+                      </Text>
+                    </BlockStack>
 
-                          <InlineStack gap="200">
-                            <Button
-                              size="slim"
-                              variant={
-                                item.forceInclude
-                                  ? "primary"
-                                  : "secondary"
-                              }
-                              onClick={() =>
-                                handleToggleForceInclude(
-                                  item.sku,
-                                )
-                              }
-                            >
-                              {item.forceInclude
-                                ? "Force On"
-                                : "Force Off"}
-                            </Button>
-
-                            <Button
-                              size="slim"
-                              tone="critical"
-                              variant="plain"
-                              onClick={() =>
-                                handleRemoveProduct(
-                                  item.sku,
-                                )
-                              }
-                            >
-                              Remove
-                            </Button>
-                          </InlineStack>
-                        </InlineStack>
-                      </Box>
-                    ),
-                  )}
-                </BlockStack>
+                    <Badge tone="success">
+                      Configured
+                    </Badge>
+                  </InlineStack>
+                </Box>
               )}
             </BlockStack>
           </Card>
 
-          {/* EMAIL */}
+          {/* ==================================================
+              EMAIL
+              ================================================== */}
 
           <Card>
             <BlockStack gap="400">
@@ -1261,9 +1237,11 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Configure the email customers will
-                  eventually receive when it is time to
-                  make their monthly selection.
+                  Configure the email
+                  customers will eventually
+                  receive when it is time to
+                  make their monthly
+                  selection.
                 </Text>
               </BlockStack>
 
@@ -1293,7 +1271,9 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
             </BlockStack>
           </Card>
 
-          {/* SUMMARY */}
+          {/* ==================================================
+              SUMMARY
+              ================================================== */}
 
           <Card>
             <BlockStack gap="300">
@@ -1323,9 +1303,16 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                 />
 
                 <SummaryBox
-                  label="Products"
+                  label="Eligible Products"
                   value={String(
-                    assignedProducts.length,
+                    eligibleProductCount,
+                  )}
+                />
+
+                <SummaryBox
+                  label="Eligible SKUs"
+                  value={String(
+                    eligibleSkuCount,
                   )}
                 />
 
@@ -1376,7 +1363,9 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                   Selection Window:
                 </strong>{" "}
                 Opens{" "}
-                {selectionOpenOffset}{" "}
+                {
+                  selectionOpenOffset
+                }{" "}
                 days before order and
                 closes{" "}
                 {
@@ -1387,12 +1376,13 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
 
               <Divider />
 
-              {/* DELETE + SAVE ACTIONS */}
+              {/* DELETE + SAVE */}
 
               <InlineStack
                 align="space-between"
                 blockAlign="center"
                 gap="300"
+                wrap
               >
                 <BlockStack gap="050">
                   <Button
@@ -1412,9 +1402,9 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                       variant="bodySm"
                       tone="subdued"
                     >
-                      Profiles with
-                      assigned subscribers
-                      cannot be deleted.
+                      Profiles with assigned
+                      subscribers cannot be
+                      deleted.
                     </Text>
                   )}
                 </BlockStack>
@@ -1444,6 +1434,10 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
     </div>
   );
 }
+
+/* ============================================================
+   TOGGLE SETTING
+   ============================================================ */
 
 function ToggleSetting({
   label,
@@ -1496,6 +1490,10 @@ function ToggleSetting({
     </InlineStack>
   );
 }
+
+/* ============================================================
+   SUMMARY BOX
+   ============================================================ */
 
 function SummaryBox({
   label,

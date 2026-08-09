@@ -4,7 +4,11 @@ import type {
 } from "@remix-run/node";
 
 import { redirect } from "@remix-run/node";
-import { useSubmit } from "@remix-run/react";
+
+import {
+  useSubmit,
+} from "@remix-run/react";
+
 import { useState } from "react";
 
 import {
@@ -25,18 +29,32 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
-export const loader = async ({ request }: LoaderFunctionArgs) => {
+/* ============================================================
+   LOADER
+   ============================================================ */
+
+export const loader = async ({
+  request,
+}: LoaderFunctionArgs) => {
   await authenticate.admin(request);
 
   return null;
 };
 
-export const action = async ({ request }: ActionFunctionArgs) => {
+/* ============================================================
+   ACTION
+   ============================================================ */
+
+export const action = async ({
+  request,
+}: ActionFunctionArgs) => {
   await authenticate.admin(request);
 
   const formData = await request.formData();
 
-  const name = String(formData.get("name") ?? "").trim();
+  const name = String(
+    formData.get("name") ?? "",
+  ).trim();
 
   const appstlePlanName = String(
     formData.get("appstlePlanName") ?? "",
@@ -51,7 +69,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   );
 
   const selectionDeadlineOffset = Number(
-    formData.get("selectionDeadlineOffset") ?? 7,
+    formData.get(
+      "selectionDeadlineOffset",
+    ) ?? 7,
   );
 
   const autoSelectOffset = Number(
@@ -59,28 +79,37 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   );
 
   const reminder14Days =
-    formData.get("reminder14Days") === "true";
+    formData.get("reminder14Days") ===
+    "true";
 
   const reminder7Days =
-    formData.get("reminder7Days") === "true";
+    formData.get("reminder7Days") ===
+    "true";
 
   const reminder3Days =
-    formData.get("reminder3Days") === "true";
+    formData.get("reminder3Days") ===
+    "true";
 
   const reminder1Day =
-    formData.get("reminder1Day") === "true";
+    formData.get("reminder1Day") ===
+    "true";
 
   const autoSelectEnabled =
-    formData.get("autoSelectEnabled") === "true";
+    formData.get("autoSelectEnabled") ===
+    "true";
 
   const hideOutOfStock =
-    formData.get("hideOutOfStock") === "true";
+    formData.get("hideOutOfStock") ===
+    "true";
 
   const allowBackorders =
-    formData.get("allowBackorders") === "true";
+    formData.get("allowBackorders") ===
+    "true";
 
   const requireInventoryCheck =
-    formData.get("requireInventoryCheck") === "true";
+    formData.get(
+      "requireInventoryCheck",
+    ) === "true";
 
   const emailSubject = String(
     formData.get("emailSubject") ?? "",
@@ -90,88 +119,89 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     formData.get("emailTemplate") ?? "",
   ).trim();
 
-  const selectedProductsRaw = String(
-    formData.get("selectedProducts") ?? "[]",
-  );
-
-  const selectedProducts = JSON.parse(
-    selectedProductsRaw,
-  ) as string[];
-
   if (!name) {
-    throw new Response("Profile name is required.", {
-      status: 400,
-    });
+    throw new Response(
+      "Profile name is required.",
+      {
+        status: 400,
+      },
+    );
   }
 
-  await db.fulfillmentProfile.create({
-    data: {
-      name,
-      isActive: status === "active",
+  /*
+   * Create only the fulfillment profile here.
+   *
+   * Eligible products and individual SKUs will
+   * be configured on the dedicated products page.
+   */
+  const profile =
+    await db.fulfillmentProfile.create({
+      data: {
+        name,
 
-      appstlePlanName: appstlePlanName || null,
+        isActive:
+          status === "active",
 
-      selectionOpenOffset,
-      selectionDeadlineOffset,
+        appstlePlanName:
+          appstlePlanName || null,
 
-      reminder14Days,
-      reminder7Days,
-      reminder3Days,
-      reminder1Day,
+        selectionOpenOffset,
+        selectionDeadlineOffset,
 
-      autoSelectEnabled,
-      autoSelectOffset,
+        reminder14Days,
+        reminder7Days,
+        reminder3Days,
+        reminder1Day,
 
-      hideOutOfStock,
-      allowBackorders,
-      requireInventoryCheck,
+        autoSelectEnabled,
+        autoSelectOffset,
 
-      emailSubject: emailSubject || null,
-      emailTemplate: emailTemplate || null,
+        hideOutOfStock,
+        allowBackorders,
+        requireInventoryCheck,
 
-      products: {
-        create: selectedProducts.map((product) => {
-          const firstSpaceIndex = product.indexOf(" ");
+        emailSubject:
+          emailSubject || null,
 
-          const sku =
-            firstSpaceIndex > -1
-              ? product.substring(0, firstSpaceIndex)
-              : product;
-
-          return {
-            sku,
-            productName: product,
-            isActive: true,
-          };
-        }),
+        emailTemplate:
+          emailTemplate || null,
       },
-    },
-  });
+    });
 
-  return redirect("/app/tiers");
+  /*
+   * After creating the profile, immediately
+   * send the user to the SKU management page.
+   */
+  return redirect(
+    `/app/tiers/${profile.id}/products`,
+  );
 };
 
-const mockProducts = [
-  "50012 Belle XS",
-  "50034 Belle M",
-  "50107 Belle L",
-  "50158 Belle XL",
-  "50219 Snow White XS",
-  "50285 Snow White S",
-  "50341 Snow White M",
-  "50402 Snow White L",
-  "50478 Snow White XL",
-];
+/* ============================================================
+   PAGE
+   ============================================================ */
 
 export default function CreateFulfillmentProfilePage() {
   const submit = useSubmit();
 
-  const [name, setName] = useState("");
+  /* -----------------------------
+     PROFILE DETAILS
+     ----------------------------- */
 
-  const [appstlePlanName, setAppstlePlanName] =
+  const [name, setName] =
     useState("");
 
-  const [status, setStatus] = useState("active");
+  const [
+    appstlePlanName,
+    setAppstlePlanName,
+  ] = useState("");
+
+  const [status, setStatus] =
+    useState("active");
+
+  /* -----------------------------
+     SELECTION WINDOW
+     ----------------------------- */
 
   const [
     selectionOpenOffset,
@@ -183,45 +213,79 @@ export default function CreateFulfillmentProfilePage() {
     setSelectionDeadlineOffset,
   ] = useState("7");
 
-  const [reminder14Days, setReminder14Days] =
-    useState(true);
+  /* -----------------------------
+     REMINDERS
+     ----------------------------- */
 
-  const [reminder7Days, setReminder7Days] =
-    useState(true);
+  const [
+    reminder14Days,
+    setReminder14Days,
+  ] = useState(true);
 
-  const [reminder3Days, setReminder3Days] =
-    useState(true);
+  const [
+    reminder7Days,
+    setReminder7Days,
+  ] = useState(true);
 
-  const [reminder1Day, setReminder1Day] =
-    useState(true);
+  const [
+    reminder3Days,
+    setReminder3Days,
+  ] = useState(true);
+
+  const [
+    reminder1Day,
+    setReminder1Day,
+  ] = useState(true);
+
+  /* -----------------------------
+     AUTO SELECT
+     ----------------------------- */
 
   const [
     autoSelectEnabled,
     setAutoSelectEnabled,
   ] = useState(true);
 
-  const [autoSelectOffset, setAutoSelectOffset] =
-    useState("2");
+  const [
+    autoSelectOffset,
+    setAutoSelectOffset,
+  ] = useState("2");
 
-  const [hideOutOfStock, setHideOutOfStock] =
-    useState(true);
+  /* -----------------------------
+     INVENTORY
+     ----------------------------- */
 
-  const [allowBackorders, setAllowBackorders] =
-    useState(false);
+  const [
+    hideOutOfStock,
+    setHideOutOfStock,
+  ] = useState(true);
+
+  const [
+    allowBackorders,
+    setAllowBackorders,
+  ] = useState(false);
 
   const [
     requireInventoryCheck,
     setRequireInventoryCheck,
   ] = useState(true);
 
-  const [emailSubject, setEmailSubject] =
-    useState(
-      "It's time to make your monthly selection!",
-    );
+  /* -----------------------------
+     EMAIL
+     ----------------------------- */
 
-  const [emailTemplate, setEmailTemplate] =
-    useState(
-      `Hi {{customer_name}},
+  const [
+    emailSubject,
+    setEmailSubject,
+  ] = useState(
+    "It's time to make your monthly selection!",
+  );
+
+  const [
+    emailTemplate,
+    setEmailTemplate,
+  ] = useState(
+    `Hi {{customer_name}},
 
 It's time to make your monthly Little Adventures selection.
 
@@ -232,22 +296,11 @@ Use the link below to choose from the products and sizes currently available for
 Thank you!
 
 Little Adventures`,
-    );
-
-  const [searchValue, setSearchValue] =
-    useState("");
-
-  const [
-    selectedProducts,
-    setSelectedProducts,
-  ] = useState<string[]>([]);
-
-  const filteredProducts = mockProducts.filter(
-    (product) =>
-      product
-        .toLowerCase()
-        .includes(searchValue.toLowerCase()),
   );
+
+  /* -----------------------------
+     OPTIONS
+     ----------------------------- */
 
   const statusOptions = [
     {
@@ -260,31 +313,28 @@ Little Adventures`,
     },
   ];
 
-  const handleToggleProduct = (
-    product: string,
-  ) => {
-    setSelectedProducts((current) => {
-      if (current.includes(product)) {
-        return current.filter(
-          (item) => item !== product,
-        );
-      }
-
-      return [...current, product];
-    });
-  };
+  /* -----------------------------
+     CREATE PROFILE
+     ----------------------------- */
 
   const handleCreateProfile = () => {
-    const formData = new FormData();
+    const formData =
+      new FormData();
 
-    formData.append("name", name);
+    formData.append(
+      "name",
+      name,
+    );
 
     formData.append(
       "appstlePlanName",
       appstlePlanName,
     );
 
-    formData.append("status", status);
+    formData.append(
+      "status",
+      status,
+    );
 
     formData.append(
       "selectionOpenOffset",
@@ -298,27 +348,37 @@ Little Adventures`,
 
     formData.append(
       "reminder14Days",
-      String(reminder14Days),
+      String(
+        reminder14Days,
+      ),
     );
 
     formData.append(
       "reminder7Days",
-      String(reminder7Days),
+      String(
+        reminder7Days,
+      ),
     );
 
     formData.append(
       "reminder3Days",
-      String(reminder3Days),
+      String(
+        reminder3Days,
+      ),
     );
 
     formData.append(
       "reminder1Day",
-      String(reminder1Day),
+      String(
+        reminder1Day,
+      ),
     );
 
     formData.append(
       "autoSelectEnabled",
-      String(autoSelectEnabled),
+      String(
+        autoSelectEnabled,
+      ),
     );
 
     formData.append(
@@ -328,17 +388,23 @@ Little Adventures`,
 
     formData.append(
       "hideOutOfStock",
-      String(hideOutOfStock),
+      String(
+        hideOutOfStock,
+      ),
     );
 
     formData.append(
       "allowBackorders",
-      String(allowBackorders),
+      String(
+        allowBackorders,
+      ),
     );
 
     formData.append(
       "requireInventoryCheck",
-      String(requireInventoryCheck),
+      String(
+        requireInventoryCheck,
+      ),
     );
 
     formData.append(
@@ -351,14 +417,12 @@ Little Adventures`,
       emailTemplate,
     );
 
-    formData.append(
-      "selectedProducts",
-      JSON.stringify(selectedProducts),
+    submit(
+      formData,
+      {
+        method: "post",
+      },
     );
-
-    submit(formData, {
-      method: "post",
-    });
   };
 
   return (
@@ -367,21 +431,31 @@ Little Adventures`,
         title="Create Fulfillment Profile"
         subtitle="Configure how a Little Adventures subscription tier moves from Appstle subscription to monthly customer selection and fulfillment."
         backAction={{
-          content: "Fulfillment Profiles",
+          content:
+            "Fulfillment Profiles",
           url: "/app/tiers",
         }}
         primaryAction={{
-          content: "Create Profile",
-          onAction: handleCreateProfile,
+          content:
+            "Create Profile",
+          onAction:
+            handleCreateProfile,
         }}
       >
         <TitleBar title="Create Fulfillment Profile" />
 
         <BlockStack gap="500">
+
+          {/* HERO */}
+
           <div className="ss-hero">
             <BlockStack gap="200">
-              <Text as="h2" variant="headingLg">
-                Build the Operational Rules for This Tier
+              <Text
+                as="h2"
+                variant="headingLg"
+              >
+                Build the Operational Rules
+                for This Tier
               </Text>
 
               <Text
@@ -389,18 +463,20 @@ Little Adventures`,
                 variant="bodyMd"
                 tone="subdued"
               >
-                Appstle manages the subscription itself.
-                This fulfillment profile tells
-                SubscriptionSync how to manage the
-                customer selection, available products,
-                inventory rules, reminders, and
-                fulfillment workflow for that
-                subscription tier.
+                Appstle manages the
+                subscription itself.
+                SubscriptionSync uses this
+                profile to manage the
+                customer selection window,
+                reminders, inventory rules,
+                automatic selection, and
+                fulfillment workflow.
               </Text>
             </BlockStack>
           </div>
 
           {/* PROFILE DETAILS */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -418,8 +494,10 @@ Little Adventures`,
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Give this profile the tier name Little
-                  Adventures will recognize inside
+                  Give this profile the
+                  subscription tier name
+                  Little Adventures will
+                  recognize inside
                   SubscriptionSync.
                 </Text>
               </BlockStack>
@@ -429,12 +507,14 @@ Little Adventures`,
                 value={name}
                 onChange={setName}
                 autoComplete="off"
-                placeholder="Example: Princess Traditional"
+                placeholder="Example: Princess Twirl"
               />
 
               <Select
                 label="Status"
-                options={statusOptions}
+                options={
+                  statusOptions
+                }
                 value={status}
                 onChange={setStatus}
               />
@@ -442,6 +522,7 @@ Little Adventures`,
           </Card>
 
           {/* APPSTLE */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -459,23 +540,30 @@ Little Adventures`,
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Link this profile to the corresponding
-                  Appstle subscription plan.
+                  Link this fulfillment
+                  profile to the
+                  corresponding Appstle
+                  subscription plan.
                 </Text>
               </BlockStack>
 
               <TextField
                 label="Linked Appstle Plan"
-                value={appstlePlanName}
-                onChange={setAppstlePlanName}
+                value={
+                  appstlePlanName
+                }
+                onChange={
+                  setAppstlePlanName
+                }
                 autoComplete="off"
-                placeholder="Example: Princess Subscription - Traditional"
-                helpText="For now this is entered manually. Later, the Appstle integration can populate and sync this automatically."
+                placeholder="Example: Princess Subscription - Twirl"
+                helpText="For now this is entered manually. Later, SubscriptionSync can populate and synchronize this directly from Appstle."
               />
             </BlockStack>
           </Card>
 
           {/* SELECTION WINDOW */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -493,17 +581,25 @@ Little Adventures`,
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  These dates are calculated from the
-                  customer's upcoming Appstle order date.
+                  These dates are calculated
+                  from the customer's upcoming
+                  Appstle order date.
                 </Text>
               </BlockStack>
 
-              <InlineStack gap="400" wrap>
+              <InlineStack
+                gap="400"
+                wrap
+              >
                 <Box minWidth="240px">
                   <TextField
                     label="Selection opens"
-                    value={selectionOpenOffset}
-                    onChange={setSelectionOpenOffset}
+                    value={
+                      selectionOpenOffset
+                    }
+                    onChange={
+                      setSelectionOpenOffset
+                    }
                     type="number"
                     autoComplete="off"
                     suffix="days before order"
@@ -513,7 +609,9 @@ Little Adventures`,
                 <Box minWidth="240px">
                   <TextField
                     label="Selection deadline"
-                    value={selectionDeadlineOffset}
+                    value={
+                      selectionDeadlineOffset
+                    }
                     onChange={
                       setSelectionDeadlineOffset
                     }
@@ -527,6 +625,7 @@ Little Adventures`,
           </Card>
 
           {/* REMINDERS */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -545,18 +644,22 @@ Little Adventures`,
                   tone="subdued"
                 >
                   Choose which reminders
-                  SubscriptionSync should send before
-                  the customer's selection deadline.
+                  SubscriptionSync should
+                  send before the customer's
+                  selection deadline.
                 </Text>
               </BlockStack>
 
               <ToggleSetting
                 label="14-day reminder"
                 description="Send a reminder 14 days before the selection deadline."
-                enabled={reminder14Days}
+                enabled={
+                  reminder14Days
+                }
                 onToggle={() =>
                   setReminder14Days(
-                    (current) => !current,
+                    (current) =>
+                      !current,
                   )
                 }
               />
@@ -566,10 +669,13 @@ Little Adventures`,
               <ToggleSetting
                 label="7-day reminder"
                 description="Send a reminder 7 days before the selection deadline."
-                enabled={reminder7Days}
+                enabled={
+                  reminder7Days
+                }
                 onToggle={() =>
                   setReminder7Days(
-                    (current) => !current,
+                    (current) =>
+                      !current,
                   )
                 }
               />
@@ -579,10 +685,13 @@ Little Adventures`,
               <ToggleSetting
                 label="3-day reminder"
                 description="Send a reminder 3 days before the selection deadline."
-                enabled={reminder3Days}
+                enabled={
+                  reminder3Days
+                }
                 onToggle={() =>
                   setReminder3Days(
-                    (current) => !current,
+                    (current) =>
+                      !current,
                   )
                 }
               />
@@ -592,10 +701,13 @@ Little Adventures`,
               <ToggleSetting
                 label="1-day reminder"
                 description="Send a final reminder 1 day before the selection deadline."
-                enabled={reminder1Day}
+                enabled={
+                  reminder1Day
+                }
                 onToggle={() =>
                   setReminder1Day(
-                    (current) => !current,
+                    (current) =>
+                      !current,
                   )
                 }
               />
@@ -603,6 +715,7 @@ Little Adventures`,
           </Card>
 
           {/* AUTO SELECT */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -620,19 +733,23 @@ Little Adventures`,
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Define what happens when a customer
-                  does not submit a selection before
-                  the deadline.
+                  Define what happens when
+                  a customer does not submit
+                  a selection before the
+                  deadline.
                 </Text>
               </BlockStack>
 
               <ToggleSetting
                 label="Enable Auto Selection"
                 description="Allow SubscriptionSync to move customers who do not submit a selection into the automatic selection workflow."
-                enabled={autoSelectEnabled}
+                enabled={
+                  autoSelectEnabled
+                }
                 onToggle={() =>
                   setAutoSelectEnabled(
-                    (current) => !current,
+                    (current) =>
+                      !current,
                   )
                 }
               />
@@ -640,8 +757,12 @@ Little Adventures`,
               {autoSelectEnabled && (
                 <TextField
                   label="Auto selection timing"
-                  value={autoSelectOffset}
-                  onChange={setAutoSelectOffset}
+                  value={
+                    autoSelectOffset
+                  }
+                  onChange={
+                    setAutoSelectOffset
+                  }
                   type="number"
                   autoComplete="off"
                   suffix="days after deadline"
@@ -651,6 +772,7 @@ Little Adventures`,
           </Card>
 
           {/* INVENTORY */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -668,18 +790,24 @@ Little Adventures`,
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Control which Shopify products and
-                  variants can be shown to customers.
+                  Control how Shopify
+                  inventory will affect the
+                  products and individual
+                  size variants available to
+                  customers.
                 </Text>
               </BlockStack>
 
               <ToggleSetting
                 label="Hide Out-of-Stock Products"
                 description="Do not show unavailable products or variants on the customer selection form."
-                enabled={hideOutOfStock}
+                enabled={
+                  hideOutOfStock
+                }
                 onToggle={() =>
                   setHideOutOfStock(
-                    (current) => !current,
+                    (current) =>
+                      !current,
                   )
                 }
               />
@@ -689,10 +817,13 @@ Little Adventures`,
               <ToggleSetting
                 label="Require Inventory Check"
                 description="Verify inventory before a customer selection moves into fulfillment."
-                enabled={requireInventoryCheck}
+                enabled={
+                  requireInventoryCheck
+                }
                 onToggle={() =>
                   setRequireInventoryCheck(
-                    (current) => !current,
+                    (current) =>
+                      !current,
                   )
                 }
               />
@@ -702,19 +833,23 @@ Little Adventures`,
               <ToggleSetting
                 label="Allow Backorders"
                 description="Allow selections even when Shopify inventory is not currently available."
-                enabled={allowBackorders}
+                enabled={
+                  allowBackorders
+                }
                 onToggle={() =>
                   setAllowBackorders(
-                    (current) => !current,
+                    (current) =>
+                      !current,
                   )
                 }
               />
             </BlockStack>
           </Card>
 
-          {/* PRODUCTS */}
+          {/* ELIGIBLE PRODUCTS NEXT STEP */}
+
           <Card>
-            <BlockStack gap="400">
+            <BlockStack gap="300">
               <BlockStack gap="100">
                 <div className="ss-section-accent" />
 
@@ -722,7 +857,7 @@ Little Adventures`,
                   as="h2"
                   variant="headingLg"
                 >
-                  Eligible Products
+                  Eligible Products & Sizes
                 </Text>
 
                 <Text
@@ -730,88 +865,46 @@ Little Adventures`,
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  Choose the products customers in this
-                  tier may select. These are temporary
-                  sandbox products while we build the
-                  Shopify product and variant
-                  integration.
+                  Product and SKU eligibility
+                  will be configured after
+                  this profile is created.
                 </Text>
               </BlockStack>
 
-              <TextField
-                label="Search eligible products"
-                labelHidden
-                value={searchValue}
-                onChange={setSearchValue}
-                autoComplete="off"
-                placeholder="Search products..."
-                clearButton
-                onClearButtonClick={() =>
-                  setSearchValue("")
-                }
-              />
-
               <Box
-                padding="300"
-                borderWidth="025"
-                borderColor="border"
+                padding="400"
+                background="bg-surface-secondary"
                 borderRadius="200"
-                minHeight="220px"
               >
                 <BlockStack gap="200">
-                  {filteredProducts.map((product) => {
-                    const selected =
-                      selectedProducts.includes(product);
+                  <Text
+                    as="p"
+                    variant="bodyMd"
+                    fontWeight="semibold"
+                  >
+                    Next Step
+                  </Text>
 
-                    return (
-                      <InlineStack
-                        key={product}
-                        align="space-between"
-                        blockAlign="center"
-                      >
-                        <Text
-                          as="span"
-                          variant="bodyMd"
-                        >
-                          {product}
-                        </Text>
-
-                        <Button
-                          size="slim"
-                          variant={
-                            selected
-                              ? "primary"
-                              : "secondary"
-                          }
-                          onClick={() =>
-                            handleToggleProduct(product)
-                          }
-                        >
-                          {selected
-                            ? "Selected"
-                            : "Add"}
-                        </Button>
-                      </InlineStack>
-                    );
-                  })}
+                  <Text
+                    as="p"
+                    variant="bodyMd"
+                    tone="subdued"
+                  >
+                    After you create this
+                    profile, SubscriptionSync
+                    will take you to the
+                    Eligible Products & Sizes
+                    page where you can choose
+                    individual Little
+                    Adventures SKUs and sizes.
+                  </Text>
                 </BlockStack>
               </Box>
-
-              <Text
-                as="p"
-                variant="bodySm"
-                tone="subdued"
-              >
-                {selectedProducts.length} eligible{" "}
-                {selectedProducts.length === 1
-                  ? "product"
-                  : "products"}{" "}
-                selected.
-              </Text>
             </BlockStack>
           </Card>
 
           {/* EMAIL */}
+
           <Card>
             <BlockStack gap="400">
               <BlockStack gap="100">
@@ -829,32 +922,41 @@ Little Adventures`,
                   variant="bodyMd"
                   tone="subdued"
                 >
-                  This email will eventually be sent
-                  when SubscriptionSync detects that a
-                  customer needs to make a monthly
-                  selection.
+                  Configure the email customers
+                  will eventually receive when
+                  it is time to make their
+                  monthly selection.
                 </Text>
               </BlockStack>
 
               <TextField
                 label="Email subject"
-                value={emailSubject}
-                onChange={setEmailSubject}
+                value={
+                  emailSubject
+                }
+                onChange={
+                  setEmailSubject
+                }
                 autoComplete="off"
               />
 
               <TextField
                 label="Email template"
-                value={emailTemplate}
-                onChange={setEmailTemplate}
+                value={
+                  emailTemplate
+                }
+                onChange={
+                  setEmailTemplate
+                }
                 multiline={10}
                 autoComplete="off"
-                helpText="Template variables such as {{customer_name}} and {{selection_link}} will be connected when we build the email automation."
+                helpText="Template variables such as {{customer_name}} and {{selection_link}} will be connected when the email automation is built."
               />
             </BlockStack>
           </Card>
 
           {/* SUMMARY */}
+
           <Card>
             <BlockStack gap="300">
               <BlockStack gap="100">
@@ -868,21 +970,18 @@ Little Adventures`,
                 </Text>
               </BlockStack>
 
-              <InlineStack gap="300" wrap>
+              <InlineStack
+                gap="300"
+                wrap
+              >
                 <SummaryBox
                   label="Status"
                   value={
-                    status === "active"
+                    status ===
+                    "active"
                       ? "Active"
                       : "Hidden"
                   }
-                />
-
-                <SummaryBox
-                  label="Eligible Products"
-                  value={String(
-                    selectedProducts.length,
-                  )}
                 />
 
                 <SummaryBox
@@ -894,17 +993,30 @@ Little Adventures`,
                   label="Deadline"
                   value={`${selectionDeadlineOffset} days before`}
                 />
+
+                <SummaryBox
+                  label="Product Setup"
+                  value="Next Step"
+                />
               </InlineStack>
 
               <Divider />
 
-              <Text as="p" variant="bodyMd">
-                <strong>Linked Appstle Plan:</strong>{" "}
+              <Text
+                as="p"
+                variant="bodyMd"
+              >
+                <strong>
+                  Linked Appstle Plan:
+                </strong>{" "}
                 {appstlePlanName ||
                   "Not linked yet"}
               </Text>
 
-              <InlineStack align="end" gap="200">
+              <InlineStack
+                align="end"
+                gap="200"
+              >
                 <Button
                   url="/app/tiers"
                   variant="plain"
@@ -914,9 +1026,11 @@ Little Adventures`,
 
                 <Button
                   variant="primary"
-                  onClick={handleCreateProfile}
+                  onClick={
+                    handleCreateProfile
+                  }
                 >
-                  Create Profile
+                  Create Profile & Continue
                 </Button>
               </InlineStack>
             </BlockStack>
@@ -926,6 +1040,10 @@ Little Adventures`,
     </div>
   );
 }
+
+/* ============================================================
+   TOGGLE SETTING
+   ============================================================ */
 
 function ToggleSetting({
   label,
@@ -965,15 +1083,23 @@ function ToggleSetting({
       <Button
         size="slim"
         variant={
-          enabled ? "primary" : "secondary"
+          enabled
+            ? "primary"
+            : "secondary"
         }
         onClick={onToggle}
       >
-        {enabled ? "On" : "Off"}
+        {enabled
+          ? "On"
+          : "Off"}
       </Button>
     </InlineStack>
   );
 }
+
+/* ============================================================
+   SUMMARY BOX
+   ============================================================ */
 
 function SummaryBox({
   label,
