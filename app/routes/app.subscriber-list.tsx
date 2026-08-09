@@ -15,7 +15,6 @@ import {
   Badge,
   BlockStack,
   Button,
-  Card,
   IndexTable,
   InlineStack,
   Layout,
@@ -29,29 +28,42 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 /* ============================================================
-   SUBSCRIPTIONSYNC BRAND COLORS
+   SUBSCRIPTIONSYNC DESIGN SYSTEM
    ============================================================ */
 
 const COLORS = {
-  navy: "#17233E",
-  blue: "#294A78",
-  tealBlue: "#2F7C89",
-
-  pageBackground: "#F5F7FB",
-
+  // Main surfaces
+  page: "#F7F7F4",
   white: "#FFFFFF",
 
-  softBlue: "#F4F8FC",
-  softBlueStrong: "#EAF1F8",
+  // Typography
+  text: "#20221F",
+  textSoft: "#52574F",
+  muted: "#787D75",
 
-  border: "#D9E2EC",
-  borderBlue: "#C6D5E5",
+  // Sage
+  sage: "#687A6C",
+  sageDark: "#4D5E51",
+  sageDeep: "#39483D",
+  sageSoft: "#EEF1ED",
+  sageSoftStrong: "#E4EAE3",
 
-  text: "#1F2937",
-  muted: "#667085",
+  // Warm neutral
+  cream: "#F5F1E8",
+  creamStrong: "#E9E1D3",
+  warmText: "#705F42",
 
-  numberBlue: "#244B78",
-  accentBlue: "#356A9A",
+  // Borders
+  border: "#E4E5DF",
+  borderStrong: "#D6D8D2",
+
+  // Status surfaces
+  attentionSoft: "#F7F0E2",
+  attentionBorder: "#E9D6AE",
+  successSoft: "#EDF3ED",
+  successBorder: "#CDDCCF",
+  criticalSoft: "#F8EDEC",
+  criticalBorder: "#E8C7C4",
 };
 
 /* ============================================================
@@ -400,7 +412,7 @@ export default function SubscriberListPage() {
     <div
       style={{
         background:
-          COLORS.pageBackground,
+          COLORS.page,
 
         minHeight:
           "100vh",
@@ -408,7 +420,7 @@ export default function SubscriberListPage() {
     >
       <Page
         title="Subscribers"
-        subtitle="Monitor Appstle subscription status, fulfillment profiles, monthly selections, and upcoming fulfillment activity."
+        subtitle="Monitor subscription status, personalization progress, and upcoming fulfillment activity."
         backAction={{
           content:
             "Dashboard",
@@ -419,161 +431,418 @@ export default function SubscriberListPage() {
       >
         <Layout>
           <Layout.Section>
-            <BlockStack gap="500">
+            <BlockStack gap="600">
 
               {/* ==================================================
-                  BLUE HERO
+                  HERO
                   ================================================== */}
 
               <div
                 style={{
-                  background:
-                    `linear-gradient(
-                      135deg,
-                      ${COLORS.navy} 0%,
-                      ${COLORS.blue} 62%,
-                      ${COLORS.tealBlue} 100%
-                    )`,
+                  position:
+                    "relative",
+
+                  overflow:
+                    "hidden",
+
+                  border:
+                    `1px solid ${COLORS.border}`,
 
                   borderRadius:
-                    "18px",
+                    "20px",
 
-                  padding:
-                    "30px",
+                  minHeight:
+                    "220px",
+
+                  background: `
+                    linear-gradient(
+                      108deg,
+                      #FCFBF7 0%,
+                      #F5F4EF 48%,
+                      #D8E0D6 74%,
+                      #A8B9A9 100%
+                    )
+                  `,
 
                   boxShadow:
-                    "0 8px 26px rgba(23, 35, 62, 0.14)",
-
-                  color:
-                    COLORS.white,
+                    "0 10px 28px rgba(32,34,31,0.06)",
                 }}
               >
-                <InlineStack
-                  align="space-between"
-                  blockAlign="center"
-                  gap="400"
-                  wrap
+                <div
+                  style={{
+                    position:
+                      "absolute",
+
+                    width:
+                      "390px",
+
+                    height:
+                      "390px",
+
+                    borderRadius:
+                      "50%",
+
+                    background:
+                      "radial-gradient(circle, rgba(57,72,61,0.22) 0%, rgba(57,72,61,0.07) 45%, transparent 70%)",
+
+                    right:
+                      "-85px",
+
+                    top:
+                      "-180px",
+
+                    pointerEvents:
+                      "none",
+                  }}
+                />
+
+                <div
+                  style={{
+                    position:
+                      "absolute",
+
+                    width:
+                      "560px",
+
+                    height:
+                      "170px",
+
+                    borderRadius:
+                      "50%",
+
+                    background:
+                      "linear-gradient(135deg, rgba(57,72,61,0.94), rgba(104,122,108,0.74))",
+
+                    right:
+                      "-160px",
+
+                    bottom:
+                      "-125px",
+
+                    transform:
+                      "rotate(-5deg)",
+
+                    pointerEvents:
+                      "none",
+                  }}
+                />
+
+                <div
+                  style={{
+                    position:
+                      "absolute",
+
+                    width:
+                      "245px",
+
+                    height:
+                      "245px",
+
+                    borderRadius:
+                      "50%",
+
+                    border:
+                      "1px solid rgba(255,255,255,0.28)",
+
+                    right:
+                      "38px",
+
+                    top:
+                      "-28px",
+
+                    pointerEvents:
+                      "none",
+                  }}
+                />
+
+                <div
+                  style={{
+                    position:
+                      "relative",
+
+                    zIndex:
+                      2,
+
+                    padding:
+                      "36px 38px",
+                  }}
                 >
-                  <div>
+                  <InlineStack
+                    align="space-between"
+                    blockAlign="center"
+                    gap="600"
+                    wrap
+                  >
                     <div
                       style={{
-                        fontSize:
-                          "12px",
-
-                        fontWeight:
-                          700,
-
-                        letterSpacing:
-                          "0.08em",
-
-                        textTransform:
-                          "uppercase",
-
-                        color:
-                          "#BFE8ED",
-
-                        marginBottom:
-                          "8px",
-                      }}
-                    >
-                      SubscriptionSync
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize:
-                          "27px",
-
-                        fontWeight:
-                          700,
-
-                        lineHeight:
-                          1.2,
-
-                        marginBottom:
-                          "8px",
-                      }}
-                    >
-                      Subscriber Management
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize:
-                          "14px",
-
-                        lineHeight:
-                          1.5,
-
-                        color:
-                          "#E8EEF7",
-
                         maxWidth:
-                          "720px",
+                          "650px",
                       }}
                     >
-                      View Appstle subscriptions,
-                      fulfillment profiles,
-                      selection progress,
-                      upcoming orders, and
-                      fulfillment workflow from
-                      one place.
+                      <div
+                        style={{
+                          fontSize:
+                            "11px",
+
+                          fontWeight:
+                            700,
+
+                          letterSpacing:
+                            "0.12em",
+
+                          textTransform:
+                            "uppercase",
+
+                          color:
+                            COLORS.sageDark,
+
+                          marginBottom:
+                            "14px",
+                        }}
+                      >
+                        Customer operations
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize:
+                            "30px",
+
+                          lineHeight:
+                            1.12,
+
+                          fontWeight:
+                            650,
+
+                          letterSpacing:
+                            "-0.035em",
+
+                          color:
+                            COLORS.text,
+
+                          marginBottom:
+                            "11px",
+                        }}
+                      >
+                        Every subscriber,
+                        <br />
+
+                        <span
+                          style={{
+                            color:
+                              COLORS.sageDark,
+                          }}
+                        >
+                          one clear workflow.
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          maxWidth:
+                            "580px",
+
+                          fontSize:
+                            "14px",
+
+                          lineHeight:
+                            1.6,
+
+                          color:
+                            COLORS.textSoft,
+                        }}
+                      >
+                        Review each customer’s
+                        subscription, fulfillment
+                        profile, selection status,
+                        and next operational date
+                        from one place.
+                      </div>
                     </div>
-                  </div>
 
-                  <div
+                    <div
+                      style={{
+                        minWidth:
+                          "225px",
+
+                        padding:
+                          "18px 20px",
+
+                        borderRadius:
+                          "16px",
+
+                        background:
+                          "rgba(255,255,255,0.76)",
+
+                        border:
+                          "1px solid rgba(255,255,255,0.72)",
+
+                        backdropFilter:
+                          "blur(8px)",
+
+                        boxShadow:
+                          "0 8px 24px rgba(32,34,31,0.07)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize:
+                            "10px",
+
+                          fontWeight:
+                            700,
+
+                          letterSpacing:
+                            "0.10em",
+
+                          textTransform:
+                            "uppercase",
+
+                          color:
+                            COLORS.sageDark,
+
+                          marginBottom:
+                            "9px",
+                        }}
+                      >
+                        Subscriber base
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize:
+                            "30px",
+
+                          lineHeight:
+                            1,
+
+                          fontWeight:
+                            650,
+
+                          letterSpacing:
+                            "-0.04em",
+
+                          color:
+                            COLORS.text,
+
+                          marginBottom:
+                            "8px",
+                        }}
+                      >
+                        {
+                          stats.total
+                        }
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize:
+                            "12px",
+
+                          lineHeight:
+                            1.45,
+
+                          color:
+                            COLORS.muted,
+                        }}
+                      >
+                        total subscriber
+                        {stats.total === 1
+                          ? ""
+                          : "s"}
+                      </div>
+
+                      <div
+                        style={{
+                          height:
+                            "1px",
+
+                          background:
+                            "rgba(77,94,81,0.12)",
+
+                          margin:
+                            "13px 0",
+                        }}
+                      />
+
+                      <div
+                        style={{
+                          fontSize:
+                            "11px",
+
+                          color:
+                            stats.needsAttention > 0
+                              ? COLORS.warmText
+                              : COLORS.sageDark,
+                        }}
+                      >
+                        {
+                          stats.needsAttention
+                        }{" "}
+                        need
+                        {stats.needsAttention === 1
+                          ? "s"
+                          : ""}{" "}
+                        attention
+                      </div>
+                    </div>
+                  </InlineStack>
+                </div>
+
+                <div
+                  style={{
+                    position:
+                      "absolute",
+
+                    top:
+                      "15px",
+
+                    right:
+                      "15px",
+
+                    background:
+                      "rgba(255,255,255,0.76)",
+
+                    border:
+                      "1px solid rgba(77,94,81,0.16)",
+
+                    borderRadius:
+                      "999px",
+
+                    padding:
+                      "7px 11px",
+
+                    backdropFilter:
+                      "blur(7px)",
+                  }}
+                >
+                  <span
                     style={{
-                      background:
-                        "rgba(255,255,255,0.12)",
+                      fontSize:
+                        "11px",
 
-                      border:
-                        "1px solid rgba(255,255,255,0.20)",
+                      fontWeight:
+                        650,
 
-                      borderRadius:
-                        "999px",
-
-                      padding:
-                        "9px 15px",
+                      color:
+                        COLORS.sageDark,
                     }}
                   >
-                    <span
-                      style={{
-                        color:
-                          COLORS.white,
-
-                        fontSize:
-                          "13px",
-
-                        fontWeight:
-                          700,
-                      }}
-                    >
-                      ● Development Sandbox
-                    </span>
-                  </div>
-                </InlineStack>
+                    ● Development sandbox
+                  </span>
+                </div>
               </div>
 
               {/* ==================================================
-                  SUBSCRIPTION SNAPSHOT
+                  SNAPSHOT
                   ================================================== */}
 
-              <BlockStack gap="300">
-                <BlockStack gap="100">
-                  <SectionHeading>
-                    Subscription Snapshot
-                  </SectionHeading>
-
-                  <Text
-                    as="p"
-                    variant="bodyMd"
-                    tone="subdued"
-                  >
-                    A quick look at the
-                    current subscriber and
-                    fulfillment workload.
-                  </Text>
-                </BlockStack>
+              <div>
+                <SectionHeader
+                  eyebrow="Overview"
+                  title="Subscription snapshot"
+                  description="A quick view of the current subscriber and fulfillment workload."
+                />
 
                 <div
                   style={{
@@ -581,38 +850,43 @@ export default function SubscriberListPage() {
                       "grid",
 
                     gridTemplateColumns:
-                      "repeat(auto-fit, minmax(180px, 1fr))",
+                      "repeat(auto-fit, minmax(165px, 1fr))",
 
                     gap:
+                      "12px",
+
+                    marginTop:
                       "16px",
                   }}
                 >
                   <SubscriberMetric
-                    label="Total Subscribers"
+                    label="Total"
                     value={
                       stats.total
                     }
                   />
 
                   <SubscriberMetric
-                    label="Active Subscribers"
+                    label="Active"
                     value={
                       stats.active
                     }
+                    tone="success"
                   />
 
                   <SubscriberMetric
-                    label="Waiting for Selection"
+                    label="Waiting"
                     value={
                       stats.waitingForSelection
                     }
                   />
 
                   <SubscriberMetric
-                    label="Ready for Fulfillment"
+                    label="Ready"
                     value={
                       stats.readyForFulfillment
                     }
+                    tone="success"
                   />
 
                   <SubscriberMetric
@@ -620,56 +894,62 @@ export default function SubscriberListPage() {
                     value={
                       stats.fulfilled
                     }
+                    tone="success"
                   />
 
                   <SubscriberMetric
-                    label="Needs Attention"
+                    label="Needs attention"
                     value={
                       stats.needsAttention
                     }
+                    tone="attention"
                   />
                 </div>
-              </BlockStack>
+              </div>
 
               {/* ==================================================
                   SEARCH + FILTERS
                   ================================================== */}
 
-              <Card>
+              <div
+                style={{
+                  background:
+                    COLORS.white,
+
+                  border:
+                    `1px solid ${COLORS.border}`,
+
+                  borderRadius:
+                    "18px",
+
+                  padding:
+                    "22px 24px",
+
+                  boxShadow:
+                    "0 2px 8px rgba(32,34,31,0.025)",
+                }}
+              >
                 <BlockStack gap="400">
 
                   <InlineStack
                     align="space-between"
-                    blockAlign="center"
-                    gap="300"
+                    blockAlign="end"
+                    gap="400"
                     wrap
                   >
-                    <BlockStack gap="100">
-                      <SectionHeading>
-                        Find Subscribers
-                      </SectionHeading>
-
-                      <Text
-                        as="p"
-                        variant="bodySm"
-                        tone="subdued"
-                      >
-                        Search by customer,
-                        email, or Fulfillment
-                        Profile, then narrow
-                        the results by
-                        subscription or
-                        workflow status.
-                      </Text>
-                    </BlockStack>
+                    <SectionHeader
+                      eyebrow="Search"
+                      title="Find subscribers"
+                      description="Search by customer, email, or fulfillment profile, then narrow by status."
+                    />
 
                     <div
                       style={{
                         background:
-                          COLORS.softBlueStrong,
+                          COLORS.sageSoft,
 
                         border:
-                          `1px solid ${COLORS.borderBlue}`,
+                          `1px solid ${COLORS.sageSoftStrong}`,
 
                         borderRadius:
                           "999px",
@@ -678,13 +958,16 @@ export default function SubscriberListPage() {
                           "7px 12px",
 
                         color:
-                          COLORS.numberBlue,
+                          COLORS.sageDark,
 
                         fontWeight:
                           700,
 
                         fontSize:
-                          "13px",
+                          "12px",
+
+                        whiteSpace:
+                          "nowrap",
                       }}
                     >
                       Showing{" "}
@@ -714,15 +997,21 @@ export default function SubscriberListPage() {
                       <TextField
                         label="Search subscribers"
                         labelHidden
+
                         value={
                           searchValue
                         }
+
                         onChange={
                           setSearchValue
                         }
+
                         placeholder="Search name, email, or fulfillment profile..."
+
                         autoComplete="off"
+
                         clearButton
+
                         onClearButtonClick={() =>
                           setSearchValue(
                             "",
@@ -743,12 +1032,15 @@ export default function SubscriberListPage() {
                       <Select
                         label="Fulfillment profile filter"
                         labelHidden
+
                         value={
                           profileFilter
                         }
+
                         onChange={
                           setProfileFilter
                         }
+
                         options={
                           profileOptions
                         }
@@ -767,12 +1059,15 @@ export default function SubscriberListPage() {
                       <Select
                         label="Subscription status filter"
                         labelHidden
+
                         value={
                           subscriptionStatusFilter
                         }
+
                         onChange={
                           setSubscriptionStatusFilter
                         }
+
                         options={
                           subscriptionStatusOptions
                         }
@@ -791,12 +1086,15 @@ export default function SubscriberListPage() {
                       <Select
                         label="Workflow status filter"
                         labelHidden
+
                         value={
                           workflowStatusFilter
                         }
+
                         onChange={
                           setWorkflowStatusFilter
                         }
+
                         options={
                           workflowStatusOptions
                         }
@@ -804,42 +1102,93 @@ export default function SubscriberListPage() {
                     </div>
                   </InlineStack>
                 </BlockStack>
-              </Card>
+              </div>
 
               {/* ==================================================
                   SUBSCRIBER TABLE
                   ================================================== */}
 
-              <Card padding="0">
+              <div
+                style={{
+                  background:
+                    COLORS.white,
+
+                  border:
+                    `1px solid ${COLORS.border}`,
+
+                  borderRadius:
+                    "18px",
+
+                  overflow:
+                    "hidden",
+
+                  boxShadow:
+                    "0 2px 8px rgba(32,34,31,0.025)",
+                }}
+              >
+                <div
+                  style={{
+                    padding:
+                      "20px 22px",
+
+                    borderBottom:
+                      `1px solid ${COLORS.border}`,
+                  }}
+                >
+                  <SectionHeader
+                    eyebrow="Customers"
+                    title="Subscriber management"
+                    description="Open a customer to review their full subscription and fulfillment history."
+                  />
+                </div>
 
                 {filteredSubscribers.length ===
                 0 ? (
                   <div
                     style={{
                       padding:
-                        "36px",
+                        "42px 28px",
 
                       textAlign:
                         "center",
+
+                      background:
+                        COLORS.page,
                     }}
                   >
-                    <BlockStack gap="200">
-                      <Text
-                        as="p"
-                        variant="headingMd"
-                      >
-                        No subscribers found
-                      </Text>
+                    <div
+                      style={{
+                        fontSize:
+                          "16px",
 
-                      <Text
-                        as="p"
-                        variant="bodyMd"
-                        tone="subdued"
-                      >
-                        Try changing your
-                        search or filters.
-                      </Text>
-                    </BlockStack>
+                        fontWeight:
+                          650,
+
+                        color:
+                          COLORS.text,
+
+                        marginBottom:
+                          "6px",
+                      }}
+                    >
+                      No subscribers found
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize:
+                          "13px",
+
+                        lineHeight:
+                          1.5,
+
+                        color:
+                          COLORS.muted,
+                      }}
+                    >
+                      Try changing your search
+                      or filters.
+                    </div>
                   </div>
                 ) : (
                   <IndexTable
@@ -850,12 +1199,15 @@ export default function SubscriberListPage() {
                       plural:
                         "subscribers",
                     }}
+
                     itemCount={
                       filteredSubscribers.length
                     }
+
                     selectable={
                       false
                     }
+
                     headings={[
                       {
                         title:
@@ -915,16 +1267,15 @@ export default function SubscriberListPage() {
                             id={
                               subscriber.id
                             }
+
                             key={
                               subscriber.id
                             }
+
                             position={
                               index
                             }
                           >
-
-                            {/* CUSTOMER */}
-
                             <IndexTable.Cell>
                               <InlineStack
                                 gap="300"
@@ -971,8 +1322,6 @@ export default function SubscriberListPage() {
                               </InlineStack>
                             </IndexTable.Cell>
 
-                            {/* FULFILLMENT PROFILE */}
-
                             <IndexTable.Cell>
                               {profileName ? (
                                 <div
@@ -981,13 +1330,13 @@ export default function SubscriberListPage() {
                                       "inline-block",
 
                                     background:
-                                      COLORS.softBlueStrong,
+                                      COLORS.sageSoft,
 
                                     border:
-                                      `1px solid ${COLORS.borderBlue}`,
+                                      `1px solid ${COLORS.sageSoftStrong}`,
 
                                     color:
-                                      COLORS.numberBlue,
+                                      COLORS.sageDark,
 
                                     borderRadius:
                                       "999px",
@@ -1017,8 +1366,6 @@ export default function SubscriberListPage() {
                               )}
                             </IndexTable.Cell>
 
-                            {/* NEXT ORDER */}
-
                             <IndexTable.Cell>
                               <BlockStack gap="050">
                                 <Text
@@ -1040,8 +1387,6 @@ export default function SubscriberListPage() {
                                 </Text>
                               </BlockStack>
                             </IndexTable.Cell>
-
-                            {/* SELECTION DEADLINE */}
 
                             <IndexTable.Cell>
                               <BlockStack gap="050">
@@ -1066,8 +1411,6 @@ export default function SubscriberListPage() {
                                 </Text>
                               </BlockStack>
                             </IndexTable.Cell>
-
-                            {/* APPSTLE SUBSCRIPTION */}
 
                             <IndexTable.Cell>
                               <SubscriptionStatusBadge
@@ -1078,8 +1421,6 @@ export default function SubscriberListPage() {
                               />
                             </IndexTable.Cell>
 
-                            {/* SUBSCRIPTIONSYNC WORKFLOW */}
-
                             <IndexTable.Cell>
                               <WorkflowStatusBadge
                                 status={
@@ -1088,8 +1429,6 @@ export default function SubscriberListPage() {
                                 }
                               />
                             </IndexTable.Cell>
-
-                            {/* ACTION */}
 
                             <IndexTable.Cell>
                               <Button
@@ -1105,8 +1444,9 @@ export default function SubscriberListPage() {
                     )}
                   </IndexTable>
                 )}
-              </Card>
+              </div>
 
+              <div style={{ height: "20px" }} />
             </BlockStack>
           </Layout.Section>
         </Layout>
@@ -1116,46 +1456,83 @@ export default function SubscriberListPage() {
 }
 
 /* ============================================================
-   SECTION HEADING
+   SECTION HEADER
    ============================================================ */
 
-function SectionHeading({
-  children,
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
 }: {
-  children:
-    React.ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
 }) {
   return (
-    <InlineStack
-      gap="200"
-      blockAlign="center"
-    >
+    <div>
       <div
         style={{
-          width:
-            "4px",
+          fontSize:
+            "10px",
 
-          height:
-            "22px",
+          fontWeight:
+            700,
 
-          borderRadius:
-            "999px",
+          letterSpacing:
+            "0.11em",
 
-          background:
-            COLORS.tealBlue,
+          textTransform:
+            "uppercase",
 
-          flexShrink:
-            0,
+          color:
+            COLORS.sage,
+
+          marginBottom:
+            "6px",
         }}
-      />
-
-      <Text
-        as="h2"
-        variant="headingLg"
       >
-        {children}
-      </Text>
-    </InlineStack>
+        {eyebrow}
+      </div>
+
+      <div
+        style={{
+          fontSize:
+            "20px",
+
+          fontWeight:
+            650,
+
+          letterSpacing:
+            "-0.015em",
+
+          color:
+            COLORS.text,
+
+          marginBottom:
+            "5px",
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize:
+            "13px",
+
+          lineHeight:
+            1.5,
+
+          color:
+            COLORS.muted,
+
+          maxWidth:
+            "700px",
+        }}
+      >
+        {description}
+      </div>
+    </div>
   );
 }
 
@@ -1166,59 +1543,117 @@ function SectionHeading({
 function SubscriberMetric({
   label,
   value,
+  tone =
+    "neutral",
 }: {
   label: string;
   value: number;
+  tone?:
+    | "neutral"
+    | "success"
+    | "attention";
 }) {
+  const palette = {
+    neutral: {
+      background:
+        COLORS.white,
+
+      border:
+        COLORS.border,
+
+      label:
+        COLORS.muted,
+    },
+
+    success: {
+      background:
+        COLORS.successSoft,
+
+      border:
+        COLORS.successBorder,
+
+      label:
+        COLORS.sageDark,
+    },
+
+    attention: {
+      background:
+        COLORS.attentionSoft,
+
+      border:
+        COLORS.attentionBorder,
+
+      label:
+        COLORS.warmText,
+    },
+  }[tone];
+
   return (
     <div
       style={{
         background:
-          COLORS.softBlue,
+          palette.background,
 
         border:
-          `1px solid ${COLORS.borderBlue}`,
+          `1px solid ${palette.border}`,
 
         borderRadius:
-          "14px",
+          "15px",
 
         padding:
-          "18px",
+          "18px 19px",
 
         minHeight:
-          "100px",
+          "108px",
 
         boxShadow:
-          "0 2px 8px rgba(41, 74, 120, 0.04)",
+          "0 1px 2px rgba(32,34,31,0.02)",
       }}
     >
-      <BlockStack gap="150">
-        <Text
-          as="p"
-          variant="bodySm"
-          tone="subdued"
-        >
-          {label}
-        </Text>
+      <div
+        style={{
+          fontSize:
+            "10px",
 
-        <div
-          style={{
-            fontSize:
-              "28px",
+          fontWeight:
+            700,
 
-            lineHeight:
-              1,
+          letterSpacing:
+            "0.07em",
 
-            fontWeight:
-              750,
+          textTransform:
+            "uppercase",
 
-            color:
-              COLORS.numberBlue,
-          }}
-        >
-          {value}
-        </div>
-      </BlockStack>
+          color:
+            palette.label,
+
+          marginBottom:
+            "13px",
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          fontSize:
+            "30px",
+
+          lineHeight:
+            1,
+
+          fontWeight:
+            650,
+
+          letterSpacing:
+            "-0.04em",
+
+          color:
+            COLORS.text,
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
@@ -1257,13 +1692,13 @@ function CustomerAvatar({
           "50%",
 
         background:
-          COLORS.softBlueStrong,
+          COLORS.sageSoft,
 
         border:
-          `1px solid ${COLORS.borderBlue}`,
+          `1px solid ${COLORS.sageSoftStrong}`,
 
         color:
-          COLORS.numberBlue,
+          COLORS.sageDark,
 
         display:
           "flex",

@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 
 import {
   Page,
-  Layout,
   Text,
   Card,
   BlockStack,
@@ -33,29 +32,35 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 /* ============================================================
-   SUBSCRIPTIONSYNC BRAND COLORS
+   SUBSCRIPTIONSYNC DESIGN SYSTEM
    ============================================================ */
 
 const COLORS = {
-  navy: "#17233E",
-  blue: "#294A78",
-  tealBlue: "#2F7C89",
-
-  pageBackground: "#F5F7FB",
-
+  // Main surfaces
+  page: "#F7F7F4",
   white: "#FFFFFF",
 
-  softBlue: "#F4F8FC",
-  softBlueStrong: "#EAF1F8",
+  // Typography
+  text: "#20221F",
+  textSoft: "#52574F",
+  muted: "#787D75",
 
-  border: "#D9E2EC",
-  borderBlue: "#C6D5E5",
+  // Sage brand accent
+  sage: "#687A6C",
+  sageDark: "#4D5E51",
+  sageSoft: "#EEF1ED",
+  sageSoftStrong: "#E4EAE3",
 
-  text: "#1F2937",
-  muted: "#667085",
+  // Neutral borders
+  border: "#E4E5DF",
+  borderStrong: "#D7DAD2",
 
-  numberBlue: "#244B78",
-  accentBlue: "#356A9A",
+  // Status colors
+  warm: "#F6F1E8",
+  warmText: "#755F38",
+
+  dangerSoft: "#F9EEEE",
+  dangerText: "#8B4242",
 };
 
 /* ============================================================
@@ -102,7 +107,6 @@ export const loader = async ({
       orderBy: {
         createdAt: "desc",
       },
-
       take: 5,
     }),
   ]);
@@ -130,34 +134,23 @@ type DashboardLink = {
 const operations: DashboardLink[] = [
   {
     title: "Daily Queue",
-
     description:
-      "Review upcoming deadlines, customer selections, auto-select needs, and fulfillment activity.",
-
+      "See what needs attention today across selections, deadlines, and fulfillment.",
     url: "/app/daily-queue",
-
     icon: CalendarIcon,
   },
-
   {
     title: "Quick Submit",
-
     description:
-      "Manually record a customer's monthly product selection when needed.",
-
+      "Record a customer selection manually when a little extra help is needed.",
     url: "/app/quick-submit",
-
     icon: ClipboardIcon,
   },
-
   {
     title: "Activity Log",
-
     description:
-      "Review SubscriptionSync activity, automation events, and administrative actions.",
-
+      "Review automation events, system activity, and administrative actions.",
     url: "/app/activity-log",
-
     icon: ClockIcon,
   },
 ];
@@ -165,23 +158,16 @@ const operations: DashboardLink[] = [
 const subscriberTools: DashboardLink[] = [
   {
     title: "Subscribers",
-
     description:
-      "View Appstle subscription status, fulfillment profile, selection status, and upcoming order activity.",
-
+      "View subscription status, selections, fulfillment profiles, and upcoming activity.",
     url: "/app/subscriber-list",
-
     icon: PersonIcon,
   },
-
   {
     title: "Customer Selection Form",
-
     description:
-      "Preview the form customers use to choose eligible monthly products and sizes.",
-
+      "Preview the experience customers use to personalize their upcoming shipment.",
     url: "/app/preferences-form",
-
     icon: ClipboardIcon,
   },
 ];
@@ -189,34 +175,23 @@ const subscriberTools: DashboardLink[] = [
 const setupTools: DashboardLink[] = [
   {
     title: "Fulfillment Profiles",
-
     description:
-      "Manage the operational rules that connect each Appstle subscription plan to monthly selection and fulfillment.",
-
+      "Manage the rules connecting subscription plans to selections and fulfillment.",
     url: "/app/tiers",
-
     icon: ProductIcon,
   },
-
   {
     title: "Create Fulfillment Profile",
-
     description:
-      "Configure a new profile with its Appstle plan, selection window, products, inventory rules, reminders, and email settings.",
-
+      "Build a new subscription workflow with products, timing, reminders, and inventory rules.",
     url: "/app/tiers/new",
-
     icon: PlusIcon,
   },
-
   {
     title: "Settings",
-
     description:
-      "Manage global automation, order rules, Shopify tags, and application settings.",
-
+      "Manage automation, Shopify tags, order behavior, and application settings.",
     url: "/app/settings",
-
     icon: SettingsIcon,
   },
 ];
@@ -234,248 +209,565 @@ export default function Dashboard() {
     recentActivity,
   } = useLoaderData<typeof loader>();
 
+  const totalNeedsAttention =
+    pendingSelections + pendingShipments;
+
   return (
     <div
       style={{
-        background: COLORS.pageBackground,
+        background: COLORS.page,
         minHeight: "100vh",
       }}
     >
       <Page>
         <TitleBar title="SubscriptionSync" />
 
-        <BlockStack gap="600">
+        <BlockStack gap="800">
+          {/* ======================================================
+              INTRO / HERO
+              ====================================================== */}
 
-          {/* ==================================================
-              HERO
-              ================================================== */}
+          <div
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: "22px",
+              border: `1px solid ${COLORS.border}`,
+              minHeight: "290px",
+              background: `
+                linear-gradient(
+                  105deg,
+                  #FCFBF7 0%,
+                  #F7F6F1 48%,
+                  #DCE4DA 72%,
+                  #AEBEAF 100%
+                )
+              `,
+              boxShadow: `
+                0 1px 2px rgba(32, 34, 31, 0.03),
+                0 16px 36px rgba(32, 34, 31, 0.07)
+              `,
+            }}
+          >
+            {/* Large soft sage glow */}
+            <div
+              style={{
+                position: "absolute",
+                width: "430px",
+                height: "430px",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(77,94,81,0.22) 0%, rgba(77,94,81,0.08) 42%, transparent 70%)",
+                top: "-150px",
+                right: "-80px",
+                pointerEvents: "none",
+              }}
+            />
 
-          <Layout>
-            <Layout.Section>
-              <div
-                style={{
-                  background: `linear-gradient(
-                    135deg,
-                    ${COLORS.navy} 0%,
-                    ${COLORS.blue} 62%,
-                    ${COLORS.tealBlue} 100%
-                  )`,
+            {/* Large curved shape bottom left */}
+            <div
+              style={{
+                position: "absolute",
+                width: "620px",
+                height: "250px",
+                borderRadius: "50%",
+                background:
+                  "linear-gradient(135deg, rgba(77,94,81,0.95), rgba(104,122,108,0.85))",
+                bottom: "-185px",
+                left: "-120px",
+                transform: "rotate(6deg)",
+                pointerEvents: "none",
+              }}
+            />
 
-                  borderRadius: "18px",
+            {/* Secondary soft curve */}
+            <div
+              style={{
+                position: "absolute",
+                width: "520px",
+                height: "200px",
+                borderRadius: "50%",
+                background: "rgba(238,241,237,0.78)",
+                bottom: "-155px",
+                left: "80px",
+                transform: "rotate(3deg)",
+                pointerEvents: "none",
+              }}
+            />
 
-                  padding: "32px",
+            {/* Fine circular lines on right */}
+            <div
+              style={{
+                position: "absolute",
+                width: "310px",
+                height: "310px",
+                borderRadius: "50%",
+                border:
+                  "1px solid rgba(255,255,255,0.30)",
+                top: "-40px",
+                right: "35px",
+                pointerEvents: "none",
+              }}
+            />
 
-                  boxShadow:
-                    "0 8px 26px rgba(23, 35, 62, 0.14)",
+            <div
+              style={{
+                position: "absolute",
+                width: "220px",
+                height: "220px",
+                borderRadius: "50%",
+                border:
+                  "1px solid rgba(255,255,255,0.22)",
+                top: "5px",
+                right: "80px",
+                pointerEvents: "none",
+              }}
+            />
 
-                  color: COLORS.white,
-                }}
+            {/* Main content */}
+            <div
+              style={{
+                position: "relative",
+                zIndex: 2,
+                padding: "42px 42px 46px",
+              }}
+            >
+              <InlineStack
+                align="space-between"
+                blockAlign="center"
+                gap="600"
+                wrap
               >
-                <InlineStack
-                  align="space-between"
-                  blockAlign="center"
-                  gap="400"
-                  wrap
+                {/* LEFT SIDE */}
+
+                <div
+                  style={{
+                    maxWidth: "660px",
+                  }}
                 >
-                  <div>
-                    <div
-                      style={{
-                        fontSize: "12px",
-
-                        fontWeight: 700,
-
-                        letterSpacing: "0.08em",
-
-                        textTransform: "uppercase",
-
-                        color: "#BFE8ED",
-
-                        marginBottom: "9px",
-                      }}
-                    >
-                      SubscriptionSync
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "29px",
-
-                        fontWeight: 700,
-
-                        lineHeight: 1.2,
-
-                        marginBottom: "10px",
-                      }}
-                    >
-                      Little Adventures Subscription Operations
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "14px",
-
-                        lineHeight: 1.55,
-
-                        color: "#E8EEF7",
-
-                        maxWidth: "720px",
-                      }}
-                    >
-                      Manage monthly customer selections,
-                      fulfillment profiles, and the workflow
-                      between Appstle subscriptions and shipment
-                      fulfillment.
-                    </div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      lineHeight: 1,
+                      fontWeight: 700,
+                      letterSpacing: "0.13em",
+                      textTransform: "uppercase",
+                      color: COLORS.sageDark,
+                      marginBottom: "18px",
+                    }}
+                  >
+                    SubscriptionSync
                   </div>
 
                   <div
                     style={{
-                      background:
-                        "rgba(255,255,255,0.12)",
-
-                      border:
-                        "1px solid rgba(255,255,255,0.20)",
-
-                      borderRadius: "999px",
-
-                      padding: "9px 15px",
+                      fontSize: "36px",
+                      fontWeight: 650,
+                      letterSpacing: "-0.04em",
+                      lineHeight: 1.08,
+                      color: COLORS.text,
+                      marginBottom: "16px",
+                      maxWidth: "580px",
                     }}
                   >
+                    Personalized subscriptions,
+                    <br />
+
                     <span
                       style={{
-                        color: COLORS.white,
-
-                        fontSize: "13px",
-
-                        fontWeight: 700,
+                        color: COLORS.sageDark,
                       }}
                     >
-                      ● Development Sandbox
+                      simplified.
                     </span>
                   </div>
+
+                  <div
+                    style={{
+                      fontSize: "15px",
+                      lineHeight: 1.65,
+                      color: COLORS.textSoft,
+                      maxWidth: "580px",
+                    }}
+                  >
+                    Customer preferences, subscription details,
+                    and fulfillment rules working together in one
+                    clear operational workflow.
+                  </div>
+                </div>
+
+                {/* RIGHT SIDE */}
+
+                <div
+                  style={{
+                    minWidth: "240px",
+                    maxWidth: "280px",
+                    background:
+                      "rgba(255,255,255,0.72)",
+                    backdropFilter: "blur(10px)",
+                    border:
+                      "1px solid rgba(255,255,255,0.60)",
+                    borderRadius: "18px",
+                    padding: "20px",
+                    boxShadow:
+                      "0 10px 30px rgba(32,34,31,0.08)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      letterSpacing: "0.10em",
+                      textTransform: "uppercase",
+                      color: COLORS.sageDark,
+                      marginBottom: "12px",
+                    }}
+                  >
+                    Subscription Flow
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: "10px",
+                    }}
+                  >
+                    <FlowItem
+                      label="Customer"
+                      detail="Subscription active"
+                    />
+
+                    <FlowConnector />
+
+                    <FlowItem
+                      label="Preferences"
+                      detail="Selection captured"
+                    />
+
+                    <FlowConnector />
+
+                    <FlowItem
+                      label="Fulfillment"
+                      detail="Ready to process"
+                      active
+                    />
+                  </div>
+                </div>
+              </InlineStack>
+
+              {/* Sandbox badge */}
+
+              <div
+                style={{
+                  position: "absolute",
+                  top: "18px",
+                  right: "18px",
+                  background:
+                    "rgba(255,255,255,0.80)",
+                  backdropFilter: "blur(8px)",
+                  border:
+                    "1px solid rgba(77,94,81,0.16)",
+                  borderRadius: "999px",
+                  padding: "8px 12px",
+                  boxShadow:
+                    "0 4px 12px rgba(32,34,31,0.04)",
+                }}
+              >
+                <InlineStack
+                  gap="200"
+                  blockAlign="center"
+                  wrap={false}
+                >
+                  <div
+                    style={{
+                      width: "7px",
+                      height: "7px",
+                      borderRadius: "999px",
+                      background: COLORS.sageDark,
+                    }}
+                  />
+
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      fontWeight: 650,
+                      color: COLORS.sageDark,
+                    }}
+                  >
+                    Development Sandbox
+                  </span>
                 </InlineStack>
               </div>
-            </Layout.Section>
-          </Layout>
-
-          {/* ==================================================
-              CURRENT SNAPSHOT
-              ================================================== */}
-
-          <BlockStack gap="300">
-            <BlockStack gap="100">
-              <SectionHeading>
-                Current Snapshot
-              </SectionHeading>
-
-              <Text
-                as="p"
-                variant="bodyMd"
-                tone="subdued"
-              >
-                A quick look at the current selection and
-                fulfillment workload.
-              </Text>
-            </BlockStack>
-
-            <div
-              style={{
-                display: "grid",
-
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(210px, 1fr))",
-
-                gap: "16px",
-              }}
-            >
-              <MetricCard
-                label="Active Subscribers"
-                value={activeSubscribers}
-                description="Customers with an active Appstle subscription"
-              />
-
-              <MetricCard
-                label="Pending Selections"
-                value={pendingSelections}
-                description="Monthly selections still waiting to be completed"
-              />
-
-              <MetricCard
-                label="Pending Shipments"
-                value={pendingShipments}
-                description="Upcoming fulfillment records still awaiting processing"
-              />
-
-              <MetricCard
-                label="Active Fulfillment Profiles"
-                value={activeFulfillmentProfiles}
-                description="Operational profiles currently active in SubscriptionSync"
-              />
             </div>
-          </BlockStack>
+          </div>
+
+          {/* ======================================================
+              TODAY
+              ====================================================== */}
+
+          <SectionHeader
+            eyebrow="Overview"
+            title="Today"
+            description="A simple view of what is happening across subscriptions and fulfillment."
+          />
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(205px, 1fr))",
+              gap: "14px",
+            }}
+          >
+            <MetricCard
+              label="Needs attention"
+              value={totalNeedsAttention}
+              description="Open selections and shipments"
+              emphasis
+            />
+
+            <MetricCard
+              label="Selections waiting"
+              value={pendingSelections}
+              description="Customer selections still pending"
+            />
+
+            <MetricCard
+              label="Shipments pending"
+              value={pendingShipments}
+              description="Fulfillment records awaiting processing"
+            />
+
+            <MetricCard
+              label="Active subscribers"
+              value={activeSubscribers}
+              description="Currently active subscriptions"
+            />
+          </div>
+
+          {/* ======================================================
+              OPERATIONAL SUMMARY
+              ====================================================== */}
+
+          <div
+            style={{
+              background: COLORS.sageSoft,
+              border: `1px solid ${COLORS.sageSoftStrong}`,
+              borderRadius: "16px",
+              padding: "20px 22px",
+            }}
+          >
+            <InlineStack
+              align="space-between"
+              blockAlign="center"
+              gap="400"
+              wrap
+            >
+              <InlineStack
+                gap="300"
+                blockAlign="center"
+                wrap={false}
+              >
+                <div
+                  style={{
+                    width: "38px",
+                    height: "38px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: COLORS.white,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: "11px",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon
+                    source={ListBulletedIcon}
+                    tone="base"
+                  />
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      color: COLORS.text,
+                      fontWeight: 650,
+                      marginBottom: "3px",
+                    }}
+                  >
+                    {totalNeedsAttention === 0
+                      ? "Everything is caught up"
+                      : `${totalNeedsAttention} item${
+                          totalNeedsAttention === 1
+                            ? ""
+                            : "s"
+                        } need attention`}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      color: COLORS.muted,
+                    }}
+                  >
+                    SubscriptionSync is organizing the work
+                    between customer choice and fulfillment.
+                  </div>
+                </div>
+              </InlineStack>
+
+              <Link
+                to="/app/daily-queue"
+                style={{
+                  textDecoration: "none",
+                  color: COLORS.sageDark,
+                  fontSize: "13px",
+                  fontWeight: 650,
+                }}
+              >
+                View Daily Queue →
+              </Link>
+            </InlineStack>
+          </div>
 
           <Divider />
 
-          {/* ==================================================
+          {/* ======================================================
               DAILY OPERATIONS
-              ================================================== */}
+              ====================================================== */}
 
           <NavigationSection
-            title="Daily Operations"
-            description="Manage the work happening between customer subscription and shipment fulfillment."
+            eyebrow="Workflow"
+            title="Daily operations"
+            description="Handle the work happening between a customer's subscription and their next shipment."
             items={operations}
           />
 
           <Divider />
 
-          {/* ==================================================
-              SUBSCRIBERS
-              ================================================== */}
+          {/* ======================================================
+              CUSTOMERS
+              ====================================================== */}
 
           <NavigationSection
-            title="Subscribers"
-            description="Review customer subscription information, monthly selections, and fulfillment status."
+            eyebrow="Customers"
+            title="Personalization"
+            description="Understand each subscriber and manage the choices that personalize their shipment."
             items={subscriberTools}
           />
 
           <Divider />
 
-          {/* ==================================================
-              FULFILLMENT SETUP
-              ================================================== */}
+          {/* ======================================================
+              SETUP
+              ====================================================== */}
 
           <NavigationSection
-            title="Fulfillment Setup"
-            description="Configure how each Appstle subscription plan is handled inside SubscriptionSync."
+            eyebrow="System"
+            title="Rules & automation"
+            description="Define how SubscriptionSync turns subscription information into fulfillment instructions."
             items={setupTools}
           />
 
+          {/* ======================================================
+              PROFILE COUNT
+              ====================================================== */}
+
+          <div
+            style={{
+              padding: "18px 20px",
+              background: COLORS.white,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: "14px",
+            }}
+          >
+            <InlineStack
+              align="space-between"
+              blockAlign="center"
+              gap="300"
+              wrap
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: COLORS.text,
+                    marginBottom: "3px",
+                  }}
+                >
+                  Fulfillment engine
+                </div>
+
+                <div
+                  style={{
+                    fontSize: "13px",
+                    color: COLORS.muted,
+                  }}
+                >
+                  {activeFulfillmentProfiles} active fulfillment{" "}
+                  {activeFulfillmentProfiles === 1
+                    ? "profile is"
+                    : "profiles are"}{" "}
+                  currently managing subscription rules.
+                </div>
+              </div>
+
+              <Link
+                to="/app/tiers"
+                style={{
+                  textDecoration: "none",
+                  color: COLORS.sageDark,
+                  fontSize: "13px",
+                  fontWeight: 650,
+                }}
+              >
+                Manage profiles →
+              </Link>
+            </InlineStack>
+          </div>
+
           <Divider />
 
-          {/* ==================================================
+          {/* ======================================================
               RECENT ACTIVITY
-              ================================================== */}
+              ====================================================== */}
 
-          <BlockStack gap="300">
-            <BlockStack gap="100">
-              <SectionHeading>
-                Recent Activity
-              </SectionHeading>
-
-              <Text
-                as="p"
-                variant="bodyMd"
-                tone="subdued"
-              >
-                The latest activity recorded by
-                SubscriptionSync.
-              </Text>
-            </BlockStack>
+          <BlockStack gap="400">
+            <SectionHeader
+              eyebrow="System"
+              title="Recent activity"
+              description="A record of the latest activity processed by SubscriptionSync."
+            />
 
             <Card>
               {recentActivity.length === 0 ? (
-                <Box padding="300">
-                  <BlockStack gap="200">
+                <Box padding="500">
+                  <div
+                    style={{
+                      textAlign: "center",
+                      padding: "16px 0",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "44px",
+                        height: "44px",
+                        margin: "0 auto 14px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: COLORS.sageSoft,
+                        borderRadius: "13px",
+                      }}
+                    >
+                      <Icon
+                        source={ClockIcon}
+                        tone="base"
+                      />
+                    </div>
+
                     <Text
                       as="p"
                       variant="headingSm"
@@ -483,113 +775,251 @@ export default function Dashboard() {
                       No activity yet
                     </Text>
 
-                    <Text
-                      as="p"
-                      variant="bodyMd"
-                      tone="subdued"
+                    <div
+                      style={{
+                        marginTop: "6px",
+                        fontSize: "13px",
+                        color: COLORS.muted,
+                      }}
                     >
-                      Subscription activity will appear here
-                      as you begin testing the sandbox.
-                    </Text>
-                  </BlockStack>
+                      Activity will appear here as you begin
+                      testing SubscriptionSync.
+                    </div>
+                  </div>
                 </Box>
               ) : (
-                <BlockStack gap="300">
+                <BlockStack gap="0">
                   {recentActivity.map(
                     (activity, index) => (
-                      <BlockStack
-                        key={activity.id}
-                        gap="300"
-                      >
-                        <InlineStack
-                          align="space-between"
-                          blockAlign="start"
-                          gap="300"
-                          wrap
+                      <div key={activity.id}>
+                        <div
+                          style={{
+                            padding: "18px 20px",
+                          }}
                         >
                           <InlineStack
-                            gap="300"
+                            align="space-between"
                             blockAlign="start"
-                            wrap={false}
+                            gap="400"
+                            wrap
                           >
-                            <div
-                              style={{
-                                background:
-                                  COLORS.softBlueStrong,
-
-                                border:
-                                  `1px solid ${COLORS.borderBlue}`,
-
-                                borderRadius: "10px",
-
-                                padding: "9px",
-
-                                display: "flex",
-
-                                alignItems: "center",
-
-                                justifyContent: "center",
-                              }}
+                            <InlineStack
+                              gap="300"
+                              blockAlign="start"
+                              wrap={false}
                             >
-                              <Icon
-                                source={ListBulletedIcon}
-                                tone="base"
-                              />
-                            </div>
-
-                            <BlockStack gap="100">
-                              <Text
-                                as="p"
-                                variant="headingSm"
+                              <div
+                                style={{
+                                  width: "36px",
+                                  height: "36px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent:
+                                    "center",
+                                  background:
+                                    COLORS.sageSoft,
+                                  borderRadius: "10px",
+                                  flexShrink: 0,
+                                }}
                               >
-                                {activity.eventType}
-                              </Text>
+                                <Icon
+                                  source={
+                                    ListBulletedIcon
+                                  }
+                                  tone="base"
+                                />
+                              </div>
 
-                              <Text
-                                as="p"
-                                variant="bodyMd"
-                              >
-                                {activity.description}
-                              </Text>
+                              <div>
+                                <div
+                                  style={{
+                                    fontSize: "13px",
+                                    fontWeight: 650,
+                                    color: COLORS.text,
+                                    marginBottom:
+                                      "4px",
+                                  }}
+                                >
+                                  {activity.eventType}
+                                </div>
 
-                              <Text
-                                as="p"
-                                variant="bodySm"
-                                tone="subdued"
-                              >
-                                {new Date(
-                                  activity.createdAt,
-                                ).toLocaleString()}
-                              </Text>
-                            </BlockStack>
+                                <div
+                                  style={{
+                                    fontSize: "13px",
+                                    lineHeight: 1.5,
+                                    color:
+                                      COLORS.textSoft,
+                                    marginBottom:
+                                      "5px",
+                                  }}
+                                >
+                                  {
+                                    activity.description
+                                  }
+                                </div>
+
+                                <div
+                                  style={{
+                                    fontSize: "11px",
+                                    color:
+                                      COLORS.muted,
+                                  }}
+                                >
+                                  {new Date(
+                                    activity.createdAt,
+                                  ).toLocaleString()}
+                                </div>
+                              </div>
+                            </InlineStack>
+
+                            <Badge
+                              tone={
+                                activity.status ===
+                                "Success"
+                                  ? "success"
+                                  : activity.status ===
+                                      "Failed"
+                                    ? "critical"
+                                    : "attention"
+                              }
+                            >
+                              {activity.status}
+                            </Badge>
                           </InlineStack>
-
-                          <Badge
-                            tone={
-                              activity.status === "Success"
-                                ? "success"
-                                : activity.status === "Failed"
-                                  ? "critical"
-                                  : "attention"
-                            }
-                          >
-                            {activity.status}
-                          </Badge>
-                        </InlineStack>
+                        </div>
 
                         {index <
-                          recentActivity.length - 1 && (
-                          <Divider />
-                        )}
-                      </BlockStack>
+                          recentActivity.length -
+                            1 && <Divider />}
+                      </div>
                     ),
                   )}
                 </BlockStack>
               )}
             </Card>
           </BlockStack>
+
+          <div style={{ height: "24px" }} />
         </BlockStack>
       </Page>
+    </div>
+  );
+}
+
+/* ============================================================
+   HERO FLOW ITEM
+   ============================================================ */
+
+function FlowItem({
+  label,
+  detail,
+  active = false,
+}: {
+  label: string;
+  detail: string;
+  active?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+
+        background: active
+          ? COLORS.sageDark
+          : "rgba(255,255,255,0.82)",
+
+        border: `1px solid ${
+          active
+            ? COLORS.sageDark
+            : "rgba(77,94,81,0.10)"
+        }`,
+
+        borderRadius: "12px",
+        padding: "10px 12px",
+
+        boxShadow: active
+          ? "0 5px 14px rgba(47,60,51,0.14)"
+          : "0 1px 3px rgba(32,34,31,0.025)",
+      }}
+    >
+      <div
+        style={{
+          width: "9px",
+          height: "9px",
+          borderRadius: "999px",
+
+          background: active
+            ? "#FFFFFF"
+            : COLORS.sage,
+
+          boxShadow: active
+            ? "0 0 0 4px rgba(255,255,255,0.10)"
+            : "0 0 0 4px rgba(104,122,108,0.08)",
+
+          flexShrink: 0,
+        }}
+      />
+
+      <div>
+        <div
+          style={{
+            fontSize: "12px",
+            fontWeight: 650,
+
+            color: active
+              ? "#FFFFFF"
+              : COLORS.text,
+          }}
+        >
+          {label}
+        </div>
+
+        <div
+          style={{
+            fontSize: "10px",
+
+            color: active
+              ? "rgba(255,255,255,0.72)"
+              : COLORS.muted,
+
+            marginTop: "2px",
+          }}
+        >
+          {detail}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   HERO FLOW CONNECTOR
+   ============================================================ */
+
+function FlowConnector() {
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "1px",
+        height: "12px",
+        background: "rgba(77,94,81,0.28)",
+        marginLeft: "16px",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-2px",
+          left: "-2px",
+          width: "5px",
+          height: "5px",
+          borderRadius: "999px",
+          background: COLORS.sage,
+        }}
+      />
     </div>
   );
 }
@@ -602,60 +1032,71 @@ function MetricCard({
   label,
   value,
   description,
+  emphasis = false,
 }: {
   label: string;
   value: number;
   description: string;
+  emphasis?: boolean;
 }) {
   return (
     <div
       style={{
-        background: COLORS.softBlue,
+        background: emphasis
+          ? COLORS.sageSoft
+          : COLORS.white,
 
-        border:
-          `1px solid ${COLORS.borderBlue}`,
+        border: `1px solid ${
+          emphasis
+            ? COLORS.sageSoftStrong
+            : COLORS.border
+        }`,
 
-        borderRadius: "14px",
-
+        borderRadius: "16px",
         padding: "20px",
+        minHeight: "132px",
 
         boxShadow:
-          "0 2px 8px rgba(41, 74, 120, 0.04)",
-
-        minHeight: "135px",
+          "0 1px 2px rgba(32, 34, 31, 0.02)",
       }}
     >
-      <BlockStack gap="200">
-        <Text
-          as="p"
-          variant="bodySm"
-          tone="subdued"
-        >
-          {label}
-        </Text>
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 700,
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+          color: emphasis
+            ? COLORS.sageDark
+            : COLORS.muted,
+          marginBottom: "14px",
+        }}
+      >
+        {label}
+      </div>
 
-        <div
-          style={{
-            fontSize: "30px",
+      <div
+        style={{
+          fontSize: "32px",
+          fontWeight: 650,
+          letterSpacing: "-0.04em",
+          lineHeight: 1,
+          color: COLORS.text,
+          marginBottom: "11px",
+        }}
+      >
+        {value}
+      </div>
 
-            fontWeight: 750,
-
-            lineHeight: 1,
-
-            color: COLORS.numberBlue,
-          }}
-        >
-          {value}
-        </div>
-
-        <Text
-          as="p"
-          variant="bodySm"
-          tone="subdued"
-        >
-          {description}
-        </Text>
-      </BlockStack>
+      <div
+        style={{
+          fontSize: "12px",
+          lineHeight: 1.45,
+          color: COLORS.muted,
+        }}
+      >
+        {description}
+      </div>
     </div>
   );
 }
@@ -675,60 +1116,63 @@ function NavigationCard({
       to={url}
       style={{
         textDecoration: "none",
-
         color: "inherit",
-
         display: "block",
-
         height: "100%",
       }}
     >
       <div
         style={{
           height: "100%",
-
           background: COLORS.white,
-
-          border:
-            `1px solid ${COLORS.border}`,
-
-          borderRadius: "14px",
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: "16px",
 
           transition:
             "transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease",
 
           boxShadow:
-            "0 2px 8px rgba(23, 35, 62, 0.03)",
+            "0 1px 2px rgba(32, 34, 31, 0.02)",
+        }}
+        onMouseEnter={(event) => {
+          event.currentTarget.style.transform =
+            "translateY(-2px)";
+
+          event.currentTarget.style.boxShadow =
+            "0 7px 20px rgba(32, 34, 31, 0.06)";
+
+          event.currentTarget.style.borderColor =
+            COLORS.borderStrong;
+        }}
+        onMouseLeave={(event) => {
+          event.currentTarget.style.transform =
+            "translateY(0)";
+
+          event.currentTarget.style.boxShadow =
+            "0 1px 2px rgba(32, 34, 31, 0.02)";
+
+          event.currentTarget.style.borderColor =
+            COLORS.border;
         }}
       >
-        <Box padding="400">
-          <BlockStack gap="300">
+        <Box padding="500">
+          <BlockStack gap="400">
             <InlineStack
+              align="space-between"
+              blockAlign="start"
               gap="300"
-              blockAlign="center"
               wrap={false}
             >
               <div
                 style={{
                   width: "40px",
-
                   height: "40px",
-
                   flexShrink: 0,
-
                   display: "flex",
-
                   alignItems: "center",
-
                   justifyContent: "center",
-
-                  background:
-                    COLORS.softBlueStrong,
-
-                  border:
-                    `1px solid ${COLORS.borderBlue}`,
-
-                  borderRadius: "10px",
+                  background: COLORS.sageSoft,
+                  borderRadius: "11px",
                 }}
               >
                 <Icon
@@ -737,21 +1181,40 @@ function NavigationCard({
                 />
               </div>
 
-              <Text
-                as="h3"
-                variant="headingMd"
+              <div
+                style={{
+                  fontSize: "18px",
+                  lineHeight: 1,
+                  color: COLORS.muted,
+                  paddingTop: "5px",
+                }}
               >
-                {title}
-              </Text>
+                →
+              </div>
             </InlineStack>
 
-            <Text
-              as="p"
-              variant="bodyMd"
-              tone="subdued"
-            >
-              {description}
-            </Text>
+            <div>
+              <div
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 650,
+                  color: COLORS.text,
+                  marginBottom: "7px",
+                }}
+              >
+                {title}
+              </div>
+
+              <div
+                style={{
+                  fontSize: "13px",
+                  lineHeight: 1.55,
+                  color: COLORS.muted,
+                }}
+              >
+                {description}
+              </div>
+            </div>
           </BlockStack>
         </Box>
       </div>
@@ -764,38 +1227,30 @@ function NavigationCard({
    ============================================================ */
 
 function NavigationSection({
+  eyebrow,
   title,
   description,
   items,
 }: {
+  eyebrow: string;
   title: string;
   description: string;
   items: DashboardLink[];
 }) {
   return (
-    <BlockStack gap="300">
-      <BlockStack gap="100">
-        <SectionHeading>
-          {title}
-        </SectionHeading>
-
-        <Text
-          as="p"
-          variant="bodyMd"
-          tone="subdued"
-        >
-          {description}
-        </Text>
-      </BlockStack>
+    <BlockStack gap="400">
+      <SectionHeader
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+      />
 
       <div
         style={{
           display: "grid",
-
           gridTemplateColumns:
-            "repeat(auto-fit, minmax(240px, 1fr))",
-
-          gap: "16px",
+            "repeat(auto-fit, minmax(245px, 1fr))",
+          gap: "14px",
         }}
       >
         {items.map((item) => (
@@ -810,39 +1265,55 @@ function NavigationSection({
 }
 
 /* ============================================================
-   SECTION HEADING
+   SECTION HEADER
    ============================================================ */
 
-function SectionHeading({
-  children,
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
 }: {
-  children: ReactNode;
+  eyebrow: string;
+  title: ReactNode;
+  description: ReactNode;
 }) {
   return (
-    <InlineStack
-      gap="200"
-      blockAlign="center"
-    >
+    <div>
       <div
         style={{
-          width: "4px",
-
-          height: "22px",
-
-          borderRadius: "999px",
-
-          background: COLORS.tealBlue,
-
-          flexShrink: 0,
+          fontSize: "10px",
+          fontWeight: 700,
+          letterSpacing: "0.11em",
+          textTransform: "uppercase",
+          color: COLORS.sage,
+          marginBottom: "6px",
         }}
-      />
-
-      <Text
-        as="h2"
-        variant="headingLg"
       >
-        {children}
-      </Text>
-    </InlineStack>
+        {eyebrow}
+      </div>
+
+      <div
+        style={{
+          fontSize: "20px",
+          fontWeight: 650,
+          letterSpacing: "-0.015em",
+          color: COLORS.text,
+          marginBottom: "5px",
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize: "13px",
+          lineHeight: 1.5,
+          color: COLORS.muted,
+          maxWidth: "700px",
+        }}
+      >
+        {description}
+      </div>
+    </div>
   );
 }

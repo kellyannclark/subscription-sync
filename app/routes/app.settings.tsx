@@ -19,12 +19,10 @@ import {
   Banner,
   BlockStack,
   Button,
-  Card,
   Divider,
   InlineStack,
   Page,
   Select,
-  Text,
   TextField,
 } from "@shopify/polaris";
 
@@ -32,28 +30,42 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 /* ============================================================
-   SUBSCRIPTIONSYNC COLORS
+   SUBSCRIPTIONSYNC DESIGN SYSTEM
    ============================================================ */
 
 const COLORS = {
-  navy: "#17233E",
-  blue: "#294A78",
-  tealBlue: "#2F7C89",
-
-  pageBackground: "#F5F7FB",
-
+  // Main surfaces
+  page: "#F7F7F4",
   white: "#FFFFFF",
 
-  softBlue: "#F4F8FC",
-  softBlueStrong: "#EAF1F8",
+  // Typography
+  text: "#20221F",
+  textSoft: "#52574F",
+  muted: "#787D75",
 
-  border: "#D9E2EC",
-  borderBlue: "#C6D5E5",
+  // Sage
+  sage: "#687A6C",
+  sageDark: "#4D5E51",
+  sageDeep: "#39483D",
+  sageSoft: "#EEF1ED",
+  sageSoftStrong: "#E4EAE3",
 
-  text: "#1F2937",
-  muted: "#667085",
+  // Warm neutral
+  cream: "#F5F1E8",
+  creamStrong: "#E9E1D3",
+  warmText: "#705F42",
 
-  numberBlue: "#244B78",
+  // Borders
+  border: "#E4E5DF",
+  borderStrong: "#D6D8D2",
+
+  // Status surfaces
+  attentionSoft: "#F7F0E2",
+  attentionBorder: "#E9D6AE",
+  successSoft: "#EDF3ED",
+  successBorder: "#CDDCCF",
+  criticalSoft: "#F8EDEC",
+  criticalBorder: "#E8C7C4",
 };
 
 /* ============================================================
@@ -530,8 +542,7 @@ export const action = async ({
 export default function SettingsPage() {
   const {
     settings,
-  } =
-    useLoaderData<typeof loader>();
+  } = useLoaderData<typeof loader>();
 
   const actionData =
     useActionData<typeof action>();
@@ -712,19 +723,30 @@ export default function SettingsPage() {
       settings.modifiedOrderTag,
     );
 
+  const enabledReminderCount = [
+    reminder14Days,
+    reminder7Days,
+    reminder3Days,
+    reminder1Day,
+  ].filter(Boolean).length;
+
+  const connectedServiceCount = [
+    settings.shopifyConnected,
+    settings.appstleConnected,
+    settings.databaseConnected,
+    Boolean(emailSender),
+  ].filter(Boolean).length;
+
   return (
     <div
       style={{
-        background:
-          COLORS.pageBackground,
-
-        minHeight:
-          "100vh",
+        background: COLORS.page,
+        minHeight: "100vh",
       }}
     >
       <Page
         title="Settings"
-        subtitle="Manage the default automation, customer reminders, product availability, and order processing used across SubscriptionSync."
+        subtitle="Manage system-wide automation, reminders, product rules, integrations, and order processing."
         backAction={{
           content:
             "Dashboard",
@@ -889,7 +911,7 @@ export default function SettingsPage() {
             }
           />
 
-          <BlockStack gap="500">
+          <BlockStack gap="600">
 
             {/* ==================================================
                 RESULT
@@ -899,7 +921,7 @@ export default function SettingsPage() {
               <Banner
                 title={
                   actionData.success
-                    ? "Success"
+                    ? "Action completed"
                     : "Action needed"
                 }
                 tone={
@@ -922,322 +944,689 @@ export default function SettingsPage() {
 
             <div
               style={{
-                background: `linear-gradient(
-                  135deg,
-                  ${COLORS.navy} 0%,
-                  ${COLORS.blue} 62%,
-                  ${COLORS.tealBlue} 100%
-                )`,
+                position: "relative",
+                overflow: "hidden",
 
-                borderRadius:
-                  "18px",
+                border:
+                  `1px solid ${COLORS.border}`,
 
-                padding:
-                  "30px",
+                borderRadius: "20px",
+
+                minHeight: "225px",
+
+                background: `
+                  linear-gradient(
+                    108deg,
+                    #FCFBF7 0%,
+                    #F5F4EF 48%,
+                    #D8E0D6 74%,
+                    #A8B9A9 100%
+                  )
+                `,
 
                 boxShadow:
-                  "0 8px 26px rgba(23,35,62,0.14)",
-
-                color:
-                  COLORS.white,
+                  "0 10px 28px rgba(32,34,31,0.06)",
               }}
             >
-              <InlineStack
-                align="space-between"
-                blockAlign="center"
-                gap="400"
-                wrap
+              <div
+                style={{
+                  position: "absolute",
+
+                  width: "390px",
+                  height: "390px",
+
+                  borderRadius: "50%",
+
+                  background:
+                    "radial-gradient(circle, rgba(57,72,61,0.22) 0%, rgba(57,72,61,0.07) 45%, transparent 70%)",
+
+                  right: "-85px",
+                  top: "-180px",
+
+                  pointerEvents: "none",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "absolute",
+
+                  width: "560px",
+                  height: "170px",
+
+                  borderRadius: "50%",
+
+                  background:
+                    "linear-gradient(135deg, rgba(57,72,61,0.94), rgba(104,122,108,0.74))",
+
+                  right: "-160px",
+                  bottom: "-125px",
+
+                  transform:
+                    "rotate(-5deg)",
+
+                  pointerEvents: "none",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "absolute",
+
+                  width: "245px",
+                  height: "245px",
+
+                  borderRadius: "50%",
+
+                  border:
+                    "1px solid rgba(255,255,255,0.28)",
+
+                  right: "38px",
+                  top: "-28px",
+
+                  pointerEvents: "none",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "relative",
+                  zIndex: 2,
+
+                  padding:
+                    "36px 38px",
+                }}
               >
-                <div>
+                <InlineStack
+                  align="space-between"
+                  blockAlign="center"
+                  gap="600"
+                  wrap
+                >
                   <div
                     style={{
-                      fontSize:
-                        "12px",
-
-                      fontWeight:
-                        700,
-
-                      letterSpacing:
-                        "0.08em",
-
-                      textTransform:
-                        "uppercase",
-
-                      color:
-                        "#BFE8ED",
-
-                      marginBottom:
-                        "8px",
+                      maxWidth: "650px",
                     }}
                   >
-                    SubscriptionSync
+                    <div
+                      style={{
+                        fontSize: "11px",
+
+                        fontWeight: 700,
+
+                        letterSpacing:
+                          "0.12em",
+
+                        textTransform:
+                          "uppercase",
+
+                        color:
+                          COLORS.sageDark,
+
+                        marginBottom:
+                          "14px",
+                      }}
+                    >
+                      System controls
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "30px",
+
+                        lineHeight: 1.12,
+
+                        fontWeight: 650,
+
+                        letterSpacing:
+                          "-0.035em",
+
+                        color:
+                          COLORS.text,
+
+                        marginBottom:
+                          "11px",
+                      }}
+                    >
+                      Set the rules once.
+                      <br />
+
+                      <span
+                        style={{
+                          color:
+                            COLORS.sageDark,
+                        }}
+                      >
+                        Let the workflow follow them.
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        maxWidth: "580px",
+
+                        fontSize: "14px",
+
+                        lineHeight: 1.6,
+
+                        color:
+                          COLORS.textSoft,
+                      }}
+                    >
+                      Configure the default behavior
+                      SubscriptionSync uses across
+                      reminders, customer choices,
+                      product availability, and
+                      fulfillment.
+                    </div>
                   </div>
 
                   <div
                     style={{
-                      fontSize:
-                        "28px",
+                      minWidth: "230px",
 
-                      fontWeight:
-                        700,
+                      padding:
+                        "18px 20px",
 
-                      lineHeight:
-                        1.2,
+                      borderRadius: "16px",
 
-                      marginBottom:
-                        "8px",
+                      background:
+                        "rgba(255,255,255,0.76)",
+
+                      border:
+                        "1px solid rgba(255,255,255,0.72)",
+
+                      backdropFilter:
+                        "blur(8px)",
+
+                      boxShadow:
+                        "0 8px 24px rgba(32,34,31,0.07)",
                     }}
                   >
-                    System Settings
+                    <div
+                      style={{
+                        fontSize: "10px",
+
+                        fontWeight: 700,
+
+                        letterSpacing:
+                          "0.10em",
+
+                        textTransform:
+                          "uppercase",
+
+                        color:
+                          COLORS.sageDark,
+
+                        marginBottom:
+                          "9px",
+                      }}
+                    >
+                      Automation
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "22px",
+
+                        lineHeight: 1.1,
+
+                        fontWeight: 650,
+
+                        color:
+                          automationEnabled
+                            ? COLORS.sageDark
+                            : COLORS.warmText,
+
+                        marginBottom:
+                          "8px",
+                      }}
+                    >
+                      {automationEnabled
+                        ? "Enabled"
+                        : "Paused"}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        lineHeight: 1.45,
+                        color: COLORS.muted,
+                      }}
+                    >
+                      {enabledReminderCount} reminder
+                      {enabledReminderCount === 1
+                        ? ""
+                        : "s"}{" "}
+                      active
+                    </div>
+
+                    <div
+                      style={{
+                        height: "1px",
+                        background:
+                          "rgba(77,94,81,0.12)",
+                        margin:
+                          "13px 0",
+                      }}
+                    />
+
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color:
+                          COLORS.textSoft,
+                      }}
+                    >
+                      {connectedServiceCount} of 4
+                      services connected
+                    </div>
                   </div>
+                </InlineStack>
+              </div>
 
-                  <div
-                    style={{
-                      color:
-                        "#E8EEF7",
+              <div
+                style={{
+                  position: "absolute",
 
-                      fontSize:
-                        "14px",
+                  top: "15px",
+                  right: "15px",
 
-                      lineHeight:
-                        1.55,
+                  background:
+                    "rgba(255,255,255,0.76)",
 
-                      maxWidth:
-                        "720px",
-                    }}
-                  >
-                    Manage the default
-                    automation, reminders,
-                    product availability,
-                    integrations, and order
-                    processing used across
-                    Little Adventures
-                    subscription programs.
-                  </div>
-                </div>
+                  border:
+                    "1px solid rgba(77,94,81,0.16)",
 
-                <div
+                  borderRadius: "999px",
+
+                  padding: "7px 11px",
+
+                  backdropFilter:
+                    "blur(7px)",
+                }}
+              >
+                <span
                   style={{
-                    background:
-                      "rgba(255,255,255,0.12)",
+                    fontSize: "11px",
 
-                    border:
-                      "1px solid rgba(255,255,255,0.20)",
+                    fontWeight: 650,
 
-                    borderRadius:
-                      "999px",
-
-                    padding:
-                      "9px 15px",
+                    color:
+                      COLORS.sageDark,
                   }}
                 >
-                  <span
-                    style={{
-                      color:
-                        COLORS.white,
-
-                      fontSize:
-                        "13px",
-
-                      fontWeight:
-                        700,
-                    }}
-                  >
-                    {automationEnabled
-                      ? "● Automation Enabled"
-                      : "○ Automation Paused"}
-                  </span>
-                </div>
-              </InlineStack>
+                  ● Development settings
+                </span>
+              </div>
             </div>
 
             {/* ==================================================
                 AUTOMATION TIMELINE
                 ================================================== */}
 
-            <Card>
-              <BlockStack gap="400">
+            <SettingsSection
+              eyebrow="Automation"
+              title="Automation timeline"
+              description="Set the default timing SubscriptionSync uses relative to each subscriber's next ship date."
+            >
+              <ToggleSetting
+                label="Automatic daily processing"
+                description="Allow SubscriptionSync to check each day for reminders, automatic selection, and orders that are ready to be created."
+                enabled={
+                  automationEnabled
+                }
+                onToggle={() =>
+                  setAutomationEnabled(
+                    (current) =>
+                      !current,
+                  )
+                }
+              />
 
-                <SectionHeading
-                  title="Automation Timeline"
-                  description="These default settings calculate actions from each subscriber's individual next ship date."
-                />
+              <Divider />
 
-                <ToggleSetting
-                  label="Automatic Daily Processing"
-                  description="Allow SubscriptionSync to check each day for reminders, automatic selection, and orders that are ready to be created."
-                  enabled={
-                    automationEnabled
-                  }
-                  onToggle={() =>
-                    setAutomationEnabled(
-                      (current) =>
-                        !current,
-                    )
-                  }
-                />
+              <div
+                style={{
+                  display: "grid",
 
-                <Divider />
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(220px, 1fr))",
 
-                <div
-                  style={{
-                    display:
-                      "grid",
-
-                    gridTemplateColumns:
-                      "repeat(auto-fit, minmax(220px, 1fr))",
-
-                    gap:
-                      "14px",
-                  }}
+                  gap:
+                    "14px",
+                }}
+              >
+                <TimelineCard
+                  step="01"
+                  title="Customer selection"
+                  description="Selection deadline"
                 >
-                  <TimelineCard
-                    title="Customer Selection"
-                    description="Selection deadline"
-                  >
-                    <Select
-                      label="Customer selection deadline"
-                      labelHidden
-                      value={
-                        selectionDeadlineOffset
-                      }
-                      onChange={
-                        setSelectionDeadlineOffset
-                      }
-                      options={[
-                        {
-                          label:
-                            "3 days before shipment",
-                          value:
-                            "3",
-                        },
-                        {
-                          label:
-                            "5 days before shipment",
-                          value:
-                            "5",
-                        },
-                        {
-                          label:
-                            "7 days before shipment",
-                          value:
-                            "7",
-                        },
-                        {
-                          label:
-                            "10 days before shipment",
-                          value:
-                            "10",
-                        },
-                        {
-                          label:
-                            "14 days before shipment",
-                          value:
-                            "14",
-                        },
-                      ]}
-                    />
-                  </TimelineCard>
+                  <Select
+                    label="Customer selection deadline"
+                    labelHidden
+                    value={
+                      selectionDeadlineOffset
+                    }
+                    onChange={
+                      setSelectionDeadlineOffset
+                    }
+                    options={[
+                      {
+                        label:
+                          "3 days before shipment",
+                        value:
+                          "3",
+                      },
+                      {
+                        label:
+                          "5 days before shipment",
+                        value:
+                          "5",
+                      },
+                      {
+                        label:
+                          "7 days before shipment",
+                        value:
+                          "7",
+                      },
+                      {
+                        label:
+                          "10 days before shipment",
+                        value:
+                          "10",
+                      },
+                      {
+                        label:
+                          "14 days before shipment",
+                        value:
+                          "14",
+                      },
+                    ]}
+                  />
+                </TimelineCard>
 
-                  <TimelineCard
-                    title="Automatic Selection"
-                    description="If customer has not selected"
-                  >
-                    <Select
-                      label="Automatic selection timing"
-                      labelHidden
-                      value={
-                        autoSelectionOffset
-                      }
-                      onChange={
-                        setAutoSelectionOffset
-                      }
-                      options={[
-                        {
-                          label:
-                            "1 day before shipment",
-                          value:
-                            "1",
-                        },
-                        {
-                          label:
-                            "2 days before shipment",
-                          value:
-                            "2",
-                        },
-                        {
-                          label:
-                            "3 days before shipment",
-                          value:
-                            "3",
-                        },
-                        {
-                          label:
-                            "5 days before shipment",
-                          value:
-                            "5",
-                        },
-                      ]}
-                    />
-                  </TimelineCard>
+                <TimelineCard
+                  step="02"
+                  title="Automatic selection"
+                  description="If the customer has not selected"
+                >
+                  <Select
+                    label="Automatic selection timing"
+                    labelHidden
+                    value={
+                      autoSelectionOffset
+                    }
+                    onChange={
+                      setAutoSelectionOffset
+                    }
+                    options={[
+                      {
+                        label:
+                          "1 day before shipment",
+                        value:
+                          "1",
+                      },
+                      {
+                        label:
+                          "2 days before shipment",
+                        value:
+                          "2",
+                      },
+                      {
+                        label:
+                          "3 days before shipment",
+                        value:
+                          "3",
+                      },
+                      {
+                        label:
+                          "5 days before shipment",
+                        value:
+                          "5",
+                      },
+                    ]}
+                  />
+                </TimelineCard>
 
-                  <TimelineCard
-                    title="Create Shopify Order"
-                    description="Order preparation timing"
-                  >
-                    <Select
-                      label="Order creation timing"
-                      labelHidden
-                      value={
-                        orderCreationOffset
-                      }
-                      onChange={
-                        setOrderCreationOffset
-                      }
-                      options={[
-                        {
-                          label:
-                            "Same day as shipment",
-                          value:
-                            "0",
-                        },
-                        {
-                          label:
-                            "1 day before shipment",
-                          value:
-                            "1",
-                        },
-                        {
-                          label:
-                            "2 days before shipment",
-                          value:
-                            "2",
-                        },
-                        {
-                          label:
-                            "3 days before shipment",
-                          value:
-                            "3",
-                        },
-                      ]}
-                    />
-                  </TimelineCard>
-                </div>
-
-              </BlockStack>
-            </Card>
+                <TimelineCard
+                  step="03"
+                  title="Create Shopify order"
+                  description="Order preparation timing"
+                >
+                  <Select
+                    label="Order creation timing"
+                    labelHidden
+                    value={
+                      orderCreationOffset
+                    }
+                    onChange={
+                      setOrderCreationOffset
+                    }
+                    options={[
+                      {
+                        label:
+                          "Same day as shipment",
+                        value:
+                          "0",
+                      },
+                      {
+                        label:
+                          "1 day before shipment",
+                        value:
+                          "1",
+                      },
+                      {
+                        label:
+                          "2 days before shipment",
+                        value:
+                          "2",
+                      },
+                      {
+                        label:
+                          "3 days before shipment",
+                        value:
+                          "3",
+                      },
+                    ]}
+                  />
+                </TimelineCard>
+              </div>
+            </SettingsSection>
 
             {/* ==================================================
                 REMINDERS
                 ================================================== */}
 
-            <Card>
-              <BlockStack gap="400">
+            <SettingsSection
+              eyebrow="Communication"
+              title="Customer reminders"
+              description="Choose which reminders customers receive before their selection deadline."
+            >
+              <div
+                style={{
+                  display: "grid",
 
-                <SectionHeading
-                  title="Customer Reminders"
-                  description="Choose which reminders customers should receive before their selection deadline."
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(180px, 1fr))",
+
+                  gap:
+                    "12px",
+                }}
+              >
+                <CompactToggle
+                  title="14 days"
+                  description="Early reminder"
+                  enabled={
+                    reminder14Days
+                  }
+                  onToggle={() =>
+                    setReminder14Days(
+                      (current) =>
+                        !current,
+                    )
+                  }
                 />
+
+                <CompactToggle
+                  title="7 days"
+                  description="One week reminder"
+                  enabled={
+                    reminder7Days
+                  }
+                  onToggle={() =>
+                    setReminder7Days(
+                      (current) =>
+                        !current,
+                    )
+                  }
+                />
+
+                <CompactToggle
+                  title="3 days"
+                  description="Deadline approaching"
+                  enabled={
+                    reminder3Days
+                  }
+                  onToggle={() =>
+                    setReminder3Days(
+                      (current) =>
+                        !current,
+                    )
+                  }
+                />
+
+                <CompactToggle
+                  title="1 day"
+                  description="Final reminder"
+                  enabled={
+                    reminder1Day
+                  }
+                  onToggle={() =>
+                    setReminder1Day(
+                      (current) =>
+                        !current,
+                    )
+                  }
+                />
+              </div>
+            </SettingsSection>
+
+            {/* ==================================================
+                PRODUCT AVAILABILITY
+                ================================================== */}
+
+            <SettingsSection
+              eyebrow="Products"
+              title="Product availability"
+              description="Control which products and size variants customers can see and select."
+            >
+              <ToggleSetting
+                label="Hide out-of-stock products"
+                description="Products and sizes with no available inventory will not appear on customer selection forms."
+                enabled={
+                  hideOutOfStock
+                }
+                onToggle={() =>
+                  setHideOutOfStock(
+                    (current) =>
+                      !current,
+                  )
+                }
+              />
+
+              <Divider />
+
+              <ToggleSetting
+                label="Hide discontinued products"
+                description="Keep discontinued products out of customer selection options."
+                enabled={
+                  hideDiscontinued
+                }
+                onToggle={() =>
+                  setHideDiscontinued(
+                    (current) =>
+                      !current,
+                  )
+                }
+              />
+
+              <Divider />
+
+              <ToggleSetting
+                label="Allow backorders"
+                description="Allow products to remain selectable even when current inventory is unavailable."
+                enabled={
+                  allowBackorders
+                }
+                onToggle={() =>
+                  setAllowBackorders(
+                    (current) =>
+                      !current,
+                  )
+                }
+              />
+            </SettingsSection>
+
+            {/* ==================================================
+                ORDER PROCESSING
+                ================================================== */}
+
+            <SettingsSection
+              eyebrow="Fulfillment"
+              title="Order processing"
+              description="Control how SubscriptionSync prepares Shopify orders after customer selections are complete."
+            >
+              <ToggleSetting
+                label="Automatically create orders"
+                description="Allow SubscriptionSync to prepare orders when each subscriber reaches their order creation date."
+                enabled={
+                  autoCreateOrders
+                }
+                onToggle={() =>
+                  setAutoCreateOrders(
+                    (current) =>
+                      !current,
+                  )
+                }
+              />
+
+              <Divider />
+
+              <ToggleSetting
+                label="Require manual review"
+                description="Hold orders for review before allowing them to continue through the fulfillment workflow."
+                enabled={
+                  requireManualReview
+                }
+                onToggle={() =>
+                  setRequireManualReview(
+                    (current) =>
+                      !current,
+                  )
+                }
+              />
+
+              <Divider />
+
+              <div>
+                <div
+                  style={{
+                    fontSize:
+                      "13px",
+
+                    fontWeight:
+                      650,
+
+                    color:
+                      COLORS.text,
+
+                    marginBottom:
+                      "12px",
+                  }}
+                >
+                  Shopify order tags
+                </div>
 
                 <div
                   style={{
@@ -1245,302 +1634,86 @@ export default function SettingsPage() {
                       "grid",
 
                     gridTemplateColumns:
-                      "repeat(auto-fit, minmax(180px, 1fr))",
+                      "repeat(auto-fit, minmax(230px, 1fr))",
 
                     gap:
-                      "12px",
+                      "14px",
                   }}
                 >
-                  <CompactToggle
-                    title="14 Days"
-                    description="Early reminder"
-                    enabled={
-                      reminder14Days
+                  <TextField
+                    label="Automatic Order"
+                    value={
+                      autoOrderTag
                     }
-                    onToggle={() =>
-                      setReminder14Days(
-                        (current) =>
-                          !current,
-                      )
+                    onChange={
+                      setAutoOrderTag
                     }
+                    autoComplete="off"
                   />
 
-                  <CompactToggle
-                    title="7 Days"
-                    description="One week reminder"
-                    enabled={
-                      reminder7Days
+                  <TextField
+                    label="Customer Selected"
+                    value={
+                      customerSelectedTag
                     }
-                    onToggle={() =>
-                      setReminder7Days(
-                        (current) =>
-                          !current,
-                      )
+                    onChange={
+                      setCustomerSelectedTag
                     }
+                    autoComplete="off"
                   />
 
-                  <CompactToggle
-                    title="3 Days"
-                    description="Deadline approaching"
-                    enabled={
-                      reminder3Days
+                  <TextField
+                    label="Modified Appstle Order"
+                    value={
+                      modifiedOrderTag
                     }
-                    onToggle={() =>
-                      setReminder3Days(
-                        (current) =>
-                          !current,
-                      )
+                    onChange={
+                      setModifiedOrderTag
                     }
-                  />
-
-                  <CompactToggle
-                    title="1 Day"
-                    description="Final reminder"
-                    enabled={
-                      reminder1Day
-                    }
-                    onToggle={() =>
-                      setReminder1Day(
-                        (current) =>
-                          !current,
-                      )
-                    }
+                    autoComplete="off"
                   />
                 </div>
-
-              </BlockStack>
-            </Card>
-
-            {/* ==================================================
-                PRODUCT AVAILABILITY
-                ================================================== */}
-
-            <Card>
-              <BlockStack gap="400">
-
-                <SectionHeading
-                  title="Product Availability"
-                  description="Control which products and individual size variants customers can see and select."
-                />
-
-                <ToggleSetting
-                  label="Hide Out-of-Stock Products"
-                  description="Products and sizes with no available inventory will not appear on customer selection forms."
-                  enabled={
-                    hideOutOfStock
-                  }
-                  onToggle={() =>
-                    setHideOutOfStock(
-                      (current) =>
-                        !current,
-                    )
-                  }
-                />
-
-                <Divider />
-
-                <ToggleSetting
-                  label="Hide Discontinued Products"
-                  description="Keep discontinued products out of customer selection options."
-                  enabled={
-                    hideDiscontinued
-                  }
-                  onToggle={() =>
-                    setHideDiscontinued(
-                      (current) =>
-                        !current,
-                    )
-                  }
-                />
-
-                <Divider />
-
-                <ToggleSetting
-                  label="Allow Backorders"
-                  description="Allow products to remain selectable even when current inventory is unavailable."
-                  enabled={
-                    allowBackorders
-                  }
-                  onToggle={() =>
-                    setAllowBackorders(
-                      (current) =>
-                        !current,
-                    )
-                  }
-                />
-
-              </BlockStack>
-            </Card>
-
-            {/* ==================================================
-                ORDER PROCESSING
-                ================================================== */}
-
-            <Card>
-              <BlockStack gap="400">
-
-                <SectionHeading
-                  title="Order Processing"
-                  description="Control how SubscriptionSync prepares Shopify orders after customer selections are complete."
-                />
-
-                <ToggleSetting
-                  label="Automatically Create Orders"
-                  description="Allow SubscriptionSync to prepare orders when each subscriber reaches their order creation date."
-                  enabled={
-                    autoCreateOrders
-                  }
-                  onToggle={() =>
-                    setAutoCreateOrders(
-                      (current) =>
-                        !current,
-                    )
-                  }
-                />
-
-                <Divider />
-
-                <ToggleSetting
-                  label="Require Manual Review"
-                  description="Hold orders for review before allowing them to continue through the fulfillment workflow."
-                  enabled={
-                    requireManualReview
-                  }
-                  onToggle={() =>
-                    setRequireManualReview(
-                      (current) =>
-                        !current,
-                    )
-                  }
-                />
-
-                <Divider />
-
-                <BlockStack gap="300">
-
-                  <Text
-                    as="h3"
-                    variant="headingSm"
-                  >
-                    Shopify Order Tags
-                  </Text>
-
-                  <div
-                    style={{
-                      display:
-                        "grid",
-
-                      gridTemplateColumns:
-                        "repeat(auto-fit, minmax(230px, 1fr))",
-
-                      gap:
-                        "14px",
-                    }}
-                  >
-                    <TextField
-                      label="Automatic Order"
-                      value={
-                        autoOrderTag
-                      }
-                      onChange={
-                        setAutoOrderTag
-                      }
-                      autoComplete="off"
-                    />
-
-                    <TextField
-                      label="Customer Selected"
-                      value={
-                        customerSelectedTag
-                      }
-                      onChange={
-                        setCustomerSelectedTag
-                      }
-                      autoComplete="off"
-                    />
-
-                    <TextField
-                      label="Modified Appstle Order"
-                      value={
-                        modifiedOrderTag
-                      }
-                      onChange={
-                        setModifiedOrderTag
-                      }
-                      autoComplete="off"
-                    />
-                  </div>
-
-                </BlockStack>
-
-              </BlockStack>
-            </Card>
+              </div>
+            </SettingsSection>
 
             {/* ==================================================
                 EMAIL
                 ================================================== */}
 
-            <Card>
-              <BlockStack gap="400">
+            <SettingsSection
+              eyebrow="Communication"
+              title="Email settings"
+              description="Configure the default sender used for SubscriptionSync customer communication."
+            >
+              <TextField
+                label="Sender Email"
+                value={
+                  emailSender
+                }
+                onChange={
+                  setEmailSender
+                }
+                autoComplete="email"
+                placeholder="support@littleadventures.com"
+              />
 
-                <SectionHeading
-                  title="Email Settings"
-                  description="Configure the default sender used for SubscriptionSync customer communication."
-                />
-
-                <TextField
-                  label="Sender Email"
-                  value={
-                    emailSender
-                  }
-                  onChange={
-                    setEmailSender
-                  }
-                  autoComplete="email"
-                  placeholder="support@littleadventures.com"
-                />
-
-                <div
-                  style={{
-                    background:
-                      COLORS.softBlue,
-
-                    border:
-                      `1px solid ${COLORS.borderBlue}`,
-
-                    borderRadius:
-                      "12px",
-
-                    padding:
-                      "14px 16px",
-                  }}
-                >
-                  <Text
-                    as="p"
-                    variant="bodySm"
-                    tone="subdued"
-                  >
-                    Customer selection
-                    templates are configured
-                    within each Fulfillment
-                    Profile. This setting
-                    controls the default
-                    sender address.
-                  </Text>
-                </div>
-
-              </BlockStack>
-            </Card>
+              <InfoBox>
+                Customer selection templates are
+                configured within each Fulfillment
+                Profile. This setting controls the
+                default sender address.
+              </InfoBox>
+            </SettingsSection>
 
             {/* ==================================================
                 CONNECTED SERVICES
                 ================================================== */}
 
-            <BlockStack gap="300">
-
-              <SectionHeading
-                title="Connected Services"
-                description="Current connection status for the services used by SubscriptionSync."
+            <div>
+              <SectionHeader
+                eyebrow="Integrations"
+                title="Connected services"
+                description="Current connection status for the services SubscriptionSync depends on."
               />
 
               <div
@@ -1553,6 +1726,9 @@ export default function SettingsPage() {
 
                   gap:
                     "14px",
+
+                  marginTop:
+                    "16px",
                 }}
               >
                 <IntegrationCard
@@ -1571,7 +1747,7 @@ export default function SettingsPage() {
                   connected={
                     settings.appstleConnected
                   }
-                  disconnectedLabel="Needs Connection"
+                  disconnectedLabel="Needs connection"
                 />
 
                 <IntegrationCard
@@ -1593,12 +1769,15 @@ export default function SettingsPage() {
                       emailSender,
                     )
                   }
-                  disconnectedLabel="Needs Setup"
+                  disconnectedLabel="Needs setup"
                 />
               </div>
 
               <div
                 style={{
+                  marginTop:
+                    "14px",
+
                   background:
                     COLORS.white,
 
@@ -1606,10 +1785,13 @@ export default function SettingsPage() {
                     `1px solid ${COLORS.border}`,
 
                   borderRadius:
-                    "12px",
+                    "14px",
 
                   padding:
-                    "14px 16px",
+                    "16px 18px",
+
+                  boxShadow:
+                    "0 1px 2px rgba(32,34,31,0.02)",
                 }}
               >
                 <InlineStack
@@ -1619,23 +1801,46 @@ export default function SettingsPage() {
                   wrap
                 >
                   <div>
-                    <Text
-                      as="p"
-                      variant="bodySm"
-                      tone="subdued"
+                    <div
+                      style={{
+                        fontSize:
+                          "10px",
+
+                        fontWeight:
+                          700,
+
+                        letterSpacing:
+                          "0.08em",
+
+                        textTransform:
+                          "uppercase",
+
+                        color:
+                          COLORS.muted,
+
+                        marginBottom:
+                          "4px",
+                      }}
                     >
                       Last settings activity
-                    </Text>
+                    </div>
 
-                    <Text
-                      as="p"
-                      variant="bodyMd"
-                      fontWeight="semibold"
+                    <div
+                      style={{
+                        fontSize:
+                          "13px",
+
+                        fontWeight:
+                          600,
+
+                        color:
+                          COLORS.text,
+                      }}
                     >
                       {
                         settings.lastSync
                       }
-                    </Text>
+                    </div>
                   </div>
 
                   <Button
@@ -1651,22 +1856,35 @@ export default function SettingsPage() {
                       )
                     }
                   >
-                    Sync Now
+                    Sync now
                   </Button>
                 </InlineStack>
               </div>
-
-            </BlockStack>
+            </div>
 
             {/* ==================================================
                 ADMIN TOOLS
                 ================================================== */}
 
-            <Card>
-              <BlockStack gap="400">
+            <div
+              style={{
+                background:
+                  COLORS.cream,
 
-                <SectionHeading
-                  title="Admin Tools"
+                border:
+                  `1px solid ${COLORS.creamStrong}`,
+
+                borderRadius:
+                  "18px",
+
+                padding:
+                  "24px",
+              }}
+            >
+              <BlockStack gap="400">
+                <SectionHeader
+                  eyebrow="Development"
+                  title="Admin tools"
                   description="Sandbox tools for testing SubscriptionSync workflows before live automation is enabled."
                 />
 
@@ -1699,7 +1917,7 @@ export default function SettingsPage() {
                       )
                     }
                   >
-                    Send Test Reminder
+                    Send test reminder
                   </Button>
 
                   <Button
@@ -1715,41 +1933,19 @@ export default function SettingsPage() {
                       )
                     }
                   >
-                    Generate Test Order
+                    Generate test order
                   </Button>
                 </InlineStack>
 
-                <div
-                  style={{
-                    background:
-                      COLORS.softBlue,
-
-                    border:
-                      `1px solid ${COLORS.borderBlue}`,
-
-                    borderRadius:
-                      "12px",
-
-                    padding:
-                      "14px 16px",
-                  }}
-                >
-                  <Text
-                    as="p"
-                    variant="bodySm"
-                    tone="subdued"
-                  >
-                    Additional tools such as
-                    subscriber sync, product
-                    sync, inventory refresh,
-                    and daily automation can
-                    be connected here as those
-                    integrations are built.
-                  </Text>
-                </div>
-
+                <InfoBox warm>
+                  Additional tools such as
+                  subscriber sync, product sync,
+                  inventory refresh, and daily
+                  automation can be connected here
+                  as those integrations are built.
+                </InfoBox>
               </BlockStack>
-            </Card>
+            </div>
 
             {/* ==================================================
                 SAVE
@@ -1758,53 +1954,88 @@ export default function SettingsPage() {
             <div
               style={{
                 background:
-                  COLORS.softBlue,
-
-                border:
-                  `1px solid ${COLORS.borderBlue}`,
+                  COLORS.sageDeep,
 
                 borderRadius:
-                  "16px",
+                  "18px",
 
                 padding:
-                  "18px 20px",
+                  "22px 24px",
+
+                boxShadow:
+                  "0 10px 24px rgba(39,51,42,0.10)",
               }}
             >
               <InlineStack
                 align="space-between"
                 blockAlign="center"
-                gap="300"
+                gap="400"
                 wrap
               >
                 <div>
-                  <Text
-                    as="p"
-                    variant="headingMd"
+                  <div
+                    style={{
+                      fontSize:
+                        "10px",
+
+                      fontWeight:
+                        700,
+
+                      letterSpacing:
+                        "0.11em",
+
+                      textTransform:
+                        "uppercase",
+
+                      color:
+                        "rgba(255,255,255,0.62)",
+
+                      marginBottom:
+                        "6px",
+                    }}
                   >
-                    Save SubscriptionSync Settings
-                  </Text>
+                    System defaults
+                  </div>
 
                   <div
                     style={{
-                      marginTop:
+                      fontSize:
+                        "18px",
+
+                      fontWeight:
+                        650,
+
+                      color:
+                        "#FFFFFF",
+
+                      marginBottom:
                         "4px",
                     }}
                   >
-                    <Text
-                      as="p"
-                      variant="bodySm"
-                      tone="subdued"
-                    >
-                      These become the
-                      default system settings
-                      used across subscriber
-                      workflows.
-                    </Text>
+                    Save SubscriptionSync settings
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize:
+                        "12px",
+
+                      lineHeight:
+                        1.5,
+
+                      color:
+                        "rgba(255,255,255,0.65)",
+                    }}
+                  >
+                    These settings become the
+                    defaults used across subscriber
+                    workflows.
                   </div>
                 </div>
 
                 <InlineStack
                   gap="300"
+                  wrap
                 >
                   <Button
                     url="/app"
@@ -1826,12 +2057,13 @@ export default function SettingsPage() {
                       )
                     }
                   >
-                    Save Settings
+                    Save settings
                   </Button>
                 </InlineStack>
               </InlineStack>
             </div>
 
+            <div style={{ height: "20px" }} />
           </BlockStack>
         </Form>
       </Page>
@@ -1840,73 +2072,16 @@ export default function SettingsPage() {
 }
 
 /* ============================================================
-   SECTION HEADING
+   SETTINGS SECTION
    ============================================================ */
 
-function SectionHeading({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <InlineStack
-      gap="200"
-      blockAlign="start"
-      wrap={false}
-    >
-      <div
-        style={{
-          width:
-            "4px",
-
-          height:
-            "22px",
-
-          background:
-            COLORS.tealBlue,
-
-          borderRadius:
-            "999px",
-
-          flexShrink:
-            0,
-
-          marginTop:
-            "2px",
-        }}
-      />
-
-      <BlockStack gap="050">
-        <Text
-          as="h2"
-          variant="headingLg"
-        >
-          {title}
-        </Text>
-
-        <Text
-          as="p"
-          variant="bodyMd"
-          tone="subdued"
-        >
-          {description}
-        </Text>
-      </BlockStack>
-    </InlineStack>
-  );
-}
-
-/* ============================================================
-   TIMELINE CARD
-   ============================================================ */
-
-function TimelineCard({
+function SettingsSection({
+  eyebrow,
   title,
   description,
   children,
 }: {
+  eyebrow: string;
   title: string;
   description: string;
   children:
@@ -1916,36 +2091,225 @@ function TimelineCard({
     <div
       style={{
         background:
-          COLORS.softBlue,
+          COLORS.white,
 
         border:
-          `1px solid ${COLORS.borderBlue}`,
+          `1px solid ${COLORS.border}`,
 
         borderRadius:
-          "12px",
+          "18px",
 
         padding:
-          "15px",
+          "24px",
+
+        boxShadow:
+          "0 2px 8px rgba(32,34,31,0.025)",
+      }}
+    >
+      <BlockStack gap="400">
+        <SectionHeader
+          eyebrow={eyebrow}
+          title={title}
+          description={description}
+        />
+
+        {children}
+      </BlockStack>
+    </div>
+  );
+}
+
+/* ============================================================
+   SECTION HEADER
+   ============================================================ */
+
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div>
+      <div
+        style={{
+          fontSize:
+            "10px",
+
+          fontWeight:
+            700,
+
+          letterSpacing:
+            "0.11em",
+
+          textTransform:
+            "uppercase",
+
+          color:
+            COLORS.sage,
+
+          marginBottom:
+            "6px",
+        }}
+      >
+        {eyebrow}
+      </div>
+
+      <div
+        style={{
+          fontSize:
+            "20px",
+
+          fontWeight:
+            650,
+
+          letterSpacing:
+            "-0.015em",
+
+          color:
+            COLORS.text,
+
+          marginBottom:
+            "5px",
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize:
+            "13px",
+
+          lineHeight:
+            1.5,
+
+          color:
+            COLORS.muted,
+
+          maxWidth:
+            "700px",
+        }}
+      >
+        {description}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   TIMELINE CARD
+   ============================================================ */
+
+function TimelineCard({
+  step,
+  title,
+  description,
+  children,
+}: {
+  step: string;
+  title: string;
+  description: string;
+  children:
+    React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        background:
+          COLORS.page,
+
+        border:
+          `1px solid ${COLORS.border}`,
+
+        borderRadius:
+          "14px",
+
+        padding:
+          "16px",
       }}
     >
       <BlockStack gap="300">
 
-        <BlockStack gap="050">
-          <Text
-            as="p"
-            variant="headingSm"
-          >
-            {title}
-          </Text>
+        <InlineStack
+          gap="300"
+          blockAlign="start"
+          wrap={false}
+        >
+          <div
+            style={{
+              width: "30px",
+              height: "30px",
 
-          <Text
-            as="p"
-            variant="bodySm"
-            tone="subdued"
+              borderRadius:
+                "999px",
+
+              display:
+                "flex",
+
+              alignItems:
+                "center",
+
+              justifyContent:
+                "center",
+
+              background:
+                COLORS.sageSoft,
+
+              border:
+                `1px solid ${COLORS.sageSoftStrong}`,
+
+              color:
+                COLORS.sageDark,
+
+              fontSize:
+                "10px",
+
+              fontWeight:
+                800,
+
+              flexShrink:
+                0,
+            }}
           >
-            {description}
-          </Text>
-        </BlockStack>
+            {step}
+          </div>
+
+          <div>
+            <div
+              style={{
+                fontSize:
+                  "13px",
+
+                fontWeight:
+                  650,
+
+                color:
+                  COLORS.text,
+
+                marginBottom:
+                  "3px",
+              }}
+            >
+              {title}
+            </div>
+
+            <div
+              style={{
+                fontSize:
+                  "11px",
+
+                color:
+                  COLORS.muted,
+              }}
+            >
+              {description}
+            </div>
+          </div>
+        </InlineStack>
 
         {children}
 
@@ -1970,46 +2334,75 @@ function ToggleSetting({
   onToggle: () => void;
 }) {
   return (
-    <InlineStack
-      align="space-between"
-      blockAlign="center"
-      gap="400"
-      wrap={false}
+    <div
+      style={{
+        padding:
+          "2px 0",
+      }}
     >
-      <BlockStack gap="050">
-        <Text
-          as="span"
-          variant="bodyMd"
-          fontWeight="semibold"
-        >
-          {label}
-        </Text>
-
-        <Text
-          as="span"
-          variant="bodySm"
-          tone="subdued"
-        >
-          {description}
-        </Text>
-      </BlockStack>
-
-      <Button
-        size="slim"
-        variant={
-          enabled
-            ? "primary"
-            : "secondary"
-        }
-        onClick={
-          onToggle
-        }
+      <InlineStack
+        align="space-between"
+        blockAlign="center"
+        gap="400"
+        wrap={false}
       >
-        {enabled
-          ? "On"
-          : "Off"}
-      </Button>
-    </InlineStack>
+        <div
+          style={{
+            maxWidth:
+              "760px",
+          }}
+        >
+          <div
+            style={{
+              fontSize:
+                "13px",
+
+              fontWeight:
+                650,
+
+              color:
+                COLORS.text,
+
+              marginBottom:
+                "4px",
+            }}
+          >
+            {label}
+          </div>
+
+          <div
+            style={{
+              fontSize:
+                "12px",
+
+              lineHeight:
+                1.5,
+
+              color:
+                COLORS.muted,
+            }}
+          >
+            {description}
+          </div>
+        </div>
+
+        <Button
+          size="slim"
+          variant={
+            enabled
+              ? "primary"
+              : "secondary"
+          }
+          onClick={
+            onToggle
+          }
+        >
+          {enabled
+            ? "On"
+            : "Off"}
+        </Button>
+      </InlineStack>
+    </div>
   );
 }
 
@@ -2031,9 +2424,11 @@ function CompactToggle({
   return (
     <button
       type="button"
+
       onClick={
         onToggle
       }
+
       style={{
         width:
           "100%",
@@ -2046,21 +2441,24 @@ function CompactToggle({
 
         background:
           enabled
-            ? COLORS.softBlueStrong
-            : COLORS.white,
+            ? COLORS.sageSoft
+            : COLORS.page,
 
         border:
           `1px solid ${
             enabled
-              ? COLORS.borderBlue
+              ? COLORS.sageSoftStrong
               : COLORS.border
           }`,
 
         borderRadius:
-          "12px",
+          "14px",
 
         padding:
-          "14px",
+          "15px",
+
+        transition:
+          "background 150ms ease, border-color 150ms ease",
       }}
     >
       <InlineStack
@@ -2103,13 +2501,37 @@ function CompactToggle({
 
         <div
           style={{
+            minWidth:
+              "38px",
+
+            padding:
+              "5px 7px",
+
+            borderRadius:
+              "999px",
+
+            textAlign:
+              "center",
+
+            background:
+              enabled
+                ? COLORS.sageDark
+                : COLORS.white,
+
+            border:
+              `1px solid ${
+                enabled
+                  ? COLORS.sageDark
+                  : COLORS.borderStrong
+              }`,
+
             color:
               enabled
-                ? COLORS.numberBlue
+                ? "#FFFFFF"
                 : COLORS.muted,
 
             fontSize:
-              "12px",
+              "10px",
 
             fontWeight:
               800,
@@ -2121,6 +2543,54 @@ function CompactToggle({
         </div>
       </InlineStack>
     </button>
+  );
+}
+
+/* ============================================================
+   INFO BOX
+   ============================================================ */
+
+function InfoBox({
+  children,
+  warm = false,
+}: {
+  children:
+    React.ReactNode;
+  warm?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        background:
+          warm
+            ? "rgba(255,255,255,0.52)"
+            : COLORS.sageSoft,
+
+        border:
+          `1px solid ${
+            warm
+              ? COLORS.creamStrong
+              : COLORS.sageSoftStrong
+          }`,
+
+        borderRadius:
+          "13px",
+
+        padding:
+          "14px 16px",
+
+        color:
+          COLORS.muted,
+
+        fontSize:
+          "12px",
+
+        lineHeight:
+          1.55,
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -2144,34 +2614,51 @@ function IntegrationCard({
     <div
       style={{
         background:
-          COLORS.white,
+          connected
+            ? COLORS.white
+            : COLORS.attentionSoft,
 
         border:
-          `1px solid ${COLORS.border}`,
+          `1px solid ${
+            connected
+              ? COLORS.border
+              : COLORS.attentionBorder
+          }`,
 
         borderRadius:
-          "14px",
+          "15px",
 
         padding:
-          "17px",
+          "18px",
 
         minHeight:
-          "115px",
+          "118px",
+
+        boxShadow:
+          "0 1px 2px rgba(32,34,31,0.02)",
       }}
     >
-      <BlockStack gap="200">
+      <BlockStack gap="300">
 
         <InlineStack
           align="space-between"
           blockAlign="center"
           gap="200"
         >
-          <Text
-            as="h3"
-            variant="headingMd"
+          <div
+            style={{
+              fontSize:
+                "14px",
+
+              fontWeight:
+                650,
+
+              color:
+                COLORS.text,
+            }}
           >
             {title}
-          </Text>
+          </div>
 
           <Badge
             tone={
@@ -2186,13 +2673,20 @@ function IntegrationCard({
           </Badge>
         </InlineStack>
 
-        <Text
-          as="p"
-          variant="bodySm"
-          tone="subdued"
+        <div
+          style={{
+            fontSize:
+              "12px",
+
+            lineHeight:
+              1.45,
+
+            color:
+              COLORS.muted,
+          }}
         >
           {detail}
-        </Text>
+        </div>
 
       </BlockStack>
     </div>

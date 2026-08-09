@@ -13,7 +13,6 @@ import {
 import {
   Badge,
   BlockStack,
-  Card,
   IndexTable,
   InlineStack,
   Layout,
@@ -28,29 +27,42 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 /* ============================================================
-   SUBSCRIPTIONSYNC COLORS
+   SUBSCRIPTIONSYNC DESIGN SYSTEM
    ============================================================ */
 
 const COLORS = {
-  navy: "#17233E",
-  blue: "#294A78",
-  tealBlue: "#2F7C89",
-
-  pageBackground: "#F5F7FB",
-
+  // Main surfaces
+  page: "#F7F7F4",
   white: "#FFFFFF",
 
-  softBlue: "#F4F8FC",
-  softBlueStrong: "#EAF1F8",
+  // Typography
+  text: "#20221F",
+  textSoft: "#52574F",
+  muted: "#787D75",
 
-  border: "#D9E2EC",
-  borderBlue: "#C6D5E5",
+  // Sage
+  sage: "#687A6C",
+  sageDark: "#4D5E51",
+  sageDeep: "#39483D",
+  sageSoft: "#EEF1ED",
+  sageSoftStrong: "#E4EAE3",
 
-  text: "#1F2937",
-  muted: "#667085",
+  // Warm neutral
+  cream: "#F5F1E8",
+  creamStrong: "#E9E1D3",
+  warmText: "#705F42",
 
-  numberBlue: "#244B78",
-  accentBlue: "#356A9A",
+  // Borders
+  border: "#E4E5DF",
+  borderStrong: "#D6D8D2",
+
+  // Status surfaces
+  attentionSoft: "#F7F0E2",
+  attentionBorder: "#E9D6AE",
+  successSoft: "#EDF3ED",
+  successBorder: "#CDDCCF",
+  criticalSoft: "#F8EDEC",
+  criticalBorder: "#E8C7C4",
 };
 
 /* ============================================================
@@ -90,8 +102,7 @@ export const loader = async ({
 export default function ActivityLogPage() {
   const {
     logs,
-  } =
-    useLoaderData<typeof loader>();
+  } = useLoaderData<typeof loader>();
 
   const [
     searchValue,
@@ -142,8 +153,7 @@ export default function ActivityLogPage() {
               typeFilter;
 
           const matchesStatus =
-            statusFilter ===
-              "all" ||
+            statusFilter === "all" ||
             log.status ===
               statusFilter;
 
@@ -182,28 +192,25 @@ export default function ActivityLogPage() {
         "Error",
     ).length;
 
+  const attentionCount =
+    warningCount + errorCount;
+
   return (
     <div
       style={{
-        background:
-          COLORS.pageBackground,
-
-        minHeight:
-          "100vh",
+        background: COLORS.page,
+        minHeight: "100vh",
       }}
     >
       <Page
         title="Activity Log"
-        subtitle="View sync events, automation runs, reminders, order actions, and system errors."
+        subtitle="Review automation, sync, reminder, fulfillment, and system events."
         backAction={{
-          content:
-            "Dashboard",
-
-          url:
-            "/app",
+          content: "Dashboard",
+          url: "/app",
         }}
       >
-        <BlockStack gap="500">
+        <BlockStack gap="600">
 
           {/* ==================================================
               HERO
@@ -211,582 +218,827 @@ export default function ActivityLogPage() {
 
           <div
             style={{
-              background:
-                `linear-gradient(
-                  135deg,
-                  ${COLORS.navy} 0%,
-                  ${COLORS.blue} 62%,
-                  ${COLORS.tealBlue} 100%
-                )`,
+              position: "relative",
+              overflow: "hidden",
 
-              borderRadius:
-                "18px",
+              border:
+                `1px solid ${COLORS.border}`,
 
-              padding:
-                "30px",
+              borderRadius: "20px",
+
+              minHeight: "215px",
+
+              background: `
+                linear-gradient(
+                  108deg,
+                  #FCFBF7 0%,
+                  #F5F4EF 48%,
+                  #D8E0D6 74%,
+                  #A8B9A9 100%
+                )
+              `,
 
               boxShadow:
-                "0 8px 26px rgba(23, 35, 62, 0.14)",
-
-              color:
-                COLORS.white,
+                "0 10px 28px rgba(32,34,31,0.06)",
             }}
           >
-            <InlineStack
-              align="space-between"
-              gap="400"
-              blockAlign="center"
-              wrap
+            <div
+              style={{
+                position: "absolute",
+
+                width: "390px",
+                height: "390px",
+
+                borderRadius: "50%",
+
+                background:
+                  "radial-gradient(circle, rgba(57,72,61,0.22) 0%, rgba(57,72,61,0.07) 45%, transparent 70%)",
+
+                right: "-85px",
+                top: "-180px",
+
+                pointerEvents: "none",
+              }}
+            />
+
+            <div
+              style={{
+                position: "absolute",
+
+                width: "560px",
+                height: "170px",
+
+                borderRadius: "50%",
+
+                background:
+                  "linear-gradient(135deg, rgba(57,72,61,0.94), rgba(104,122,108,0.74))",
+
+                right: "-160px",
+                bottom: "-125px",
+
+                transform:
+                  "rotate(-5deg)",
+
+                pointerEvents: "none",
+              }}
+            />
+
+            <div
+              style={{
+                position: "absolute",
+
+                width: "245px",
+                height: "245px",
+
+                borderRadius: "50%",
+
+                border:
+                  "1px solid rgba(255,255,255,0.28)",
+
+                right: "38px",
+                top: "-28px",
+
+                pointerEvents: "none",
+              }}
+            />
+
+            <div
+              style={{
+                position: "relative",
+                zIndex: 2,
+
+                padding:
+                  "36px 38px",
+              }}
             >
-              <div>
+              <InlineStack
+                align="space-between"
+                blockAlign="center"
+                gap="600"
+                wrap
+              >
                 <div
                   style={{
-                    fontSize:
-                      "12px",
-
-                    fontWeight:
-                      700,
-
-                    letterSpacing:
-                      "0.08em",
-
-                    textTransform:
-                      "uppercase",
-
-                    color:
-                      "#BFE8ED",
-
-                    marginBottom:
-                      "8px",
+                    maxWidth: "620px",
                   }}
                 >
-                  SubscriptionSync
+                  <div
+                    style={{
+                      fontSize: "11px",
+
+                      fontWeight: 700,
+
+                      letterSpacing:
+                        "0.12em",
+
+                      textTransform:
+                        "uppercase",
+
+                      color:
+                        COLORS.sageDark,
+
+                      marginBottom:
+                        "14px",
+                    }}
+                  >
+                    System history
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "30px",
+
+                      lineHeight: 1.12,
+
+                      fontWeight: 650,
+
+                      letterSpacing:
+                        "-0.035em",
+
+                      color:
+                        COLORS.text,
+
+                      marginBottom:
+                        "11px",
+                    }}
+                  >
+                    See what happened.
+                    <br />
+
+                    <span
+                      style={{
+                        color:
+                          COLORS.sageDark,
+                      }}
+                    >
+                      Understand what changed.
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      maxWidth: "560px",
+
+                      fontSize: "14px",
+
+                      lineHeight: 1.6,
+
+                      color:
+                        COLORS.textSoft,
+                    }}
+                  >
+                    Search and audit SubscriptionSync
+                    activity across automation,
+                    reminders, fulfillment, manual
+                    actions, and system events.
+                  </div>
                 </div>
 
                 <div
                   style={{
-                    fontSize:
-                      "27px",
+                    minWidth: "225px",
 
-                    fontWeight:
-                      700,
+                    padding:
+                      "18px 20px",
 
-                    lineHeight:
-                      1.2,
+                    borderRadius: "16px",
 
-                    marginBottom:
-                      "8px",
+                    background:
+                      "rgba(255,255,255,0.76)",
+
+                    border:
+                      "1px solid rgba(255,255,255,0.72)",
+
+                    backdropFilter:
+                      "blur(8px)",
+
+                    boxShadow:
+                      "0 8px 24px rgba(32,34,31,0.07)",
                   }}
                 >
-                  Activity Log
+                  <div
+                    style={{
+                      fontSize: "10px",
+
+                      fontWeight: 700,
+
+                      letterSpacing:
+                        "0.10em",
+
+                      textTransform:
+                        "uppercase",
+
+                      color:
+                        COLORS.sageDark,
+
+                      marginBottom:
+                        "9px",
+                    }}
+                  >
+                    Recorded activity
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "30px",
+
+                      lineHeight: 1,
+
+                      fontWeight: 650,
+
+                      letterSpacing:
+                        "-0.04em",
+
+                      color: COLORS.text,
+
+                      marginBottom:
+                        "8px",
+                    }}
+                  >
+                    {logs.length}
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      lineHeight: 1.45,
+                      color: COLORS.muted,
+                    }}
+                  >
+                    total event
+                    {logs.length === 1
+                      ? ""
+                      : "s"}
+                  </div>
+
+                  <div
+                    style={{
+                      height: "1px",
+                      background:
+                        "rgba(77,94,81,0.12)",
+                      margin:
+                        "13px 0",
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color:
+                        attentionCount > 0
+                          ? COLORS.warmText
+                          : COLORS.sageDark,
+                    }}
+                  >
+                    {attentionCount} need
+                    {attentionCount === 1
+                      ? "s"
+                      : ""}{" "}
+                    attention
+                  </div>
                 </div>
+              </InlineStack>
+            </div>
 
-                <div
-                  style={{
-                    fontSize:
-                      "14px",
+            <div
+              style={{
+                position: "absolute",
 
-                    lineHeight:
-                      1.5,
+                top: "15px",
+                right: "15px",
 
-                    color:
-                      "#E8EEF7",
+                background:
+                  "rgba(255,255,255,0.76)",
 
-                    maxWidth:
-                      "700px",
-                  }}
-                >
-                  Review automation events,
-                  sandbox actions, reminders,
-                  fulfillment activity, and
-                  system history in one place.
-                </div>
-              </div>
+                border:
+                  "1px solid rgba(77,94,81,0.16)",
 
-              <div
+                borderRadius: "999px",
+
+                padding: "7px 11px",
+
+                backdropFilter:
+                  "blur(7px)",
+              }}
+            >
+              <span
                 style={{
-                  background:
-                    "rgba(255,255,255,0.12)",
+                  fontSize: "11px",
 
-                  border:
-                    "1px solid rgba(255,255,255,0.20)",
+                  fontWeight: 650,
 
-                  borderRadius:
-                    "999px",
-
-                  padding:
-                    "9px 15px",
+                  color:
+                    COLORS.sageDark,
                 }}
               >
-                <span
-                  style={{
-                    fontSize:
-                      "13px",
-
-                    fontWeight:
-                      700,
-
-                    color:
-                      COLORS.white,
-                  }}
-                >
-                  ● Sandbox Activity
-                </span>
-              </div>
-            </InlineStack>
+                ● Sandbox activity
+              </span>
+            </div>
           </div>
 
           {/* ==================================================
               SNAPSHOT
               ================================================== */}
 
-          <Card>
+          <div>
+            <SectionHeader
+              eyebrow="Overview"
+              title="Activity snapshot"
+              description="A quick summary of the system history currently recorded by SubscriptionSync."
+            />
+
+            <div
+              style={{
+                display: "grid",
+
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(175px, 1fr))",
+
+                gap: "12px",
+
+                marginTop: "16px",
+              }}
+            >
+              <ActivityMetric
+                label="Total events"
+                value={logs.length}
+              />
+
+              <ActivityMetric
+                label="Successful"
+                value={successCount}
+                tone="success"
+              />
+
+              <ActivityMetric
+                label="Warnings"
+                value={warningCount}
+                tone="attention"
+              />
+
+              <ActivityMetric
+                label="Errors"
+                value={errorCount}
+                tone="critical"
+              />
+            </div>
+          </div>
+
+          {/* ==================================================
+              FILTERS
+              ================================================== */}
+
+          <div
+            style={{
+              background:
+                COLORS.white,
+
+              border:
+                `1px solid ${COLORS.border}`,
+
+              borderRadius:
+                "18px",
+
+              padding:
+                "22px 24px",
+
+              boxShadow:
+                "0 2px 8px rgba(32,34,31,0.025)",
+            }}
+          >
             <BlockStack gap="400">
 
-              <BlockStack gap="100">
-                <SectionHeading>
-                  Activity Snapshot
-                </SectionHeading>
+              <InlineStack
+                align="space-between"
+                blockAlign="end"
+                gap="400"
+                wrap
+              >
+                <SectionHeader
+                  eyebrow="Audit tools"
+                  title="Search & filter"
+                  description="Narrow the activity history by keyword, event type, or status."
+                />
 
-                <Text
-                  as="p"
-                  variant="bodyMd"
-                  tone="subdued"
+                <div
+                  style={{
+                    background:
+                      COLORS.sageSoft,
+
+                    border:
+                      `1px solid ${COLORS.sageSoftStrong}`,
+
+                    borderRadius:
+                      "999px",
+
+                    padding:
+                      "7px 12px",
+
+                    color:
+                      COLORS.sageDark,
+
+                    fontSize: "12px",
+                    fontWeight: 700,
+
+                    whiteSpace:
+                      "nowrap",
+                  }}
                 >
-                  A quick view of the
-                  activity currently recorded
-                  by SubscriptionSync.
-                </Text>
-              </BlockStack>
+                  {filteredLogs.length} shown
+                </div>
+              </InlineStack>
 
               <InlineStack
                 gap="300"
                 wrap
               >
-                <StatBox
-                  label="Total Events"
-                  value={
-                    logs.length
-                  }
-                />
+                <div
+                  style={{
+                    minWidth:
+                      "280px",
 
-                <StatBox
-                  label="Successful"
-                  value={
-                    successCount
-                  }
-                />
+                    flex: "1",
+                  }}
+                >
+                  <TextField
+                    label="Search logs"
+                    labelHidden
 
-                <StatBox
-                  label="Warnings"
-                  value={
-                    warningCount
-                  }
-                />
+                    value={
+                      searchValue
+                    }
 
-                <StatBox
-                  label="Errors"
-                  value={
-                    errorCount
-                  }
-                />
+                    onChange={
+                      setSearchValue
+                    }
+
+                    placeholder="Search description, user, source, or type..."
+
+                    autoComplete="off"
+
+                    clearButton
+
+                    onClearButtonClick={() =>
+                      setSearchValue("")
+                    }
+                  />
+                </div>
+
+                <div
+                  style={{
+                    minWidth:
+                      "180px",
+                  }}
+                >
+                  <Select
+                    label="Type filter"
+                    labelHidden
+
+                    value={
+                      typeFilter
+                    }
+
+                    onChange={
+                      setTypeFilter
+                    }
+
+                    options={[
+                      {
+                        label:
+                          "All types",
+                        value:
+                          "all",
+                      },
+
+                      {
+                        label:
+                          "Sync",
+                        value:
+                          "Sync",
+                      },
+
+                      {
+                        label:
+                          "Auto-Select",
+                        value:
+                          "Auto-Select",
+                      },
+
+                      {
+                        label:
+                          "Reminder",
+                        value:
+                          "Reminder",
+                      },
+
+                      {
+                        label:
+                          "Order",
+                        value:
+                          "Order",
+                      },
+
+                      {
+                        label:
+                          "Settings",
+                        value:
+                          "Settings",
+                      },
+
+                      {
+                        label:
+                          "Quick Submit",
+                        value:
+                          "Quick Submit",
+                      },
+
+                      {
+                        label:
+                          "Daily Queue",
+                        value:
+                          "Daily Queue",
+                      },
+                    ]}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    minWidth:
+                      "180px",
+                  }}
+                >
+                  <Select
+                    label="Status filter"
+                    labelHidden
+
+                    value={
+                      statusFilter
+                    }
+
+                    onChange={
+                      setStatusFilter
+                    }
+
+                    options={[
+                      {
+                        label:
+                          "All statuses",
+                        value:
+                          "all",
+                      },
+
+                      {
+                        label:
+                          "Success",
+                        value:
+                          "Success",
+                      },
+
+                      {
+                        label:
+                          "Warning",
+                        value:
+                          "Warning",
+                      },
+
+                      {
+                        label:
+                          "Error",
+                        value:
+                          "Error",
+                      },
+                    ]}
+                  />
+                </div>
               </InlineStack>
-
             </BlockStack>
-          </Card>
+          </div>
+
+          {/* ==================================================
+              ACTIVITY TABLE
+              ================================================== */}
 
           <Layout>
             <Layout.Section>
+              <div
+                style={{
+                  background:
+                    COLORS.white,
 
-              <BlockStack gap="400">
+                  border:
+                    `1px solid ${COLORS.border}`,
 
-                {/* =============================================
-                    FILTERS
-                    ============================================= */}
+                  borderRadius:
+                    "18px",
 
-                <Card>
-                  <BlockStack gap="400">
+                  overflow:
+                    "hidden",
 
-                    <BlockStack gap="100">
-                      <SectionHeading>
-                        Search & Filter
-                      </SectionHeading>
+                  boxShadow:
+                    "0 2px 8px rgba(32,34,31,0.025)",
+                }}
+              >
+                <div
+                  style={{
+                    padding:
+                      "20px 22px",
 
-                      <Text
-                        as="p"
-                        variant="bodyMd"
-                        tone="subdued"
-                      >
-                        Use the activity log
-                        to audit
-                        SubscriptionSync
-                        actions and
-                        troubleshoot sandbox
-                        workflows.
-                      </Text>
-                    </BlockStack>
+                    borderBottom:
+                      `1px solid ${COLORS.border}`,
+                  }}
+                >
+                  <SectionHeader
+                    eyebrow="History"
+                    title="Recorded events"
+                    description="The most recent SubscriptionSync activity appears first."
+                  />
+                </div>
 
-                    <InlineStack
-                      gap="300"
-                      wrap
-                    >
-                      <div
-                        style={{
-                          minWidth:
-                            "280px",
+                {filteredLogs.length ===
+                0 ? (
+                  <div
+                    style={{
+                      padding:
+                        "42px 28px",
 
-                          flex:
-                            "1",
-                        }}
-                      >
-                        <TextField
-                          label="Search logs"
-                          labelHidden
-                          value={
-                            searchValue
-                          }
-                          onChange={
-                            setSearchValue
-                          }
-                          placeholder="Search description, user, source, or type..."
-                          autoComplete="off"
-                          clearButton
-                          onClearButtonClick={() =>
-                            setSearchValue(
-                              "",
-                            )
-                          }
-                        />
-                      </div>
+                      textAlign:
+                        "center",
 
-                      <div
-                        style={{
-                          minWidth:
-                            "180px",
-                        }}
-                      >
-                        <Select
-                          label="Type filter"
-                          labelHidden
-                          value={
-                            typeFilter
-                          }
-                          onChange={
-                            setTypeFilter
-                          }
-                          options={[
-                            {
-                              label:
-                                "All types",
-
-                              value:
-                                "all",
-                            },
-
-                            {
-                              label:
-                                "Sync",
-
-                              value:
-                                "Sync",
-                            },
-
-                            {
-                              label:
-                                "Auto-Select",
-
-                              value:
-                                "Auto-Select",
-                            },
-
-                            {
-                              label:
-                                "Reminder",
-
-                              value:
-                                "Reminder",
-                            },
-
-                            {
-                              label:
-                                "Order",
-
-                              value:
-                                "Order",
-                            },
-
-                            {
-                              label:
-                                "Settings",
-
-                              value:
-                                "Settings",
-                            },
-
-                            {
-                              label:
-                                "Quick Submit",
-
-                              value:
-                                "Quick Submit",
-                            },
-
-                            {
-                              label:
-                                "Daily Queue",
-
-                              value:
-                                "Daily Queue",
-                            },
-                          ]}
-                        />
-                      </div>
-
-                      <div
-                        style={{
-                          minWidth:
-                            "180px",
-                        }}
-                      >
-                        <Select
-                          label="Status filter"
-                          labelHidden
-                          value={
-                            statusFilter
-                          }
-                          onChange={
-                            setStatusFilter
-                          }
-                          options={[
-                            {
-                              label:
-                                "All statuses",
-
-                              value:
-                                "all",
-                            },
-
-                            {
-                              label:
-                                "Success",
-
-                              value:
-                                "Success",
-                            },
-
-                            {
-                              label:
-                                "Warning",
-
-                              value:
-                                "Warning",
-                            },
-
-                            {
-                              label:
-                                "Error",
-
-                              value:
-                                "Error",
-                            },
-                          ]}
-                        />
-                      </div>
-                    </InlineStack>
-
-                    <Text
-                      as="p"
-                      variant="bodySm"
-                      tone="subdued"
-                    >
-                      {
-                        filteredLogs.length
-                      }{" "}
-                      event
-                      {filteredLogs.length ===
-                      1
-                        ? ""
-                        : "s"}{" "}
-                      shown
-                    </Text>
-
-                  </BlockStack>
-                </Card>
-
-                {/* =============================================
-                    TABLE
-                    ============================================= */}
-
-                <Card padding="0">
-
-                  {filteredLogs.length ===
-                  0 ? (
+                      background:
+                        COLORS.page,
+                    }}
+                  >
                     <div
                       style={{
-                        padding:
-                          "36px",
+                        fontSize:
+                          "16px",
 
-                        textAlign:
-                          "center",
+                        fontWeight:
+                          650,
+
+                        color:
+                          COLORS.text,
+
+                        marginBottom:
+                          "6px",
                       }}
                     >
-                      <BlockStack gap="150">
-
-                        <Text
-                          as="p"
-                          variant="headingMd"
-                        >
-                          No activity found
-                        </Text>
-
-                        <Text
-                          as="p"
-                          variant="bodyMd"
-                          tone="subdued"
-                        >
-                          No activity matches
-                          the current search
-                          and filters.
-                        </Text>
-
-                      </BlockStack>
+                      No activity found
                     </div>
-                  ) : (
-                    <IndexTable
-                      resourceName={{
-                        singular:
-                          "log",
 
-                        plural:
-                          "logs",
+                    <div
+                      style={{
+                        fontSize:
+                          "13px",
+
+                        lineHeight:
+                          1.5,
+
+                        color:
+                          COLORS.muted,
                       }}
-                      itemCount={
-                        filteredLogs.length
-                      }
-                      selectable={
-                        false
-                      }
-                      headings={[
-                        {
-                          title:
-                            "Timestamp",
-                        },
-
-                        {
-                          title:
-                            "Type",
-                        },
-
-                        {
-                          title:
-                            "Description",
-                        },
-
-                        {
-                          title:
-                            "Status",
-                        },
-
-                        {
-                          title:
-                            "User",
-                        },
-
-                        {
-                          title:
-                            "Source",
-                        },
-                      ]}
                     >
-                      {filteredLogs.map(
-                        (
-                          log,
-                          index,
-                        ) => (
-                          <IndexTable.Row
-                            id={
-                              log.id
-                            }
-                            key={
-                              log.id
-                            }
-                            position={
-                              index
-                            }
-                          >
-                            <IndexTable.Cell>
-                              {
-                                formatDateTime(
-                                  log.createdAt,
-                                )
-                              }
-                            </IndexTable.Cell>
+                      No activity matches the
+                      current search and filters.
+                    </div>
+                  </div>
+                ) : (
+                  <IndexTable
+                    resourceName={{
+                      singular:
+                        "log",
 
-                            <IndexTable.Cell>
-                              <Text
-                                as="span"
-                                fontWeight="semibold"
-                              >
-                                {
-                                  log.eventType
-                                }
-                              </Text>
-                            </IndexTable.Cell>
+                      plural:
+                        "logs",
+                    }}
 
-                            <IndexTable.Cell>
-                              {
-                                log.description
-                              }
-                            </IndexTable.Cell>
+                    itemCount={
+                      filteredLogs.length
+                    }
 
-                            <IndexTable.Cell>
-                              <StatusBadge
-                                status={
-                                  log.status as LogStatus
-                                }
-                              />
-                            </IndexTable.Cell>
-
-                            <IndexTable.Cell>
-                              {
-                                log.user
-                              }
-                            </IndexTable.Cell>
-
-                            <IndexTable.Cell>
-                              {
-                                log.source
-                              }
-                            </IndexTable.Cell>
-
-                          </IndexTable.Row>
-                        ),
-                      )}
-                    </IndexTable>
-                  )}
-
-                </Card>
-
-                <InlineStack
-                  align="center"
-                >
-                  <Pagination
-                    hasPrevious={
+                    selectable={
                       false
                     }
-                    onPrevious={() => {}}
-                    hasNext={
-                      false
-                    }
-                    onNext={() => {}}
-                  />
-                </InlineStack>
 
-              </BlockStack>
+                    headings={[
+                      {
+                        title:
+                          "Timestamp",
+                      },
 
+                      {
+                        title:
+                          "Type",
+                      },
+
+                      {
+                        title:
+                          "Description",
+                      },
+
+                      {
+                        title:
+                          "Status",
+                      },
+
+                      {
+                        title:
+                          "User",
+                      },
+
+                      {
+                        title:
+                          "Source",
+                      },
+                    ]}
+                  >
+                    {filteredLogs.map(
+                      (
+                        log,
+                        index,
+                      ) => (
+                        <IndexTable.Row
+                          id={
+                            log.id
+                          }
+
+                          key={
+                            log.id
+                          }
+
+                          position={
+                            index
+                          }
+                        >
+                          <IndexTable.Cell>
+                            <Text
+                              as="span"
+                              tone="subdued"
+                            >
+                              {formatDateTime(
+                                log.createdAt,
+                              )}
+                            </Text>
+                          </IndexTable.Cell>
+
+                          <IndexTable.Cell>
+                            <Text
+                              as="span"
+                              fontWeight="semibold"
+                            >
+                              {
+                                log.eventType
+                              }
+                            </Text>
+                          </IndexTable.Cell>
+
+                          <IndexTable.Cell>
+                            {
+                              log.description
+                            }
+                          </IndexTable.Cell>
+
+                          <IndexTable.Cell>
+                            <StatusBadge
+                              status={
+                                log.status as LogStatus
+                              }
+                            />
+                          </IndexTable.Cell>
+
+                          <IndexTable.Cell>
+                            {
+                              log.user
+                            }
+                          </IndexTable.Cell>
+
+                          <IndexTable.Cell>
+                            {
+                              log.source
+                            }
+                          </IndexTable.Cell>
+                        </IndexTable.Row>
+                      ),
+                    )}
+                  </IndexTable>
+                )}
+              </div>
+
+              <InlineStack
+                align="center"
+              >
+                <Pagination
+                  hasPrevious={false}
+                  onPrevious={() => {}}
+                  hasNext={false}
+                  onNext={() => {}}
+                />
+              </InlineStack>
             </Layout.Section>
           </Layout>
 
+          <div style={{ height: "20px" }} />
         </BlockStack>
       </Page>
     </div>
@@ -794,96 +1046,182 @@ export default function ActivityLogPage() {
 }
 
 /* ============================================================
-   SECTION HEADING
+   SECTION HEADER
    ============================================================ */
 
-function SectionHeading({
-  children,
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
 }: {
-  children:
-    React.ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
 }) {
   return (
-    <InlineStack
-      gap="200"
-      blockAlign="center"
-    >
+    <div>
       <div
         style={{
-          width:
-            "4px",
+          fontSize: "10px",
 
-          height:
-            "22px",
+          fontWeight: 700,
 
-          borderRadius:
-            "999px",
+          letterSpacing:
+            "0.11em",
 
-          background:
-            COLORS.tealBlue,
+          textTransform:
+            "uppercase",
 
-          flexShrink:
-            0,
+          color:
+            COLORS.sage,
+
+          marginBottom:
+            "6px",
         }}
-      />
-
-      <Text
-        as="h2"
-        variant="headingLg"
       >
-        {children}
-      </Text>
+        {eyebrow}
+      </div>
 
-    </InlineStack>
-  );
-}
-
-/* ============================================================
-   STAT BOX
-   ============================================================ */
-
-function StatBox({
-  label,
-  value,
-}: {
-  label: string;
-  value: number;
-}) {
-  return (
-    <div
-      style={{
-        background:
-          COLORS.softBlue,
-
-        border:
-          `1px solid ${COLORS.borderBlue}`,
-
-        borderRadius:
-          "14px",
-
-        minWidth:
-          "155px",
-
-        padding:
-          "17px 18px",
-
-        boxShadow:
-          "0 2px 8px rgba(41, 74, 120, 0.04)",
-      }}
-    >
       <div
         style={{
-          fontSize:
-            "12px",
+          fontSize: "20px",
 
-          fontWeight:
-            700,
+          fontWeight: 650,
+
+          letterSpacing:
+            "-0.015em",
+
+          color:
+            COLORS.text,
+
+          marginBottom:
+            "5px",
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize: "13px",
+
+          lineHeight: 1.5,
 
           color:
             COLORS.muted,
 
+          maxWidth:
+            "700px",
+        }}
+      >
+        {description}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   ACTIVITY METRIC
+   ============================================================ */
+
+function ActivityMetric({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: number;
+  tone?:
+    | "neutral"
+    | "success"
+    | "attention"
+    | "critical";
+}) {
+  const palette = {
+    neutral: {
+      background:
+        COLORS.white,
+
+      border:
+        COLORS.border,
+
+      label:
+        COLORS.muted,
+    },
+
+    success: {
+      background:
+        COLORS.successSoft,
+
+      border:
+        COLORS.successBorder,
+
+      label:
+        COLORS.sageDark,
+    },
+
+    attention: {
+      background:
+        COLORS.attentionSoft,
+
+      border:
+        COLORS.attentionBorder,
+
+      label:
+        COLORS.warmText,
+    },
+
+    critical: {
+      background:
+        COLORS.criticalSoft,
+
+      border:
+        COLORS.criticalBorder,
+
+      label:
+        "#7B4A46",
+    },
+  }[tone];
+
+  return (
+    <div
+      style={{
+        background:
+          palette.background,
+
+        border:
+          `1px solid ${palette.border}`,
+
+        borderRadius:
+          "15px",
+
+        padding:
+          "18px 19px",
+
+        minHeight:
+          "112px",
+
+        boxShadow:
+          "0 1px 2px rgba(32,34,31,0.02)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "10px",
+
+          fontWeight: 700,
+
+          letterSpacing:
+            "0.07em",
+
+          textTransform:
+            "uppercase",
+
+          color:
+            palette.label,
+
           marginBottom:
-            "7px",
+            "13px",
         }}
       >
         {label}
@@ -891,17 +1229,17 @@ function StatBox({
 
       <div
         style={{
-          fontSize:
-            "27px",
+          fontSize: "30px",
 
-          lineHeight:
-            1,
+          lineHeight: 1,
 
-          fontWeight:
-            750,
+          fontWeight: 650,
+
+          letterSpacing:
+            "-0.04em",
 
           color:
-            COLORS.numberBlue,
+            COLORS.text,
         }}
       >
         {value}

@@ -38,29 +38,32 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 /* ============================================================
-   SUBSCRIPTIONSYNC BRAND COLORS
+   SUBSCRIPTIONSYNC DESIGN SYSTEM
    ============================================================ */
 
 const COLORS = {
-  navy: "#17233E",
-  blue: "#294A78",
-  tealBlue: "#2F7C89",
-
-  pageBackground: "#F5F7FB",
-
-  softBlue: "#F4F8FC",
-  softBlueStrong: "#EAF1F8",
-
-  border: "#D9E2EC",
-  borderBlue: "#C6D5E5",
-
-  text: "#1F2937",
-  muted: "#667085",
-
-  numberBlue: "#244B78",
-  accentBlue: "#356A9A",
-
+  page: "#F7F7F4",
   white: "#FFFFFF",
+
+  text: "#20221F",
+  textSoft: "#52574F",
+  muted: "#787D75",
+
+  sage: "#687A6C",
+  sageDark: "#4D5E51",
+  sageSoft: "#EEF1ED",
+  sageSoftStrong: "#E4EAE3",
+
+  border: "#E4E5DF",
+  borderStrong: "#D7DAD2",
+
+  warm: "#F6F1E8",
+  warmText: "#755F38",
+  warmBorder: "#E8DDC8",
+
+  dangerSoft: "#F9EEEE",
+  dangerText: "#8B4242",
+  dangerBorder: "#EBCFCF",
 };
 
 /* ============================================================
@@ -876,434 +879,375 @@ export const action = async ({
    ============================================================ */
 
 export default function DailyQueuePage() {
-  const {
-    stats,
-    queueSubscribers,
-  } =
-    useLoaderData<typeof loader>();
+  const { stats, queueSubscribers } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
 
-  const actionData =
-    useActionData<typeof action>();
+  const [filter, setFilter] = useState("all");
+  const [intent, setIntent] = useState("");
 
-  const navigation =
-    useNavigation();
+  const isSubmitting = navigation.state === "submitting";
 
-  const [
-    filter,
-    setFilter,
-  ] = useState(
-    "all",
-  );
+  const filteredSubscribers = useMemo(() => {
+    if (filter === "all") {
+      return queueSubscribers;
+    }
 
-  const [
-    intent,
-    setIntent,
-  ] = useState(
-    "",
-  );
-
-  const isSubmitting =
-    navigation.state ===
-    "submitting";
-
-  const filteredSubscribers =
-    useMemo(() => {
-      if (
-        filter ===
-        "all"
-      ) {
-        return queueSubscribers;
+    return queueSubscribers.filter((subscriber) => {
+      if (filter === "due-today") {
+        return subscriber.status === "Due Today";
       }
 
-      return queueSubscribers.filter(
-        (subscriber) => {
-          if (
-            filter ===
-            "due-today"
-          ) {
-            return (
-              subscriber.status ===
-              "Due Today"
-            );
-          }
+      if (filter === "due-tomorrow") {
+        return subscriber.status === "Due Tomorrow";
+      }
 
-          if (
-            filter ===
-            "due-tomorrow"
-          ) {
-            return (
-              subscriber.status ===
-              "Due Tomorrow"
-            );
-          }
+      if (filter === "pending-selection") {
+        return subscriber.status === "Pending Selection";
+      }
 
-          if (
-            filter ===
-            "pending-selection"
-          ) {
-            return (
-              subscriber.status ===
-              "Pending Selection"
-            );
-          }
+      if (filter === "auto-select-needed") {
+        return subscriber.status === "Auto-Select Needed";
+      }
 
-          if (
-            filter ===
-            "auto-select-needed"
-          ) {
-            return (
-              subscriber.status ===
-              "Auto-Select Needed"
-            );
-          }
+      if (filter === "order-ready") {
+        return subscriber.status === "Order Ready";
+      }
 
-          if (
-            filter ===
-            "order-ready"
-          ) {
-            return (
-              subscriber.status ===
-              "Order Ready"
-            );
-          }
+      if (filter === "fulfilled") {
+        return subscriber.status === "Fulfilled";
+      }
 
-          if (
-            filter ===
-            "fulfilled"
-          ) {
-            return (
-              subscriber.status ===
-              "Fulfilled"
-            );
-          }
+      if (filter === "needs-review") {
+        return subscriber.status === "Needs Review";
+      }
 
-          if (
-            filter ===
-            "needs-review"
-          ) {
-            return (
-              subscriber.status ===
-              "Needs Review"
-            );
-          }
+      return true;
+    });
+  }, [filter, queueSubscribers]);
 
-          return true;
-        },
-      );
-    }, [
-      filter,
-      queueSubscribers,
-    ]);
+  const needsAttention =
+    stats.dueToday + stats.autoSelectNeeded + stats.needsReview;
 
   return (
     <div
       style={{
-        background:
-          COLORS.pageBackground,
-
-        minHeight:
-          "100vh",
+        background: COLORS.page,
+        minHeight: "100vh",
       }}
     >
       <Page
         title="Daily Queue"
         subtitle="Manage each subscriber according to their individual selection, auto-selection, order, and shipping schedule."
         backAction={{
-          content:
-            "Dashboard",
-
-          url:
-            "/app",
+          content: "Dashboard",
+          url: "/app",
         }}
       >
         <Form method="post">
-          <input
-            type="hidden"
-            name="intent"
-            value={intent}
-          />
+          <input type="hidden" name="intent" value={intent} />
 
-          <BlockStack gap="500">
-
+          <BlockStack gap="600">
             {/* ACTION RESULT */}
-
             {actionData?.message && (
               <Banner
-                title={
-                  actionData.success
-                    ? "Success"
-                    : "Action needed"
-                }
-                tone={
-                  actionData.success
-                    ? "success"
-                    : "critical"
-                }
+                title={actionData.success ? "Success" : "Action needed"}
+                tone={actionData.success ? "success" : "critical"}
               >
-                <p>
-                  {
-                    actionData.message
-                  }
-                </p>
+                <p>{actionData.message}</p>
               </Banner>
             )}
 
             {/* ==================================================
-                BLUE HERO
+                INTRO / HERO
                 ================================================== */}
 
             <div
               style={{
-                background:
-                  `linear-gradient(
-                    135deg,
-                    ${COLORS.navy} 0%,
-                    ${COLORS.blue} 62%,
-                    ${COLORS.tealBlue} 100%
-                  )`,
-
-                borderRadius:
-                  "18px",
-
-                padding:
-                  "30px",
-
+                position: "relative",
+                overflow: "hidden",
+                borderRadius: "22px",
+                border: `1px solid ${COLORS.border}`,
+                background: `
+                  linear-gradient(
+                    108deg,
+                    #FCFBF7 0%,
+                    #F7F6F1 48%,
+                    #D9E2D8 72%,
+                    #9FB09F 100%
+                  )
+                `,
                 boxShadow:
-                  "0 8px 26px rgba(23, 35, 62, 0.14)",
-
-                color:
-                  COLORS.white,
+                  "0 1px 2px rgba(32,34,31,0.03), 0 16px 36px rgba(32,34,31,0.07)",
               }}
             >
-              <InlineStack
-                align="space-between"
-                gap="400"
-                blockAlign="center"
-                wrap
+              <div
+                style={{
+                  position: "absolute",
+                  width: "520px",
+                  height: "220px",
+                  borderRadius: "50%",
+                  background:
+                    "linear-gradient(135deg, rgba(77,94,81,0.96), rgba(104,122,108,0.86))",
+                  bottom: "-180px",
+                  left: "-110px",
+                  transform: "rotate(5deg)",
+                  pointerEvents: "none",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "absolute",
+                  width: "330px",
+                  height: "330px",
+                  borderRadius: "50%",
+                  border: "1px solid rgba(255,255,255,0.32)",
+                  top: "-120px",
+                  right: "15px",
+                  pointerEvents: "none",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "absolute",
+                  width: "230px",
+                  height: "230px",
+                  borderRadius: "50%",
+                  border: "1px solid rgba(255,255,255,0.22)",
+                  top: "-68px",
+                  right: "65px",
+                  pointerEvents: "none",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "relative",
+                  zIndex: 2,
+                  padding: "38px 40px",
+                }}
               >
-                <div>
-                  <div
-                    style={{
-                      fontSize:
-                        "12px",
-
-                      fontWeight:
-                        700,
-
-                      letterSpacing:
-                        "0.08em",
-
-                      textTransform:
-                        "uppercase",
-
-                      color:
-                        "#BFE8ED",
-
-                      marginBottom:
-                        "8px",
-                    }}
-                  >
-                    SubscriptionSync
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize:
-                        "27px",
-
-                      fontWeight:
-                        700,
-
-                      lineHeight:
-                        1.2,
-
-                      marginBottom:
-                        "8px",
-                    }}
-                  >
-                    {
-                      stats.queueDate
-                    }
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize:
-                        "14px",
-
-                      lineHeight:
-                        1.5,
-
-                      color:
-                        "#E8EEF7",
-
-                      maxWidth:
-                        "680px",
-                    }}
-                  >
-                    Rolling fulfillment
-                    based on each
-                    subscriber’s own
-                    schedule and
-                    Fulfillment Profile.
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    background:
-                      "rgba(255,255,255,0.12)",
-
-                    border:
-                      "1px solid rgba(255,255,255,0.20)",
-
-                    borderRadius:
-                      "999px",
-
-                    padding:
-                      "9px 15px",
-                  }}
+                <InlineStack
+                  align="space-between"
+                  blockAlign="center"
+                  gap="600"
+                  wrap
                 >
-                  <span
+                  <div style={{ maxWidth: "620px" }}>
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        letterSpacing: "0.13em",
+                        textTransform: "uppercase",
+                        color: COLORS.sageDark,
+                        marginBottom: "15px",
+                      }}
+                    >
+                      Workflow
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "34px",
+                        fontWeight: 650,
+                        letterSpacing: "-0.04em",
+                        lineHeight: 1.08,
+                        color: COLORS.text,
+                        marginBottom: "14px",
+                      }}
+                    >
+                      Daily fulfillment,
+                      <br />
+                      <span style={{ color: COLORS.sageDark }}>
+                        made clear.
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        lineHeight: 1.65,
+                        color: COLORS.textSoft,
+                        maxWidth: "570px",
+                      }}
+                    >
+                      See what needs attention, move subscribers through
+                      selection, and prepare fulfillment from one organized
+                      queue.
+                    </div>
+                  </div>
+
+                  <div
                     style={{
-                      fontSize:
-                        "13px",
-
-                      fontWeight:
-                        700,
-
-                      color:
-                        COLORS.white,
+                      minWidth: "235px",
+                      background: "rgba(255,255,255,0.78)",
+                      backdropFilter: "blur(10px)",
+                      border: "1px solid rgba(255,255,255,0.64)",
+                      borderRadius: "18px",
+                      padding: "18px 20px",
+                      boxShadow: "0 10px 28px rgba(32,34,31,0.08)",
                     }}
                   >
-                    ● Sandbox Connected
-                  </span>
-                </div>
-              </InlineStack>
+                    <div
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: COLORS.sageDark,
+                        marginBottom: "10px",
+                      }}
+                    >
+                      Right now
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "34px",
+                        lineHeight: 1,
+                        fontWeight: 650,
+                        letterSpacing: "-0.04em",
+                        color: COLORS.text,
+                        marginBottom: "7px",
+                      }}
+                    >
+                      {needsAttention}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        lineHeight: 1.45,
+                        color: COLORS.muted,
+                        marginBottom: "15px",
+                      }}
+                    >
+                      item{needsAttention === 1 ? "" : "s"} need attention
+                    </div>
+
+                    <div
+                      style={{
+                        paddingTop: "12px",
+                        borderTop: `1px solid ${COLORS.border}`,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "7px",
+                          height: "7px",
+                          borderRadius: "999px",
+                          background: COLORS.sageDark,
+                          boxShadow:
+                            "0 0 0 4px rgba(77,94,81,0.10)",
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 650,
+                          color: COLORS.sageDark,
+                        }}
+                      >
+                        Sandbox connected
+                      </span>
+                    </div>
+                  </div>
+                </InlineStack>
+              </div>
             </div>
 
             {/* ==================================================
-                QUEUE STATUS
+                QUEUE SNAPSHOT
                 ================================================== */}
 
-            <Card>
-              <BlockStack gap="400">
-                <BlockStack gap="100">
-                  <SectionHeading>
-                    Queue Status
-                  </SectionHeading>
+            <BlockStack gap="300">
+              <SectionHeader
+                eyebrow="Overview"
+                title="Queue snapshot"
+                description="A quick view of where subscribers are in today’s fulfillment workflow."
+              />
 
-                  <Text
-                    as="p"
-                    variant="bodyMd"
-                    tone="subdued"
-                  >
-                    A quick view of
-                    subscribers moving
-                    through today’s
-                    fulfillment workflow.
-                  </Text>
-                </BlockStack>
-
-                <InlineStack
-                  gap="300"
-                  wrap
-                >
-                  <StatBox
-                    label="Due Today"
-                    value={
-                      stats.dueToday
-                    }
-                  />
-
-                  <StatBox
-                    label="Due Tomorrow"
-                    value={
-                      stats.dueTomorrow
-                    }
-                  />
-
-                  <StatBox
-                    label="Pending Selections"
-                    value={
-                      stats.pendingSelections
-                    }
-                  />
-
-                  <StatBox
-                    label="Auto-Select Needed"
-                    value={
-                      stats.autoSelectNeeded
-                    }
-                  />
-
-                  <StatBox
-                    label="Orders Ready"
-                    value={
-                      stats.ordersReady
-                    }
-                  />
-
-                  <StatBox
-                    label="Fulfilled"
-                    value={
-                      stats.fulfilled
-                    }
-                  />
-
-                  <StatBox
-                    label="Needs Review"
-                    value={
-                      stats.needsReview
-                    }
-                  />
-                </InlineStack>
-              </BlockStack>
-            </Card>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(150px, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                <StatBox
+                  label="Due Today"
+                  value={stats.dueToday}
+                  tone="urgent"
+                />
+                <StatBox
+                  label="Due Tomorrow"
+                  value={stats.dueTomorrow}
+                  tone="attention"
+                />
+                <StatBox
+                  label="Pending Selections"
+                  value={stats.pendingSelections}
+                />
+                <StatBox
+                  label="Auto-Select Needed"
+                  value={stats.autoSelectNeeded}
+                  tone="attention"
+                />
+                <StatBox
+                  label="Orders Ready"
+                  value={stats.ordersReady}
+                  tone="positive"
+                />
+                <StatBox
+                  label="Fulfilled"
+                  value={stats.fulfilled}
+                  tone="positive"
+                />
+                <StatBox
+                  label="Needs Review"
+                  value={stats.needsReview}
+                  tone="urgent"
+                />
+              </div>
+            </BlockStack>
 
             <Layout>
               <Layout.Section>
                 <BlockStack gap="500">
-
                   {/* ==================================================
                       DAILY ACTIONS
                       ================================================== */}
 
-                  <Card>
+                  <div
+                    style={{
+                      background: COLORS.white,
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: "18px",
+                      padding: "22px",
+                      boxShadow: "0 1px 2px rgba(32,34,31,0.02)",
+                    }}
+                  >
                     <BlockStack gap="400">
-                      <BlockStack gap="100">
-                        <SectionHeading>
-                          Daily Actions
-                        </SectionHeading>
+                      <SectionHeader
+                        eyebrow="Actions"
+                        title="Move the queue forward"
+                        description="Use the current sandbox workflow state and Fulfillment Profile rules to process the next steps."
+                      />
 
-                        <Text
-                          as="p"
-                          tone="subdued"
-                        >
-                          These sandbox
-                          actions use the
-                          subscriber's current
-                          workflow state and
-                          Fulfillment Profile.
-                        </Text>
-                      </BlockStack>
-
-                      <InlineStack
-                        gap="300"
-                        wrap
-                      >
+                      <InlineStack gap="300" wrap>
                         <Button
                           submit
                           loading={
-                            isSubmitting &&
-                            intent ===
-                              "send-reminders"
+                            isSubmitting && intent === "send-reminders"
                           }
-                          onClick={() =>
-                            setIntent(
-                              "send-reminders",
-                            )
-                          }
+                          onClick={() => setIntent("send-reminders")}
                         >
                           Prepare Reminders
                         </Button>
@@ -1312,14 +1256,9 @@ export default function DailyQueuePage() {
                           submit
                           loading={
                             isSubmitting &&
-                            intent ===
-                              "run-auto-selection"
+                            intent === "run-auto-selection"
                           }
-                          onClick={() =>
-                            setIntent(
-                              "run-auto-selection",
-                            )
-                          }
+                          onClick={() => setIntent("run-auto-selection")}
                         >
                           Run Auto-Selection
                         </Button>
@@ -1327,337 +1266,198 @@ export default function DailyQueuePage() {
                         <Button
                           submit
                           loading={
-                            isSubmitting &&
-                            intent ===
-                              "create-orders"
+                            isSubmitting && intent === "create-orders"
                           }
-                          onClick={() =>
-                            setIntent(
-                              "create-orders",
-                            )
-                          }
+                          onClick={() => setIntent("create-orders")}
                         >
-                          Create Ready
-                          Fulfillment
+                          Create Ready Fulfillment
                         </Button>
 
                         <Button
                           submit
-                          loading={
-                            isSubmitting &&
-                            intent ===
-                              "sync-now"
-                          }
-                          onClick={() =>
-                            setIntent(
-                              "sync-now",
-                            )
-                          }
+                          loading={isSubmitting && intent === "sync-now"}
+                          onClick={() => setIntent("sync-now")}
                         >
                           Sandbox Sync
                         </Button>
 
-                        <Button
-                          url="/app/activity-log"
-                        >
+                        <Button url="/app/activity-log">
                           View Activity Log
                         </Button>
                       </InlineStack>
+
+                      <div
+                        style={{
+                          background: COLORS.sageSoft,
+                          border: `1px solid ${COLORS.sageSoftStrong}`,
+                          borderRadius: "12px",
+                          padding: "12px 14px",
+                          fontSize: "12px",
+                          lineHeight: 1.5,
+                          color: COLORS.textSoft,
+                        }}
+                      >
+                        Sandbox actions are safe for testing. They do not
+                        change live Little Adventures orders, emails, or
+                        inventory.
+                      </div>
                     </BlockStack>
-                  </Card>
+                  </div>
 
                   {/* ==================================================
                       SUBSCRIBERS
                       ================================================== */}
 
-                  <Card>
-                    <BlockStack gap="400">
+                  <div
+                    style={{
+                      background: COLORS.white,
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: "18px",
+                      overflow: "hidden",
+                      boxShadow: "0 1px 2px rgba(32,34,31,0.02)",
+                    }}
+                  >
+                    <div style={{ padding: "22px 22px 18px" }}>
                       <InlineStack
                         align="space-between"
                         gap="300"
                         blockAlign="center"
                         wrap
                       >
-                        <BlockStack gap="050">
-                          <SectionHeading>
-                            Subscribers in Queue
-                          </SectionHeading>
+                        <SectionHeader
+                          eyebrow="Subscribers"
+                          title="In the queue"
+                          description={`${filteredSubscribers.length} subscriber${
+                            filteredSubscribers.length === 1 ? "" : "s"
+                          } shown`}
+                        />
 
-                          <Text
-                            as="p"
-                            variant="bodySm"
-                            tone="subdued"
-                          >
-                            {
-                              filteredSubscribers.length
-                            }{" "}
-                            subscriber
-                            {filteredSubscribers.length ===
-                            1
-                              ? ""
-                              : "s"}{" "}
-                            shown
-                          </Text>
-                        </BlockStack>
-
-                        <div
-                          style={{
-                            minWidth:
-                              "250px",
-                          }}
-                        >
+                        <div style={{ minWidth: "250px" }}>
                           <Select
                             label="Filter queue"
                             labelHidden
-                            value={
-                              filter
-                            }
-                            onChange={
-                              setFilter
-                            }
+                            value={filter}
+                            onChange={setFilter}
                             options={[
+                              { label: "All", value: "all" },
+                              { label: "Due Today", value: "due-today" },
                               {
-                                label:
-                                  "All",
-                                value:
-                                  "all",
+                                label: "Due Tomorrow",
+                                value: "due-tomorrow",
                               },
-
                               {
-                                label:
-                                  "Due Today",
-                                value:
-                                  "due-today",
+                                label: "Pending Selection",
+                                value: "pending-selection",
                               },
-
                               {
-                                label:
-                                  "Due Tomorrow",
-                                value:
-                                  "due-tomorrow",
+                                label: "Auto-Select Needed",
+                                value: "auto-select-needed",
                               },
-
                               {
-                                label:
-                                  "Pending Selection",
-                                value:
-                                  "pending-selection",
+                                label: "Order Ready",
+                                value: "order-ready",
                               },
-
+                              { label: "Fulfilled", value: "fulfilled" },
                               {
-                                label:
-                                  "Auto-Select Needed",
-                                value:
-                                  "auto-select-needed",
-                              },
-
-                              {
-                                label:
-                                  "Order Ready",
-                                value:
-                                  "order-ready",
-                              },
-
-                              {
-                                label:
-                                  "Fulfilled",
-                                value:
-                                  "fulfilled",
-                              },
-
-                              {
-                                label:
-                                  "Needs Review",
-                                value:
-                                  "needs-review",
+                                label: "Needs Review",
+                                value: "needs-review",
                               },
                             ]}
                           />
                         </div>
                       </InlineStack>
+                    </div>
 
-                      <div
-                        style={{
-                          border:
-                            `1px solid ${COLORS.border}`,
+                    <Divider />
 
-                          borderRadius:
-                            "12px",
-
-                          overflow:
-                            "hidden",
+                    <div style={{ overflow: "hidden" }}>
+                      <IndexTable
+                        resourceName={{
+                          singular: "subscriber",
+                          plural: "subscribers",
                         }}
+                        itemCount={filteredSubscribers.length}
+                        selectable={false}
+                        headings={[
+                          { title: "Customer" },
+                          { title: "Email" },
+                          { title: "Fulfillment Profile" },
+                          { title: "Next Ship Date" },
+                          { title: "Selection Deadline" },
+                          { title: "Auto-Select Date" },
+                          { title: "Order Date" },
+                          { title: "Queue Status" },
+                          { title: "Actions" },
+                        ]}
                       >
-                        <IndexTable
-                          resourceName={{
-                            singular:
-                              "subscriber",
+                        {filteredSubscribers.map((subscriber, index) => (
+                          <IndexTable.Row
+                            id={subscriber.id}
+                            key={subscriber.id}
+                            position={index}
+                          >
+                            <IndexTable.Cell>
+                              <BlockStack gap="050">
+                                <Text as="span" fontWeight="semibold">
+                                  {subscriber.name}
+                                </Text>
+                                <Text
+                                  as="span"
+                                  variant="bodySm"
+                                  tone="subdued"
+                                >
+                                  {subscriber.workflowStatus}
+                                </Text>
+                              </BlockStack>
+                            </IndexTable.Cell>
 
-                            plural:
-                              "subscribers",
-                          }}
-                          itemCount={
-                            filteredSubscribers.length
-                          }
-                          selectable={
-                            false
-                          }
-                          headings={[
-                            {
-                              title:
-                                "Customer",
-                            },
+                            <IndexTable.Cell>
+                              {subscriber.email}
+                            </IndexTable.Cell>
 
-                            {
-                              title:
-                                "Email",
-                            },
+                            <IndexTable.Cell>
+                              <Text as="span" fontWeight="medium">
+                                {subscriber.fulfillmentProfile}
+                              </Text>
+                            </IndexTable.Cell>
 
-                            {
-                              title:
-                                "Fulfillment Profile",
-                            },
+                            <IndexTable.Cell>
+                              {subscriber.nextShipDate}
+                            </IndexTable.Cell>
 
-                            {
-                              title:
-                                "Next Ship Date",
-                            },
+                            <IndexTable.Cell>
+                              {subscriber.selectionDeadline}
+                            </IndexTable.Cell>
 
-                            {
-                              title:
-                                "Selection Deadline",
-                            },
+                            <IndexTable.Cell>
+                              {subscriber.autoSelectDate}
+                            </IndexTable.Cell>
 
-                            {
-                              title:
-                                "Auto-Select Date",
-                            },
+                            <IndexTable.Cell>
+                              {subscriber.orderCreationDate}
+                            </IndexTable.Cell>
 
-                            {
-                              title:
-                                "Order Date",
-                            },
+                            <IndexTable.Cell>
+                              <StatusBadge status={subscriber.status} />
+                            </IndexTable.Cell>
 
-                            {
-                              title:
-                                "Queue Status",
-                            },
-
-                            {
-                              title:
-                                "Actions",
-                            },
-                          ]}
-                        >
-                          {filteredSubscribers.map(
-                            (
-                              subscriber,
-                              index,
-                            ) => (
-                              <IndexTable.Row
-                                id={
-                                  subscriber.id
-                                }
-                                key={
-                                  subscriber.id
-                                }
-                                position={
-                                  index
-                                }
+                            <IndexTable.Cell>
+                              <Link
+                                to={`/app/subscriber-view/${subscriber.id}`}
+                                style={{
+                                  color: COLORS.sageDark,
+                                  fontWeight: 650,
+                                  textDecoration: "none",
+                                }}
                               >
-                                <IndexTable.Cell>
-                                  <BlockStack gap="050">
-                                    <Text
-                                      as="span"
-                                      fontWeight="semibold"
-                                    >
-                                      {
-                                        subscriber.name
-                                      }
-                                    </Text>
-
-                                    <Text
-                                      as="span"
-                                      variant="bodySm"
-                                      tone="subdued"
-                                    >
-                                      {
-                                        subscriber.workflowStatus
-                                      }
-                                    </Text>
-                                  </BlockStack>
-                                </IndexTable.Cell>
-
-                                <IndexTable.Cell>
-                                  {
-                                    subscriber.email
-                                  }
-                                </IndexTable.Cell>
-
-                                <IndexTable.Cell>
-                                  <Text
-                                    as="span"
-                                    fontWeight="medium"
-                                  >
-                                    {
-                                      subscriber.fulfillmentProfile
-                                    }
-                                  </Text>
-                                </IndexTable.Cell>
-
-                                <IndexTable.Cell>
-                                  {
-                                    subscriber.nextShipDate
-                                  }
-                                </IndexTable.Cell>
-
-                                <IndexTable.Cell>
-                                  {
-                                    subscriber.selectionDeadline
-                                  }
-                                </IndexTable.Cell>
-
-                                <IndexTable.Cell>
-                                  {
-                                    subscriber.autoSelectDate
-                                  }
-                                </IndexTable.Cell>
-
-                                <IndexTable.Cell>
-                                  {
-                                    subscriber.orderCreationDate
-                                  }
-                                </IndexTable.Cell>
-
-                                <IndexTable.Cell>
-                                  <StatusBadge
-                                    status={
-                                      subscriber.status
-                                    }
-                                  />
-                                </IndexTable.Cell>
-
-                                <IndexTable.Cell>
-                                  <Link
-                                    to={`/app/subscriber-view/${subscriber.id}`}
-                                    style={{
-                                      color:
-                                        COLORS.accentBlue,
-
-                                      fontWeight:
-                                        600,
-                                    }}
-                                  >
-                                    View details
-                                  </Link>
-                                </IndexTable.Cell>
-                              </IndexTable.Row>
-                            ),
-                          )}
-                        </IndexTable>
-                      </div>
-                    </BlockStack>
-                  </Card>
+                                View details →
+                              </Link>
+                            </IndexTable.Cell>
+                          </IndexTable.Row>
+                        ))}
+                      </IndexTable>
+                    </div>
+                  </div>
                 </BlockStack>
               </Layout.Section>
 
@@ -1666,74 +1466,53 @@ export default function DailyQueuePage() {
                   ================================================== */}
 
               <Layout.Section variant="oneThird">
-                <Card>
-                  <BlockStack gap="400">
-                    <BlockStack gap="100">
-                      <SectionHeading>
-                        Queue Health
-                      </SectionHeading>
+                <BlockStack gap="400">
+                  <div
+                    style={{
+                      background: COLORS.white,
+                      border: `1px solid ${COLORS.border}`,
+                      borderRadius: "18px",
+                      padding: "20px",
+                      boxShadow: "0 1px 2px rgba(32,34,31,0.02)",
+                    }}
+                  >
+                    <BlockStack gap="400">
+                      <SectionHeader
+                        eyebrow="System"
+                        title="Queue health"
+                        description="Development environment status and recent activity."
+                      />
 
-                      <Text
-                        as="p"
-                        variant="bodySm"
-                        tone="subdued"
-                      >
-                        Development environment
-                        status.
-                      </Text>
+                      <InfoRow
+                        label="Connection"
+                        value={stats.syncStatus}
+                        dot
+                      />
+                      <InfoRow
+                        label="Last reminder"
+                        value={stats.lastReminderSent}
+                      />
+                      <InfoRow label="Last sync" value={stats.lastSync} />
+                      <InfoRow label="Schedule" value="Rolling daily" />
+                      <InfoRow label="Data source" value="Neon sandbox" />
                     </BlockStack>
+                  </div>
 
-                    <InfoRow
-                      label="Last reminder"
-                      value={
-                        stats.lastReminderSent
-                      }
-                    />
+                  <SoftInfoBox title="How the queue works">
+                    Each subscriber’s dates are calculated from their own
+                    subscription schedule. Fulfillment Profile rules determine
+                    what happens next.
+                  </SoftInfoBox>
 
-                    <InfoRow
-                      label="Last sync"
-                      value={
-                        stats.lastSync
-                      }
-                    />
-
-                    <InfoRow
-                      label="Schedule"
-                      value="Rolling daily"
-                    />
-
-                    <InfoRow
-                      label="Data source"
-                      value="Neon sandbox"
-                    />
-
-                    <Divider />
-
-                    <BlueInfoBox
-                      title="Daily Fulfillment"
-                    >
-                      Each subscriber’s
-                      dates are calculated
-                      from their own
-                      subscription schedule.
-                      Fulfillment Profile
-                      rules determine what
-                      happens next.
-                    </BlueInfoBox>
-
-                    <BlueInfoBox
-                      title="Sandbox Mode"
-                    >
-                      No live Little
-                      Adventures orders,
-                      emails, or inventory
-                      are changed by these
-                      demo actions.
-                    </BlueInfoBox>
-                  </BlockStack>
-                </Card>
+                  <SoftInfoBox title="Sandbox mode" emphasis>
+                    No live Little Adventures orders, emails, or inventory are
+                    changed by these demo actions.
+                  </SoftInfoBox>
+                </BlockStack>
               </Layout.Section>
             </Layout>
+
+            <div style={{ height: "24px" }} />
           </BlockStack>
         </Form>
       </Page>
@@ -1742,42 +1521,57 @@ export default function DailyQueuePage() {
 }
 
 /* ============================================================
-   SECTION HEADING
+   SECTION HEADER
    ============================================================ */
 
-function SectionHeading({
-  children,
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
 }: {
-  children: React.ReactNode;
+  eyebrow: string;
+  title: React.ReactNode;
+  description: React.ReactNode;
 }) {
   return (
-    <InlineStack
-      gap="200"
-      blockAlign="center"
-    >
+    <div>
       <div
         style={{
-          width:
-            "4px",
-
-          height:
-            "22px",
-
-          borderRadius:
-            "999px",
-
-          background:
-            COLORS.tealBlue,
+          fontSize: "10px",
+          fontWeight: 700,
+          letterSpacing: "0.11em",
+          textTransform: "uppercase",
+          color: COLORS.sage,
+          marginBottom: "6px",
         }}
-      />
-
-      <Text
-        as="h2"
-        variant="headingLg"
       >
-        {children}
-      </Text>
-    </InlineStack>
+        {eyebrow}
+      </div>
+
+      <div
+        style={{
+          fontSize: "20px",
+          fontWeight: 650,
+          letterSpacing: "-0.015em",
+          lineHeight: 1.2,
+          color: COLORS.text,
+          marginBottom: "5px",
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize: "13px",
+          lineHeight: 1.5,
+          color: COLORS.muted,
+          maxWidth: "700px",
+        }}
+      >
+        {description}
+      </div>
+    </div>
   );
 }
 
@@ -1788,115 +1582,133 @@ function SectionHeading({
 function StatBox({
   label,
   value,
+  tone = "neutral",
 }: {
   label: string;
   value: string | number;
+  tone?: "neutral" | "urgent" | "attention" | "positive";
 }) {
+  const background =
+    tone === "urgent"
+      ? COLORS.dangerSoft
+      : tone === "attention"
+        ? COLORS.warm
+        : tone === "positive"
+          ? COLORS.sageSoft
+          : COLORS.white;
+
+  const border =
+    tone === "urgent"
+      ? COLORS.dangerBorder
+      : tone === "attention"
+        ? COLORS.warmBorder
+        : tone === "positive"
+          ? COLORS.sageSoftStrong
+          : COLORS.border;
+
+  const accent =
+    tone === "urgent"
+      ? COLORS.dangerText
+      : tone === "attention"
+        ? COLORS.warmText
+        : tone === "positive"
+          ? COLORS.sageDark
+          : COLORS.muted;
+
   return (
     <div
       style={{
-        background:
-          COLORS.softBlue,
-
-        border:
-          `1px solid ${COLORS.borderBlue}`,
-
-        borderRadius:
-          "14px",
-
-        minWidth:
-          "155px",
-
-        padding:
-          "17px 18px",
-
-        boxShadow:
-          "0 2px 8px rgba(41, 74, 120, 0.04)",
+        background,
+        border: `1px solid ${border}`,
+        borderRadius: "15px",
+        padding: "17px 18px",
+        minHeight: "112px",
+        boxShadow: "0 1px 2px rgba(32,34,31,0.02)",
       }}
     >
       <div
         style={{
-          fontSize:
-            "12px",
+          width: "24px",
+          height: "3px",
+          borderRadius: "999px",
+          background: accent,
+          marginBottom: "15px",
+          opacity: 0.8,
+        }}
+      />
 
-          fontWeight:
-            700,
-
-          color:
-            COLORS.muted,
-
-          marginBottom:
-            "7px",
+      <div
+        style={{
+          fontSize: "28px",
+          lineHeight: 1,
+          fontWeight: 650,
+          letterSpacing: "-0.04em",
+          color: COLORS.text,
+          marginBottom: "9px",
         }}
       >
-        {label}
+        {value}
       </div>
 
       <div
         style={{
-          fontSize:
-            "27px",
-
-          lineHeight:
-            1,
-
-          fontWeight:
-            750,
-
-          color:
-            COLORS.numberBlue,
+          fontSize: "11px",
+          fontWeight: 700,
+          lineHeight: 1.35,
+          letterSpacing: "0.025em",
+          color: accent,
         }}
       >
-        {value}
+        {label}
       </div>
     </div>
   );
 }
 
 /* ============================================================
-   BLUE INFO BOX
+   SOFT INFO BOX
    ============================================================ */
 
-function BlueInfoBox({
+function SoftInfoBox({
   title,
   children,
+  emphasis = false,
 }: {
   title: string;
   children: React.ReactNode;
+  emphasis?: boolean;
 }) {
   return (
     <div
       style={{
-        background:
-          COLORS.softBlue,
-
-        border:
-          `1px solid ${COLORS.borderBlue}`,
-
-        borderRadius:
-          "12px",
-
-        padding:
-          "16px",
+        background: emphasis ? COLORS.sageSoft : COLORS.white,
+        border: `1px solid ${
+          emphasis ? COLORS.sageSoftStrong : COLORS.border
+        }`,
+        borderRadius: "16px",
+        padding: "18px",
       }}
     >
-      <BlockStack gap="100">
-        <Text
-          as="p"
-          variant="bodyMd"
-          fontWeight="semibold"
-        >
-          {title}
-        </Text>
+      <div
+        style={{
+          fontSize: "13px",
+          fontWeight: 650,
+          color: COLORS.text,
+          marginBottom: "7px",
+        }}
+      >
+        {title}
+      </div>
 
-        <Text
-          as="p"
-          variant="bodySm"
-          tone="subdued"
-        >
-          {children}
-        </Text>
-      </BlockStack>
+      <div
+        style={{
+          fontSize: "12px",
+          lineHeight: 1.55,
+          color: COLORS.muted,
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -1908,31 +1720,62 @@ function BlueInfoBox({
 function InfoRow({
   label,
   value,
+  dot = false,
 }: {
   label: string;
   value: string;
+  dot?: boolean;
 }) {
   return (
-    <InlineStack
-      align="space-between"
-      gap="300"
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: "16px",
+        paddingBottom: "12px",
+        borderBottom: `1px solid ${COLORS.border}`,
+      }}
     >
-      <Text
-        as="span"
-        tone="subdued"
+      <span
+        style={{
+          fontSize: "12px",
+          color: COLORS.muted,
+        }}
       >
         {label}
-      </Text>
+      </span>
 
-      <Text
-        as="span"
-        fontWeight="medium"
+      <span
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: "7px",
+          fontSize: "12px",
+          fontWeight: 600,
+          color: COLORS.text,
+          textAlign: "right",
+        }}
       >
+        {dot && (
+          <span
+            style={{
+              width: "7px",
+              height: "7px",
+              borderRadius: "999px",
+              background: COLORS.sageDark,
+              boxShadow: "0 0 0 3px rgba(77,94,81,0.09)",
+              flexShrink: 0,
+            }}
+          />
+        )}
         {value}
-      </Text>
-    </InlineStack>
+      </span>
+    </div>
   );
 }
+
 
 /* ============================================================
    STATUS BADGE

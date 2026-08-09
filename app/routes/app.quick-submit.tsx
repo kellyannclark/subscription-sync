@@ -20,9 +20,7 @@ import {
 import {
   Banner,
   BlockStack,
-  Box,
   Button,
-  Card,
   InlineGrid,
   InlineStack,
   Layout,
@@ -35,29 +33,44 @@ import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 /* ============================================================
-   SUBSCRIPTIONSYNC BRAND COLORS
+   SUBSCRIPTIONSYNC DESIGN SYSTEM
    ============================================================ */
 
 const COLORS = {
-  navy: "#17233E",
-  blue: "#294A78",
-  tealBlue: "#2F7C89",
-
-  pageBackground: "#F5F7FB",
-
+  // Main surfaces
+  page: "#F7F7F4",
   white: "#FFFFFF",
 
-  softBlue: "#F4F8FC",
-  softBlueStrong: "#EAF1F8",
+  // Typography
+  text: "#20221F",
+  textSoft: "#52574F",
+  muted: "#787D75",
 
-  border: "#D9E2EC",
-  borderBlue: "#C6D5E5",
+  // Sage brand accent
+  sage: "#687A6C",
+  sageDark: "#4D5E51",
+  sageDeep: "#39483D",
+  sageSoft: "#EEF1ED",
+  sageSoftStrong: "#E4EAE3",
 
-  text: "#1F2937",
-  muted: "#667085",
+  // Warm neutral
+  cream: "#F5F1E8",
+  creamStrong: "#E9E1D3",
+  warmText: "#705F42",
 
-  numberBlue: "#244B78",
-  accentBlue: "#356A9A",
+  // Borders
+  border: "#E4E5DF",
+  borderStrong: "#D6D8D2",
+
+  // Attention
+  attentionSoft: "#F7F0E2",
+  attentionBorder: "#E9D6AE",
+
+  // Success / critical surfaces
+  successSoft: "#EDF3ED",
+  successBorder: "#CDDCCF",
+  criticalSoft: "#F8EDEC",
+  criticalBorder: "#E8C7C4",
 };
 
 /* ============================================================
@@ -429,8 +442,7 @@ export default function QuickSubmitPage() {
   const {
     subscribers,
     selections,
-  } =
-    useLoaderData<typeof loader>();
+  } = useLoaderData<typeof loader>();
 
   const actionData =
     useActionData<typeof action>();
@@ -439,31 +451,27 @@ export default function QuickSubmitPage() {
     useNavigation();
 
   const isSubmitting =
-    navigation.state ===
-    "submitting";
+    navigation.state === "submitting";
 
   const [
     intent,
     setIntent,
-  ] = useState(
-    "save",
-  );
+  ] = useState("save");
 
   const [
     selectedSubscriberId,
     setSelectedSubscriberId,
   ] = useState(
-    subscribers[0]?.id ??
-      "",
+    subscribers[0]?.id ?? "",
   );
 
   const [
     monthlySelections,
     setMonthlySelections,
   ] =
-    useState<
-      MonthlySelection[]
-    >(selections);
+    useState<MonthlySelection[]>(
+      selections,
+    );
 
   /* ==========================================================
      SELECTED SUBSCRIBER
@@ -481,13 +489,6 @@ export default function QuickSubmitPage() {
       selectedSubscriberId,
     ]);
 
-  /*
-   * Products now come from the selected
-   * subscriber's Fulfillment Profile.
-   *
-   * That means Princess Twirl customers only
-   * see products configured for Princess Twirl.
-   */
   const productOptions =
     useMemo(() => {
       const products =
@@ -528,11 +529,6 @@ export default function QuickSubmitPage() {
         subscriberId,
       );
 
-      /*
-       * Clear previous product choices because
-       * a different Fulfillment Profile may have
-       * different eligible products.
-       */
       setMonthlySelections(
         (current) =>
           current.map(
@@ -576,9 +572,7 @@ export default function QuickSubmitPage() {
 
   const clearForm =
     () => {
-      setIntent(
-        "clear",
-      );
+      setIntent("clear");
 
       setMonthlySelections(
         (
@@ -612,25 +606,24 @@ export default function QuickSubmitPage() {
         ),
     ).length;
 
+  const eligibleProductCount =
+    selectedSubscriber
+      ?.fulfillmentProfile
+      ?.products.length ?? 0;
+
   return (
     <div
       style={{
-        background:
-          COLORS.pageBackground,
-
-        minHeight:
-          "100vh",
+        background: COLORS.page,
+        minHeight: "100vh",
       }}
     >
       <Page
         title="Quick Submit"
         subtitle="Manually record or adjust a customer's monthly selection when needed."
         backAction={{
-          content:
-            "Dashboard",
-
-          url:
-            "/app",
+          content: "Dashboard",
+          url: "/app",
         }}
       >
         <Form method="post">
@@ -674,7 +667,7 @@ export default function QuickSubmitPage() {
             ),
           )}
 
-          <BlockStack gap="500">
+          <BlockStack gap="600">
 
             {/* ==================================================
                 RESULT
@@ -684,7 +677,7 @@ export default function QuickSubmitPage() {
               <Banner
                 title={
                   actionData.success
-                    ? "Success"
+                    ? "Action completed"
                     : "Action needed"
                 }
                 tone={
@@ -707,158 +700,361 @@ export default function QuickSubmitPage() {
 
             <div
               style={{
-                background:
-                  `linear-gradient(
-                    135deg,
-                    ${COLORS.navy} 0%,
-                    ${COLORS.blue} 62%,
-                    ${COLORS.tealBlue} 100%
-                  )`,
+                position: "relative",
+                overflow: "hidden",
 
-                borderRadius:
-                  "18px",
+                border:
+                  `1px solid ${COLORS.border}`,
 
-                padding:
-                  "30px",
+                borderRadius: "20px",
+
+                minHeight: "220px",
+
+                background: `
+                  linear-gradient(
+                    108deg,
+                    #FCFBF7 0%,
+                    #F5F4EF 48%,
+                    #D9E1D7 74%,
+                    #A9BAAA 100%
+                  )
+                `,
 
                 boxShadow:
-                  "0 8px 26px rgba(23, 35, 62, 0.14)",
-
-                color:
-                  COLORS.white,
+                  "0 10px 28px rgba(32,34,31,0.06)",
               }}
             >
-              <InlineStack
-                align="space-between"
-                gap="400"
-                blockAlign="center"
-                wrap
+              {/* Soft sage glow */}
+              <div
+                style={{
+                  position: "absolute",
+
+                  width: "380px",
+                  height: "380px",
+
+                  borderRadius: "50%",
+
+                  background:
+                    "radial-gradient(circle, rgba(57,72,61,0.22) 0%, rgba(57,72,61,0.07) 45%, transparent 70%)",
+
+                  right: "-80px",
+                  top: "-175px",
+
+                  pointerEvents: "none",
+                }}
+              />
+
+              {/* Bottom curve */}
+              <div
+                style={{
+                  position: "absolute",
+
+                  width: "560px",
+                  height: "170px",
+
+                  borderRadius: "50%",
+
+                  background:
+                    "linear-gradient(135deg, rgba(57,72,61,0.94), rgba(104,122,108,0.74))",
+
+                  right: "-155px",
+                  bottom: "-125px",
+
+                  transform:
+                    "rotate(-5deg)",
+
+                  pointerEvents: "none",
+                }}
+              />
+
+              {/* Fine circles */}
+              <div
+                style={{
+                  position: "absolute",
+
+                  width: "240px",
+                  height: "240px",
+
+                  borderRadius: "50%",
+
+                  border:
+                    "1px solid rgba(255,255,255,0.28)",
+
+                  right: "38px",
+                  top: "-30px",
+
+                  pointerEvents: "none",
+                }}
+              />
+
+              <div
+                style={{
+                  position: "relative",
+                  zIndex: 2,
+
+                  padding:
+                    "36px 38px",
+                }}
               >
-                <div>
+                <InlineStack
+                  align="space-between"
+                  blockAlign="center"
+                  gap="600"
+                  wrap
+                >
                   <div
                     style={{
-                      fontSize:
-                        "12px",
-
-                      fontWeight:
-                        700,
-
-                      letterSpacing:
-                        "0.08em",
-
-                      textTransform:
-                        "uppercase",
-
-                      color:
-                        "#BFE8ED",
-
-                      marginBottom:
-                        "8px",
+                      maxWidth: "620px",
                     }}
                   >
-                    SubscriptionSync
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: 700,
+
+                        letterSpacing:
+                          "0.12em",
+
+                        textTransform:
+                          "uppercase",
+
+                        color:
+                          COLORS.sageDark,
+
+                        marginBottom:
+                          "14px",
+                      }}
+                    >
+                      Manual selection
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "30px",
+
+                        lineHeight: 1.12,
+
+                        fontWeight: 650,
+
+                        letterSpacing:
+                          "-0.035em",
+
+                        color:
+                          COLORS.text,
+
+                        marginBottom:
+                          "11px",
+                      }}
+                    >
+                      Personalization when
+                      <br />
+
+                      <span
+                        style={{
+                          color:
+                            COLORS.sageDark,
+                        }}
+                      >
+                        a customer needs help.
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        maxWidth: "560px",
+
+                        fontSize: "14px",
+
+                        lineHeight: 1.6,
+
+                        color:
+                          COLORS.textSoft,
+                      }}
+                    >
+                      Choose a subscriber, review
+                      their fulfillment rules, and
+                      record only the products
+                      eligible for their plan.
+                    </div>
                   </div>
+
+                  {/* Live selection summary */}
 
                   <div
                     style={{
-                      fontSize:
-                        "27px",
+                      minWidth: "225px",
 
-                      fontWeight:
-                        700,
+                      padding:
+                        "18px 20px",
 
-                      lineHeight:
-                        1.2,
+                      borderRadius: "16px",
 
-                      marginBottom:
-                        "8px",
+                      background:
+                        "rgba(255,255,255,0.76)",
+
+                      border:
+                        "1px solid rgba(255,255,255,0.72)",
+
+                      backdropFilter:
+                        "blur(8px)",
+
+                      boxShadow:
+                        "0 8px 24px rgba(32,34,31,0.07)",
                     }}
                   >
-                    Quick Submit
+                    <div
+                      style={{
+                        fontSize: "10px",
+
+                        fontWeight: 700,
+
+                        letterSpacing:
+                          "0.10em",
+
+                        textTransform:
+                          "uppercase",
+
+                        color:
+                          COLORS.sageDark,
+
+                        marginBottom:
+                          "9px",
+                      }}
+                    >
+                      Current entry
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "30px",
+
+                        lineHeight: 1,
+
+                        fontWeight: 650,
+
+                        letterSpacing:
+                          "-0.04em",
+
+                        color: COLORS.text,
+
+                        marginBottom:
+                          "8px",
+                      }}
+                    >
+                      {selectedCount}
+                    </div>
+
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        lineHeight: 1.45,
+                        color: COLORS.muted,
+                      }}
+                    >
+                      month
+                      {selectedCount === 1
+                        ? ""
+                        : "s"}{" "}
+                      selected
+                    </div>
+
+                    <div
+                      style={{
+                        height: "1px",
+                        background:
+                          "rgba(77,94,81,0.12)",
+                        margin:
+                          "13px 0",
+                      }}
+                    />
+
+                    <div
+                      style={{
+                        fontSize: "11px",
+                        color:
+                          COLORS.textSoft,
+                      }}
+                    >
+                      {eligibleProductCount}{" "}
+                      eligible product
+                      {eligibleProductCount === 1
+                        ? ""
+                        : "s"}
+                    </div>
                   </div>
+                </InlineStack>
+              </div>
 
-                  <div
-                    style={{
-                      fontSize:
-                        "14px",
+              {/* Sandbox badge */}
 
-                      lineHeight:
-                        1.5,
+              <div
+                style={{
+                  position: "absolute",
 
-                      color:
-                        "#E8EEF7",
+                  top: "15px",
+                  right: "15px",
 
-                      maxWidth:
-                        "690px",
-                    }}
-                  >
-                    Record a customer’s
-                    requested monthly
-                    selections using the
-                    products configured
-                    for their Fulfillment
-                    Profile.
-                  </div>
-                </div>
+                  background:
+                    "rgba(255,255,255,0.76)",
 
-                <div
+                  border:
+                    "1px solid rgba(77,94,81,0.16)",
+
+                  borderRadius: "999px",
+
+                  padding: "7px 11px",
+
+                  backdropFilter:
+                    "blur(7px)",
+                }}
+              >
+                <span
                   style={{
-                    background:
-                      "rgba(255,255,255,0.12)",
+                    fontSize: "11px",
 
-                    border:
-                      "1px solid rgba(255,255,255,0.20)",
+                    fontWeight: 650,
 
-                    borderRadius:
-                      "999px",
-
-                    padding:
-                      "9px 15px",
+                    color:
+                      COLORS.sageDark,
                   }}
                 >
-                  <span
-                    style={{
-                      fontSize:
-                        "13px",
-
-                      fontWeight:
-                        700,
-
-                      color:
-                        COLORS.white,
-                    }}
-                  >
-                    ● Sandbox Mode
-                  </span>
-                </div>
-              </InlineStack>
+                  ● Sandbox mode
+                </span>
+              </div>
             </div>
+
+            {/* ==================================================
+                CUSTOMER
+                ================================================== */}
 
             <Layout>
               <Layout.Section>
                 <BlockStack gap="500">
 
-                  {/* ==================================================
-                      CUSTOMER
-                      ================================================== */}
+                  <div
+                    style={{
+                      background:
+                        COLORS.white,
 
-                  <Card>
+                      border:
+                        `1px solid ${COLORS.border}`,
+
+                      borderRadius:
+                        "18px",
+
+                      padding:
+                        "24px",
+
+                      boxShadow:
+                        "0 2px 8px rgba(32,34,31,0.025)",
+                    }}
+                  >
                     <BlockStack gap="400">
-                      <BlockStack gap="100">
-                        <SectionHeading>
-                          Customer
-                        </SectionHeading>
-
-                        <Text
-                          as="p"
-                          tone="subdued"
-                        >
-                          Choose the
-                          subscriber whose
-                          selection you need
-                          to enter or adjust.
-                        </Text>
-                      </BlockStack>
+                      <SectionHeader
+                        eyebrow="Step 1"
+                        title="Choose customer"
+                        description="Select the subscriber whose monthly choices you need to enter or adjust."
+                      />
 
                       <Select
                         label="Subscriber"
@@ -872,9 +1068,7 @@ export default function QuickSubmitPage() {
                           {
                             label:
                               "Choose a subscriber",
-
-                            value:
-                              "",
+                            value: "",
                           },
 
                           ...subscribers.map(
@@ -895,16 +1089,16 @@ export default function QuickSubmitPage() {
                         <div
                           style={{
                             background:
-                              COLORS.softBlue,
+                              COLORS.sageSoft,
 
                             border:
-                              `1px solid ${COLORS.borderBlue}`,
+                              `1px solid ${COLORS.sageSoftStrong}`,
 
                             borderRadius:
-                              "12px",
+                              "14px",
 
                             padding:
-                              "18px",
+                              "20px",
                           }}
                         >
                           <InlineGrid
@@ -912,7 +1106,7 @@ export default function QuickSubmitPage() {
                               xs: 1,
                               md: 2,
                             }}
-                            gap="300"
+                            gap="400"
                           >
                             <InfoItem
                               label="Customer"
@@ -972,60 +1166,68 @@ export default function QuickSubmitPage() {
                                 selectedSubscriber
                                   .fulfillmentProfile
                                   ?.products
-                                  .length ??
-                                  0,
+                                  .length ?? 0,
                               )}
                             />
                           </InlineGrid>
                         </div>
                       ) : (
-                        <Text
-                          as="p"
-                          tone="subdued"
-                        >
-                          Choose a subscriber
-                          to begin.
-                        </Text>
+                        <EmptyPrompt>
+                          Choose a subscriber to begin.
+                        </EmptyPrompt>
                       )}
                     </BlockStack>
-                  </Card>
+                  </div>
 
                   {/* ==================================================
                       MONTHLY SELECTIONS
                       ================================================== */}
 
-                  <Card>
+                  <div
+                    style={{
+                      background:
+                        COLORS.white,
+
+                      border:
+                        `1px solid ${COLORS.border}`,
+
+                      borderRadius:
+                        "18px",
+
+                      padding:
+                        "24px",
+
+                      boxShadow:
+                        "0 2px 8px rgba(32,34,31,0.025)",
+                    }}
+                  >
                     <BlockStack gap="400">
+
                       <InlineStack
                         align="space-between"
                         blockAlign="center"
-                        gap="300"
+                        gap="400"
                         wrap
                       >
-                        <BlockStack gap="100">
-                          <SectionHeading>
-                            Monthly Selections
-                          </SectionHeading>
-
-                          <Text
-                            as="p"
-                            tone="subdued"
-                          >
-                            Only products
-                            eligible for the
-                            selected customer's
-                            Fulfillment Profile
-                            are available.
-                          </Text>
-                        </BlockStack>
+                        <SectionHeader
+                          eyebrow="Step 2"
+                          title="Monthly selections"
+                          description="Only products allowed by the selected customer's Fulfillment Profile are available."
+                        />
 
                         <div
                           style={{
                             background:
-                              COLORS.softBlueStrong,
+                              selectedCount > 0
+                                ? COLORS.sageSoft
+                                : COLORS.cream,
 
                             border:
-                              `1px solid ${COLORS.borderBlue}`,
+                              `1px solid ${
+                                selectedCount > 0
+                                  ? COLORS.sageSoftStrong
+                                  : COLORS.creamStrong
+                              }`,
 
                             borderRadius:
                               "999px",
@@ -1034,19 +1236,18 @@ export default function QuickSubmitPage() {
                               "7px 12px",
 
                             color:
-                              COLORS.numberBlue,
+                              selectedCount > 0
+                                ? COLORS.sageDark
+                                : COLORS.warmText,
 
-                            fontWeight:
-                              700,
+                            fontWeight: 700,
+                            fontSize: "12px",
 
-                            fontSize:
-                              "13px",
+                            whiteSpace:
+                              "nowrap",
                           }}
                         >
-                          {
-                            selectedCount
-                          }{" "}
-                          selected
+                          {selectedCount} selected
                         </div>
                       </InlineStack>
 
@@ -1058,11 +1259,9 @@ export default function QuickSubmitPage() {
                           tone="warning"
                         >
                           <p>
-                            This subscriber
-                            needs a Fulfillment
-                            Profile before
-                            products can be
-                            selected.
+                            This subscriber needs a
+                            Fulfillment Profile before
+                            products can be selected.
                           </p>
                         </Banner>
                       ) : null}
@@ -1070,23 +1269,20 @@ export default function QuickSubmitPage() {
                       {selectedSubscriber &&
                       selectedSubscriber
                         .fulfillmentProfile &&
-                      productOptions.length ===
-                        1 ? (
+                      productOptions.length === 1 ? (
                         <Banner
                           title="No eligible products"
                           tone="warning"
                         >
                           <p>
-                            Add eligible
-                            products and sizes
-                            to{" "}
+                            Add eligible products and
+                            sizes to{" "}
                             {
                               selectedSubscriber
                                 .fulfillmentProfile
                                 .name
                             }{" "}
-                            before using Quick
-                            Submit.
+                            before using Quick Submit.
                           </p>
                         </Banner>
                       ) : null}
@@ -1099,6 +1295,7 @@ export default function QuickSubmitPage() {
                         gap="400"
                       >
                         <MonthlySelectionCard
+                          title="January – June"
                           selections={
                             firstHalf
                           }
@@ -1118,6 +1315,7 @@ export default function QuickSubmitPage() {
                         />
 
                         <MonthlySelectionCard
+                          title="July – December"
                           selections={
                             secondHalf
                           }
@@ -1137,55 +1335,142 @@ export default function QuickSubmitPage() {
                         />
                       </InlineGrid>
                     </BlockStack>
-                  </Card>
+                  </div>
 
                   {/* ==================================================
-                      ACTIONS
+                      SAVE AREA
                       ================================================== */}
 
-                  <InlineStack
-                    align="end"
-                    gap="300"
-                  >
-                    <Button
-                      submit
-                      loading={
-                        isSubmitting &&
-                        intent ===
-                          "clear"
-                      }
-                      onClick={
-                        clearForm
-                      }
-                    >
-                      Clear Form
-                    </Button>
+                  <div
+                    style={{
+                      background:
+                        COLORS.sageDeep,
 
-                    <Button
-                      submit
-                      variant="primary"
-                      loading={
-                        isSubmitting &&
-                        intent ===
-                          "save"
-                      }
-                      disabled={
-                        !selectedSubscriberId ||
-                        selectedCount ===
-                          0
-                      }
-                      onClick={() =>
-                        setIntent(
-                          "save",
-                        )
-                      }
+                      borderRadius:
+                        "18px",
+
+                      padding:
+                        "22px 24px",
+
+                      boxShadow:
+                        "0 10px 24px rgba(39,51,42,0.10)",
+                    }}
+                  >
+                    <InlineStack
+                      align="space-between"
+                      blockAlign="center"
+                      gap="500"
+                      wrap
                     >
-                      Save Selections
-                    </Button>
-                  </InlineStack>
+                      <div>
+                        <div
+                          style={{
+                            fontSize:
+                              "10px",
+
+                            fontWeight:
+                              700,
+
+                            letterSpacing:
+                              "0.11em",
+
+                            textTransform:
+                              "uppercase",
+
+                            color:
+                              "rgba(255,255,255,0.62)",
+
+                            marginBottom:
+                              "6px",
+                          }}
+                        >
+                          Step 3
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize:
+                              "18px",
+
+                            fontWeight:
+                              650,
+
+                            color:
+                              "#FFFFFF",
+
+                            marginBottom:
+                              "4px",
+                          }}
+                        >
+                          Save customer selections
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize:
+                              "12px",
+
+                            color:
+                              "rgba(255,255,255,0.65)",
+                          }}
+                        >
+                          {selectedCount === 0
+                            ? "Choose at least one month before saving."
+                            : `${selectedCount} month${
+                                selectedCount === 1
+                                  ? ""
+                                  : "s"
+                              } ready to save.`}
+                        </div>
+                      </div>
+
+                      <InlineStack
+                        align="end"
+                        gap="300"
+                        wrap
+                      >
+                        <Button
+                          submit
+                          loading={
+                            isSubmitting &&
+                            intent ===
+                              "clear"
+                          }
+                          onClick={
+                            clearForm
+                          }
+                        >
+                          Clear form
+                        </Button>
+
+                        <Button
+                          submit
+                          variant="primary"
+                          loading={
+                            isSubmitting &&
+                            intent ===
+                              "save"
+                          }
+                          disabled={
+                            !selectedSubscriberId ||
+                            selectedCount === 0
+                          }
+                          onClick={() =>
+                            setIntent(
+                              "save",
+                            )
+                          }
+                        >
+                          Save selections
+                        </Button>
+                      </InlineStack>
+                    </InlineStack>
+                  </div>
                 </BlockStack>
               </Layout.Section>
             </Layout>
+
+            <div style={{ height: "20px" }} />
           </BlockStack>
         </Form>
       </Page>
@@ -1198,25 +1483,26 @@ export default function QuickSubmitPage() {
    ============================================================ */
 
 function MonthlySelectionCard({
+  title,
   selections,
   productOptions,
   onChange,
   disabled,
 }: {
+  title: string;
+
   selections:
     MonthlySelection[];
 
-  productOptions:
-    {
-      label: string;
-      value: string;
-    }[];
+  productOptions: {
+    label: string;
+    value: string;
+  }[];
 
-  onChange:
-    (
-      month: string,
-      product: string,
-    ) => void;
+  onChange: (
+    month: string,
+    product: string,
+  ) => void;
 
   disabled: boolean;
 }) {
@@ -1224,77 +1510,124 @@ function MonthlySelectionCard({
     <div
       style={{
         background:
-          COLORS.softBlue,
+          COLORS.page,
 
         border:
-          `1px solid ${COLORS.borderBlue}`,
+          `1px solid ${COLORS.border}`,
 
         borderRadius:
-          "14px",
+          "15px",
 
         padding:
           "18px",
       }}
     >
       <BlockStack gap="300">
+        <div
+          style={{
+            fontSize: "11px",
+            fontWeight: 700,
+
+            letterSpacing:
+              "0.08em",
+
+            textTransform:
+              "uppercase",
+
+            color:
+              COLORS.sageDark,
+
+            paddingBottom:
+              "2px",
+          }}
+        >
+          {title}
+        </div>
+
         {selections.map(
           (selection) => (
-            <InlineStack
+            <div
               key={
                 selection.month
               }
-              align="space-between"
-              gap="300"
-              blockAlign="center"
-              wrap={false}
-            >
-              <div
-                style={{
-                  width:
-                    "105px",
+              style={{
+                background:
+                  selection.product
+                    ? COLORS.sageSoft
+                    : COLORS.white,
 
-                  flexShrink:
-                    0,
-                }}
-              >
-                <Text
-                  as="p"
-                  fontWeight="medium"
-                >
-                  {
-                    selection.month
-                  }
-                </Text>
-              </div>
-
-              <div
-                style={{
-                  flex: 1,
-                }}
-              >
-                <Select
-                  label={`${selection.month} product`}
-                  labelHidden
-                  value={
+                border:
+                  `1px solid ${
                     selection.product
-                  }
-                  onChange={(
-                    value,
-                  ) =>
-                    onChange(
-                      selection.month,
+                      ? COLORS.sageSoftStrong
+                      : COLORS.border
+                  }`,
+
+                borderRadius:
+                  "12px",
+
+                padding:
+                  "10px 11px",
+
+                transition:
+                  "background 150ms ease, border-color 150ms ease",
+              }}
+            >
+              <InlineStack
+                align="space-between"
+                gap="300"
+                blockAlign="center"
+                wrap={false}
+              >
+                <div
+                  style={{
+                    width: "95px",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Text
+                    as="p"
+                    fontWeight="medium"
+                  >
+                    {
+                      selection.month
+                    }
+                  </Text>
+                </div>
+
+                <div
+                  style={{
+                    flex: 1,
+                  }}
+                >
+                  <Select
+                    label={`${selection.month} product`}
+                    labelHidden
+
+                    value={
+                      selection.product
+                    }
+
+                    onChange={(
                       value,
-                    )
-                  }
-                  options={
-                    productOptions
-                  }
-                  disabled={
-                    disabled
-                  }
-                />
-              </div>
-            </InlineStack>
+                    ) =>
+                      onChange(
+                        selection.month,
+                        value,
+                      )
+                    }
+
+                    options={
+                      productOptions
+                    }
+
+                    disabled={
+                      disabled
+                    }
+                  />
+                </div>
+              </InlineStack>
+            </div>
           ),
         )}
       </BlockStack>
@@ -1303,46 +1636,75 @@ function MonthlySelectionCard({
 }
 
 /* ============================================================
-   SECTION HEADING
+   SECTION HEADER
    ============================================================ */
 
-function SectionHeading({
-  children,
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
 }: {
-  children:
-    React.ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
 }) {
   return (
-    <InlineStack
-      gap="200"
-      blockAlign="center"
-    >
+    <div>
       <div
         style={{
-          width:
-            "4px",
+          fontSize: "10px",
 
-          height:
-            "22px",
+          fontWeight: 700,
 
-          borderRadius:
-            "999px",
+          letterSpacing:
+            "0.11em",
 
-          background:
-            COLORS.tealBlue,
+          textTransform:
+            "uppercase",
 
-          flexShrink:
-            0,
+          color:
+            COLORS.sage,
+
+          marginBottom:
+            "6px",
         }}
-      />
-
-      <Text
-        as="h2"
-        variant="headingLg"
       >
-        {children}
-      </Text>
-    </InlineStack>
+        {eyebrow}
+      </div>
+
+      <div
+        style={{
+          fontSize: "20px",
+
+          fontWeight: 650,
+
+          letterSpacing:
+            "-0.015em",
+
+          color:
+            COLORS.text,
+
+          marginBottom:
+            "5px",
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize: "13px",
+          lineHeight: 1.5,
+
+          color:
+            COLORS.muted,
+
+          maxWidth: "680px",
+        }}
+      >
+        {description}
+      </div>
+    </div>
   );
 }
 
@@ -1358,23 +1720,80 @@ function InfoItem({
   value: string;
 }) {
   return (
-    <BlockStack gap="050">
-      <Text
-        as="p"
-        variant="bodySm"
-        tone="subdued"
+    <div>
+      <div
+        style={{
+          fontSize: "10px",
+
+          fontWeight: 700,
+
+          letterSpacing:
+            "0.07em",
+
+          textTransform:
+            "uppercase",
+
+          color:
+            COLORS.muted,
+
+          marginBottom:
+            "5px",
+        }}
       >
         {label}
-      </Text>
+      </div>
 
-      <Text
-        as="p"
-        variant="bodyMd"
-        fontWeight="medium"
+      <div
+        style={{
+          fontSize: "13px",
+
+          fontWeight: 600,
+
+          lineHeight: 1.4,
+
+          color:
+            COLORS.text,
+        }}
       >
         {value}
-      </Text>
-    </BlockStack>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   EMPTY PROMPT
+   ============================================================ */
+
+function EmptyPrompt({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        background:
+          COLORS.cream,
+
+        border:
+          `1px solid ${COLORS.creamStrong}`,
+
+        borderRadius:
+          "13px",
+
+        padding:
+          "18px",
+
+        color:
+          COLORS.warmText,
+
+        fontSize:
+          "13px",
+      }}
+    >
+      {children}
+    </div>
   );
 }
 

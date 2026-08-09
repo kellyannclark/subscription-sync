@@ -17,39 +17,48 @@ import {
   Badge,
   BlockStack,
   Button,
-  Card,
   InlineStack,
   Page,
-  Text,
 } from "@shopify/polaris";
 
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
 /* ============================================================
-   SUBSCRIPTIONSYNC BRAND COLORS
+   SUBSCRIPTIONSYNC DESIGN SYSTEM
    ============================================================ */
 
 const COLORS = {
-  navy: "#17233E",
-  blue: "#294A78",
-  tealBlue: "#2F7C89",
-
-  pageBackground: "#F5F7FB",
-
+  // Main surfaces
+  page: "#F7F7F4",
   white: "#FFFFFF",
 
-  softBlue: "#F4F8FC",
-  softBlueStrong: "#EAF1F8",
+  // Typography
+  text: "#20221F",
+  textSoft: "#52574F",
+  muted: "#787D75",
 
-  border: "#D9E2EC",
-  borderBlue: "#C6D5E5",
+  // Sage
+  sage: "#687A6C",
+  sageDark: "#4D5E51",
+  sageDeep: "#39483D",
+  sageSoft: "#EEF1ED",
+  sageSoftStrong: "#E4EAE3",
 
-  text: "#1F2937",
-  muted: "#667085",
+  // Warm neutral
+  cream: "#F5F1E8",
+  creamStrong: "#E9E1D3",
+  warmText: "#705F42",
 
-  numberBlue: "#244B78",
-  accentBlue: "#356A9A",
+  // Borders
+  border: "#E4E5DF",
+  borderStrong: "#D6D8D2",
+
+  // Status surfaces
+  attentionSoft: "#F7F0E2",
+  attentionBorder: "#E9D6AE",
+  successSoft: "#EDF3ED",
+  successBorder: "#CDDCCF",
 };
 
 /* ============================================================
@@ -232,7 +241,7 @@ export default function FulfillmentProfileListPage() {
     <div
       style={{
         background:
-          COLORS.pageBackground,
+          COLORS.page,
 
         minHeight:
           "100vh",
@@ -240,7 +249,7 @@ export default function FulfillmentProfileListPage() {
     >
       <Page
         title="Fulfillment Profiles"
-        subtitle="Configure the operational rules behind each Little Adventures subscription program."
+        subtitle="Configure the rules that connect subscription plans to personalized fulfillment."
         backAction={{
           content:
             "Dashboard",
@@ -256,7 +265,7 @@ export default function FulfillmentProfileListPage() {
             "/app/tiers/new",
         }}
       >
-        <BlockStack gap="500">
+        <BlockStack gap="600">
 
           {/* ==================================================
               HERO
@@ -264,154 +273,406 @@ export default function FulfillmentProfileListPage() {
 
           <div
             style={{
-              background:
-                `linear-gradient(
-                  135deg,
-                  ${COLORS.navy} 0%,
-                  ${COLORS.blue} 62%,
-                  ${COLORS.tealBlue} 100%
-                )`,
+              position:
+                "relative",
+
+              overflow:
+                "hidden",
+
+              border:
+                `1px solid ${COLORS.border}`,
 
               borderRadius:
-                "18px",
+                "20px",
 
-              padding:
-                "30px",
+              minHeight:
+                "225px",
+
+              background: `
+                linear-gradient(
+                  108deg,
+                  #FCFBF7 0%,
+                  #F5F4EF 48%,
+                  #D8E0D6 74%,
+                  #A8B9A9 100%
+                )
+              `,
 
               boxShadow:
-                "0 8px 26px rgba(23, 35, 62, 0.14)",
-
-              color:
-                COLORS.white,
+                "0 10px 28px rgba(32,34,31,0.06)",
             }}
           >
-            <InlineStack
-              align="space-between"
-              blockAlign="center"
-              gap="400"
-              wrap
+            <div
+              style={{
+                position:
+                  "absolute",
+
+                width:
+                  "390px",
+
+                height:
+                  "390px",
+
+                borderRadius:
+                  "50%",
+
+                background:
+                  "radial-gradient(circle, rgba(57,72,61,0.22) 0%, rgba(57,72,61,0.07) 45%, transparent 70%)",
+
+                right:
+                  "-85px",
+
+                top:
+                  "-180px",
+
+                pointerEvents:
+                  "none",
+              }}
+            />
+
+            <div
+              style={{
+                position:
+                  "absolute",
+
+                width:
+                  "560px",
+
+                height:
+                  "170px",
+
+                borderRadius:
+                  "50%",
+
+                background:
+                  "linear-gradient(135deg, rgba(57,72,61,0.94), rgba(104,122,108,0.74))",
+
+                right:
+                  "-160px",
+
+                bottom:
+                  "-125px",
+
+                transform:
+                  "rotate(-5deg)",
+
+                pointerEvents:
+                  "none",
+              }}
+            />
+
+            <div
+              style={{
+                position:
+                  "absolute",
+
+                width:
+                  "245px",
+
+                height:
+                  "245px",
+
+                borderRadius:
+                  "50%",
+
+                border:
+                  "1px solid rgba(255,255,255,0.28)",
+
+                right:
+                  "38px",
+
+                top:
+                  "-28px",
+
+                pointerEvents:
+                  "none",
+              }}
+            />
+
+            <div
+              style={{
+                position:
+                  "relative",
+
+                zIndex:
+                  2,
+
+                padding:
+                  "36px 38px",
+              }}
             >
-              <div>
+              <InlineStack
+                align="space-between"
+                blockAlign="center"
+                gap="600"
+                wrap
+              >
                 <div
                   style={{
-                    fontSize:
-                      "12px",
-
-                    fontWeight:
-                      700,
-
-                    letterSpacing:
-                      "0.08em",
-
-                    textTransform:
-                      "uppercase",
-
-                    color:
-                      "#BFE8ED",
-
-                    marginBottom:
-                      "8px",
-                  }}
-                >
-                  SubscriptionSync
-                </div>
-
-                <div
-                  style={{
-                    fontSize:
-                      "28px",
-
-                    fontWeight:
-                      700,
-
-                    lineHeight:
-                      1.2,
-
-                    marginBottom:
-                      "8px",
-                  }}
-                >
-                  Fulfillment Profiles
-                </div>
-
-                <div
-                  style={{
-                    fontSize:
-                      "14px",
-
-                    lineHeight:
-                      1.55,
-
-                    color:
-                      "#E8EEF7",
-
                     maxWidth:
-                      "720px",
+                      "650px",
                   }}
                 >
-                  Connect Appstle
-                  subscription plans to
-                  products, sizes,
-                  reminders, inventory
-                  rules, and fulfillment
-                  workflows.
+                  <div
+                    style={{
+                      fontSize:
+                        "11px",
+
+                      fontWeight:
+                        700,
+
+                      letterSpacing:
+                        "0.12em",
+
+                      textTransform:
+                        "uppercase",
+
+                      color:
+                        COLORS.sageDark,
+
+                      marginBottom:
+                        "14px",
+                    }}
+                  >
+                    Fulfillment logic
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize:
+                        "30px",
+
+                      lineHeight:
+                        1.12,
+
+                      fontWeight:
+                        650,
+
+                      letterSpacing:
+                        "-0.035em",
+
+                      color:
+                        COLORS.text,
+
+                      marginBottom:
+                        "11px",
+                    }}
+                  >
+                    Turn subscription plans
+                    <br />
+
+                    <span
+                      style={{
+                        color:
+                          COLORS.sageDark,
+                      }}
+                    >
+                      into personalized fulfillment.
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      maxWidth:
+                        "580px",
+
+                      fontSize:
+                        "14px",
+
+                      lineHeight:
+                        1.6,
+
+                      color:
+                        COLORS.textSoft,
+                    }}
+                  >
+                    Each profile connects a
+                    subscription program to its
+                    eligible products, sizes,
+                    reminders, inventory rules,
+                    and customer workflow.
+                  </div>
                 </div>
-              </div>
 
-              <div
+                <div
+                  style={{
+                    minWidth:
+                      "225px",
+
+                    padding:
+                      "18px 20px",
+
+                    borderRadius:
+                      "16px",
+
+                    background:
+                      "rgba(255,255,255,0.76)",
+
+                    border:
+                      "1px solid rgba(255,255,255,0.72)",
+
+                    backdropFilter:
+                      "blur(8px)",
+
+                    boxShadow:
+                      "0 8px 24px rgba(32,34,31,0.07)",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize:
+                        "10px",
+
+                      fontWeight:
+                        700,
+
+                      letterSpacing:
+                        "0.10em",
+
+                      textTransform:
+                        "uppercase",
+
+                      color:
+                        COLORS.sageDark,
+
+                      marginBottom:
+                        "9px",
+                    }}
+                  >
+                    Active profiles
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize:
+                        "30px",
+
+                      lineHeight:
+                        1,
+
+                      fontWeight:
+                        650,
+
+                      letterSpacing:
+                        "-0.04em",
+
+                      color:
+                        COLORS.text,
+
+                      marginBottom:
+                        "8px",
+                    }}
+                  >
+                    {
+                      activeProfiles
+                    }
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize:
+                        "12px",
+
+                      lineHeight:
+                        1.45,
+
+                      color:
+                        COLORS.muted,
+                    }}
+                  >
+                    of {profiles.length} profile
+                    {profiles.length === 1
+                      ? ""
+                      : "s"}{" "}
+                    active
+                  </div>
+
+                  <div
+                    style={{
+                      height:
+                        "1px",
+
+                      background:
+                        "rgba(77,94,81,0.12)",
+
+                      margin:
+                        "13px 0",
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      fontSize:
+                        "11px",
+
+                      color:
+                        COLORS.textSoft,
+                    }}
+                  >
+                    {totalSubscribers} subscriber
+                    {totalSubscribers === 1
+                      ? ""
+                      : "s"}{" "}
+                    assigned
+                  </div>
+                </div>
+              </InlineStack>
+            </div>
+
+            <div
+              style={{
+                position:
+                  "absolute",
+
+                top:
+                  "15px",
+
+                right:
+                  "15px",
+
+                background:
+                  "rgba(255,255,255,0.76)",
+
+                border:
+                  "1px solid rgba(77,94,81,0.16)",
+
+                borderRadius:
+                  "999px",
+
+                padding:
+                  "7px 11px",
+
+                backdropFilter:
+                  "blur(7px)",
+              }}
+            >
+              <span
                 style={{
-                  background:
-                    "rgba(255,255,255,0.12)",
+                  fontSize:
+                    "11px",
 
-                  border:
-                    "1px solid rgba(255,255,255,0.20)",
+                  fontWeight:
+                    650,
 
-                  borderRadius:
-                    "999px",
-
-                  padding:
-                    "9px 15px",
+                  color:
+                    COLORS.sageDark,
                 }}
               >
-                <span
-                  style={{
-                    color:
-                      COLORS.white,
-
-                    fontSize:
-                      "13px",
-
-                    fontWeight:
-                      700,
-                  }}
-                >
-                  ● Development Sandbox
-                </span>
-              </div>
-            </InlineStack>
+                ● Development sandbox
+              </span>
+            </div>
           </div>
 
           {/* ==================================================
               SNAPSHOT
               ================================================== */}
 
-          <BlockStack gap="300">
-            <BlockStack gap="100">
-              <SectionHeading>
-                Profile Snapshot
-              </SectionHeading>
-
-              <Text
-                as="p"
-                variant="bodyMd"
-                tone="subdued"
-              >
-                A quick look at the
-                fulfillment setup
-                currently configured in
-                SubscriptionSync.
-              </Text>
-            </BlockStack>
+          <div>
+            <SectionHeader
+              eyebrow="Overview"
+              title="Profile snapshot"
+              description="A quick look at the fulfillment structure currently configured in SubscriptionSync."
+            />
 
             <div
               style={{
@@ -422,14 +683,18 @@ export default function FulfillmentProfileListPage() {
                   "repeat(auto-fit, minmax(180px, 1fr))",
 
                 gap:
+                  "12px",
+
+                marginTop:
                   "16px",
               }}
             >
               <MetricCard
-                label="Active Profiles"
+                label="Active profiles"
                 value={
                   activeProfiles
                 }
+                tone="success"
               />
 
               <MetricCard
@@ -440,7 +705,7 @@ export default function FulfillmentProfileListPage() {
               />
 
               <MetricCard
-                label="Eligible Products"
+                label="Eligible products"
                 value={
                   totalProducts
                 }
@@ -453,65 +718,128 @@ export default function FulfillmentProfileListPage() {
                 }
               />
             </div>
-          </BlockStack>
+          </div>
 
           {/* ==================================================
               PROFILE SECTION
               ================================================== */}
 
-          <BlockStack gap="300">
-            <BlockStack gap="100">
-              <SectionHeading>
-                Subscription Programs
-              </SectionHeading>
+          <div>
+            <InlineStack
+              align="space-between"
+              blockAlign="end"
+              gap="400"
+              wrap
+            >
+              <SectionHeader
+                eyebrow="Programs"
+                title="Subscription programs"
+                description="Each profile defines how a subscription moves from customer choice through fulfillment."
+              />
 
-              <Text
-                as="p"
-                variant="bodyMd"
-                tone="subdued"
-              >
-                Each profile defines
-                how a subscription plan
-                moves from customer
-                selection through
-                fulfillment.
-              </Text>
-            </BlockStack>
-
-            {profiles.length === 0 ? (
-              <Card>
+              {profiles.length > 0 ? (
                 <div
                   style={{
+                    background:
+                      COLORS.sageSoft,
+
+                    border:
+                      `1px solid ${COLORS.sageSoftStrong}`,
+
+                    borderRadius:
+                      "999px",
+
                     padding:
-                      "28px 8px",
+                      "7px 12px",
+
+                    color:
+                      COLORS.sageDark,
+
+                    fontSize:
+                      "12px",
+
+                    fontWeight:
+                      700,
+
+                    whiteSpace:
+                      "nowrap",
+                  }}
+                >
+                  {profiles.length} profile
+                  {profiles.length === 1
+                    ? ""
+                    : "s"}
+                </div>
+              ) : null}
+            </InlineStack>
+
+            <div
+              style={{
+                marginTop:
+                  "16px",
+              }}
+            >
+              {profiles.length === 0 ? (
+                <div
+                  style={{
+                    background:
+                      COLORS.white,
+
+                    border:
+                      `1px solid ${COLORS.border}`,
+
+                    borderRadius:
+                      "18px",
+
+                    padding:
+                      "34px 24px",
 
                     textAlign:
                       "center",
+
+                    boxShadow:
+                      "0 2px 8px rgba(32,34,31,0.025)",
                   }}
                 >
-                  <BlockStack gap="200">
-                    <Text
-                      as="p"
-                      variant="headingMd"
-                    >
-                      No fulfillment
-                      profiles yet
-                    </Text>
+                  <BlockStack gap="300">
+                    <div
+                      style={{
+                        fontSize:
+                          "17px",
 
-                    <Text
-                      as="p"
-                      variant="bodyMd"
-                      tone="subdued"
+                        fontWeight:
+                          650,
+
+                        color:
+                          COLORS.text,
+                      }}
                     >
-                      Create a profile
-                      to connect an
-                      Appstle plan with
-                      its products,
-                      sizes, selection
-                      rules, and
-                      fulfillment
-                      workflow.
-                    </Text>
+                      No fulfillment profiles yet
+                    </div>
+
+                    <div
+                      style={{
+                        maxWidth:
+                          "520px",
+
+                        margin:
+                          "0 auto",
+
+                        fontSize:
+                          "13px",
+
+                        lineHeight:
+                          1.55,
+
+                        color:
+                          COLORS.muted,
+                      }}
+                    >
+                      Create a profile to connect a
+                      subscription plan with its
+                      products, sizes, selection rules,
+                      and fulfillment workflow.
+                    </div>
 
                     <InlineStack
                       align="center"
@@ -520,65 +848,65 @@ export default function FulfillmentProfileListPage() {
                         variant="primary"
                         url="/app/tiers/new"
                       >
-                        Create First
-                        Profile
+                        Create First Profile
                       </Button>
                     </InlineStack>
                   </BlockStack>
                 </div>
-              </Card>
-            ) : (
-              <div
-                style={{
-                  display:
-                    "grid",
+              ) : (
+                <div
+                  style={{
+                    display:
+                      "grid",
 
-                  gridTemplateColumns:
-                    "repeat(auto-fit, minmax(320px, 1fr))",
+                    gridTemplateColumns:
+                      "repeat(auto-fit, minmax(320px, 1fr))",
 
-                  gap:
-                    "18px",
-                }}
-              >
-                {profiles.map(
-                  (profile) => {
-                    const variantCount =
-                      profile.products.reduce(
-                        (
-                          total,
-                          product,
-                        ) =>
-                          total +
-                          product.variants.length,
+                    gap:
+                      "16px",
+                  }}
+                >
+                  {profiles.map(
+                    (profile) => {
+                      const variantCount =
+                        profile.products.reduce(
+                          (
+                            total,
+                            product,
+                          ) =>
+                            total +
+                            product.variants.length,
 
-                        0,
+                          0,
+                        );
+
+                      return (
+                        <ProfileCard
+                          key={
+                            profile.id
+                          }
+                          profile={
+                            profile
+                          }
+                          variantCount={
+                            variantCount
+                          }
+                          onToggle={() =>
+                            handleToggleProfile(
+                              profile.id,
+                              profile.isActive,
+                            )
+                          }
+                        />
                       );
+                    },
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
-                    return (
-                      <ProfileCard
-                        key={
-                          profile.id
-                        }
-                        profile={
-                          profile
-                        }
-                        variantCount={
-                          variantCount
-                        }
-                        onToggle={() =>
-                          handleToggleProfile(
-                            profile.id,
-                            profile.isActive,
-                          )
-                        }
-                      />
-                    );
-                  },
-                )}
-              </div>
-            )}
-          </BlockStack>
-
+          <div style={{ height: "20px" }} />
         </BlockStack>
       </Page>
     </div>
@@ -635,16 +963,20 @@ function ProfileCard({
           COLORS.white,
 
         border:
-          `1px solid ${COLORS.border}`,
+          `1px solid ${
+            profile.isActive
+              ? COLORS.border
+              : COLORS.creamStrong
+          }`,
 
         borderRadius:
-          "16px",
+          "18px",
 
         overflow:
           "hidden",
 
         boxShadow:
-          "0 3px 12px rgba(23,35,62,0.05)",
+          "0 3px 14px rgba(32,34,31,0.045)",
       }}
     >
       {/* PROFILE TOP */}
@@ -652,49 +984,73 @@ function ProfileCard({
       <div
         style={{
           background:
-            COLORS.softBlue,
+            profile.isActive
+              ? COLORS.sageSoft
+              : COLORS.cream,
 
           borderBottom:
-            `1px solid ${COLORS.borderBlue}`,
+            `1px solid ${
+              profile.isActive
+                ? COLORS.sageSoftStrong
+                : COLORS.creamStrong
+            }`,
 
           padding:
             "20px",
         }}
       >
-        <BlockStack gap="200">
-
+        <BlockStack gap="300">
           <InlineStack
             align="space-between"
             blockAlign="start"
             gap="300"
             wrap
           >
-            <div>
-              <Text
-                as="h2"
-                variant="headingLg"
+            <div
+              style={{
+                maxWidth:
+                  "78%",
+              }}
+            >
+              <div
+                style={{
+                  fontSize:
+                    "18px",
+
+                  fontWeight:
+                    650,
+
+                  letterSpacing:
+                    "-0.015em",
+
+                  color:
+                    COLORS.text,
+
+                  marginBottom:
+                    "5px",
+                }}
               >
                 {
                   profile.name
                 }
-              </Text>
+              </div>
 
               {profile.description && (
                 <div
                   style={{
-                    marginTop:
-                      "4px",
+                    fontSize:
+                      "12px",
+
+                    lineHeight:
+                      1.5,
+
+                    color:
+                      COLORS.muted,
                   }}
                 >
-                  <Text
-                    as="p"
-                    variant="bodySm"
-                    tone="subdued"
-                  >
-                    {
-                      profile.description
-                    }
-                  </Text>
+                  {
+                    profile.description
+                  }
                 </div>
               )}
             </div>
@@ -710,33 +1066,61 @@ function ProfileCard({
             )}
           </InlineStack>
 
-          <div>
-            <Text
-              as="p"
-              variant="bodySm"
-              tone="subdued"
-            >
-              Connected Subscription
-              Plan
-            </Text>
+          <div
+            style={{
+              background:
+                "rgba(255,255,255,0.68)",
 
+              border:
+                "1px solid rgba(77,94,81,0.10)",
+
+              borderRadius:
+                "12px",
+
+              padding:
+                "11px 12px",
+            }}
+          >
             <div
               style={{
-                marginTop:
+                fontSize:
+                  "9px",
+
+                fontWeight:
+                  700,
+
+                letterSpacing:
+                  "0.08em",
+
+                textTransform:
+                  "uppercase",
+
+                color:
+                  COLORS.muted,
+
+                marginBottom:
                   "4px",
               }}
             >
-              <Text
-                as="p"
-                variant="bodyMd"
-                fontWeight="semibold"
-              >
-                {profile.appstlePlanName ??
-                  "Not connected"}
-              </Text>
+              Connected subscription plan
+            </div>
+
+            <div
+              style={{
+                fontSize:
+                  "13px",
+
+                fontWeight:
+                  650,
+
+                color:
+                  COLORS.text,
+              }}
+            >
+              {profile.appstlePlanName ??
+                "Not connected"}
             </div>
           </div>
-
         </BlockStack>
       </div>
 
@@ -749,8 +1133,6 @@ function ProfileCard({
         }}
       >
         <BlockStack gap="400">
-
-          {/* STATS */}
 
           <div
             style={{
@@ -790,35 +1172,51 @@ function ProfileCard({
             />
           </div>
 
-          {/* UPDATED */}
+          <div
+            style={{
+              height:
+                "1px",
+
+              background:
+                COLORS.border,
+            }}
+          />
 
           <InlineStack
             align="space-between"
             gap="200"
           >
-            <Text
-              as="span"
-              variant="bodySm"
-              tone="subdued"
+            <div
+              style={{
+                fontSize:
+                  "11px",
+
+                color:
+                  COLORS.muted,
+              }}
             >
               Last updated
-            </Text>
+            </div>
 
-            <Text
-              as="span"
-              variant="bodySm"
-              fontWeight="medium"
+            <div
+              style={{
+                fontSize:
+                  "12px",
+
+                fontWeight:
+                  600,
+
+                color:
+                  COLORS.text,
+              }}
             >
               {formatDate(
                 profile.updatedAt,
               )}
-            </Text>
+            </div>
           </InlineStack>
 
-          {/* MAIN ACTIONS */}
-
           <BlockStack gap="200">
-
             <Button
               variant="primary"
               fullWidth
@@ -840,10 +1238,7 @@ function ProfileCard({
             >
               Preview Customer Form
             </Button>
-
           </BlockStack>
-
-          {/* SECONDARY ACTION */}
 
           <InlineStack
             align="end"
@@ -864,7 +1259,6 @@ function ProfileCard({
                 : "Restore Profile"}
             </Button>
           </InlineStack>
-
         </BlockStack>
       </div>
     </div>
@@ -872,46 +1266,83 @@ function ProfileCard({
 }
 
 /* ============================================================
-   SECTION HEADING
+   SECTION HEADER
    ============================================================ */
 
-function SectionHeading({
-  children,
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
 }: {
-  children:
-    React.ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
 }) {
   return (
-    <InlineStack
-      gap="200"
-      blockAlign="center"
-    >
+    <div>
       <div
         style={{
-          width:
-            "4px",
+          fontSize:
+            "10px",
 
-          height:
-            "22px",
+          fontWeight:
+            700,
 
-          borderRadius:
-            "999px",
+          letterSpacing:
+            "0.11em",
 
-          background:
-            COLORS.tealBlue,
+          textTransform:
+            "uppercase",
 
-          flexShrink:
-            0,
+          color:
+            COLORS.sage,
+
+          marginBottom:
+            "6px",
         }}
-      />
-
-      <Text
-        as="h2"
-        variant="headingLg"
       >
-        {children}
-      </Text>
-    </InlineStack>
+        {eyebrow}
+      </div>
+
+      <div
+        style={{
+          fontSize:
+            "20px",
+
+          fontWeight:
+            650,
+
+          letterSpacing:
+            "-0.015em",
+
+          color:
+            COLORS.text,
+
+          marginBottom:
+            "5px",
+        }}
+      >
+        {title}
+      </div>
+
+      <div
+        style={{
+          fontSize:
+            "13px",
+
+          lineHeight:
+            1.5,
+
+          color:
+            COLORS.muted,
+
+          maxWidth:
+            "700px",
+        }}
+      >
+        {description}
+      </div>
+    </div>
   );
 }
 
@@ -922,59 +1353,104 @@ function SectionHeading({
 function MetricCard({
   label,
   value,
+  tone =
+    "neutral",
 }: {
   label: string;
   value: number;
+  tone?:
+    | "neutral"
+    | "success";
 }) {
+  const palette =
+    tone === "success"
+      ? {
+          background:
+            COLORS.successSoft,
+
+          border:
+            COLORS.successBorder,
+
+          label:
+            COLORS.sageDark,
+        }
+      : {
+          background:
+            COLORS.white,
+
+          border:
+            COLORS.border,
+
+          label:
+            COLORS.muted,
+        };
+
   return (
     <div
       style={{
         background:
-          COLORS.softBlue,
+          palette.background,
 
         border:
-          `1px solid ${COLORS.borderBlue}`,
+          `1px solid ${palette.border}`,
 
         borderRadius:
-          "14px",
+          "15px",
 
         padding:
-          "18px",
+          "18px 19px",
 
         minHeight:
-          "100px",
+          "108px",
 
         boxShadow:
-          "0 2px 8px rgba(41,74,120,0.04)",
+          "0 1px 2px rgba(32,34,31,0.02)",
       }}
     >
-      <BlockStack gap="150">
-        <Text
-          as="p"
-          variant="bodySm"
-          tone="subdued"
-        >
-          {label}
-        </Text>
+      <div
+        style={{
+          fontSize:
+            "10px",
 
-        <div
-          style={{
-            fontSize:
-              "28px",
+          fontWeight:
+            700,
 
-            lineHeight:
-              1,
+          letterSpacing:
+            "0.07em",
 
-            fontWeight:
-              750,
+          textTransform:
+            "uppercase",
 
-            color:
-              COLORS.numberBlue,
-          }}
-        >
-          {value}
-        </div>
-      </BlockStack>
+          color:
+            palette.label,
+
+          marginBottom:
+            "13px",
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          fontSize:
+            "30px",
+
+          lineHeight:
+            1,
+
+          fontWeight:
+            650,
+
+          letterSpacing:
+            "-0.04em",
+
+          color:
+            COLORS.text,
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
@@ -994,13 +1470,13 @@ function MiniMetric({
     <div
       style={{
         background:
-          COLORS.softBlue,
+          COLORS.page,
 
         border:
-          `1px solid ${COLORS.borderBlue}`,
+          `1px solid ${COLORS.border}`,
 
         borderRadius:
-          "10px",
+          "11px",
 
         padding:
           "12px",
@@ -1009,16 +1485,22 @@ function MiniMetric({
       <div
         style={{
           fontSize:
-            "11px",
+            "9px",
+
+          letterSpacing:
+            "0.05em",
+
+          textTransform:
+            "uppercase",
 
           color:
             COLORS.muted,
 
           marginBottom:
-            "4px",
+            "5px",
 
           fontWeight:
-            600,
+            700,
         }}
       >
         {label}
@@ -1030,10 +1512,13 @@ function MiniMetric({
             "20px",
 
           fontWeight:
-            750,
+            650,
+
+          letterSpacing:
+            "-0.03em",
 
           color:
-            COLORS.numberBlue,
+            COLORS.text,
         }}
       >
         {value}
