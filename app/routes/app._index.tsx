@@ -31,37 +31,7 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
-/* ============================================================
-   SUBSCRIPTIONSYNC DESIGN SYSTEM
-   ============================================================ */
-
-const COLORS = {
-  // Main surfaces
-  page: "#F7F7F4",
-  white: "#FFFFFF",
-
-  // Typography
-  text: "#20221F",
-  textSoft: "#52574F",
-  muted: "#787D75",
-
-  // Sage brand accent
-  sage: "#687A6C",
-  sageDark: "#4D5E51",
-  sageSoft: "#EEF1ED",
-  sageSoftStrong: "#E4EAE3",
-
-  // Neutral borders
-  border: "#E4E5DF",
-  borderStrong: "#D7DAD2",
-
-  // Status colors
-  warm: "#F6F1E8",
-  warmText: "#755F38",
-
-  dangerSoft: "#F9EEEE",
-  dangerText: "#8B4242",
-};
+import { COLORS } from "../styles/theme";
 
 /* ============================================================
    LOADER
@@ -76,6 +46,7 @@ export const loader = async ({
     activeSubscribers,
     pendingSelections,
     pendingShipments,
+    actionNeeded,
     activeFulfillmentProfiles,
     recentActivity,
   ] = await Promise.all([
@@ -85,15 +56,22 @@ export const loader = async ({
       },
     }),
 
-    db.selection.count({
+    db.subscriber.count({
       where: {
-        status: "Pending",
+        subscriptionStatus: "Active",
+        workflowStatus: "Waiting for Selection",
       },
     }),
 
     db.shipment.count({
       where: {
         status: "Pending",
+      },
+    }),
+
+    db.subscriber.count({
+      where: {
+        workflowStatus: "Needs Review",
       },
     }),
 
@@ -115,6 +93,7 @@ export const loader = async ({
     activeSubscribers,
     pendingSelections,
     pendingShipments,
+    actionNeeded,
     activeFulfillmentProfiles,
     recentActivity,
   });
@@ -205,12 +184,10 @@ export default function Dashboard() {
     activeSubscribers,
     pendingSelections,
     pendingShipments,
+    actionNeeded,
     activeFulfillmentProfiles,
     recentActivity,
   } = useLoaderData<typeof loader>();
-
-  const totalNeedsAttention =
-    pendingSelections + pendingShipments;
 
   return (
     <div
@@ -231,272 +208,80 @@ export default function Dashboard() {
             style={{
               position: "relative",
               overflow: "hidden",
-              borderRadius: "22px",
+              borderRadius: "18px",
               border: `1px solid ${COLORS.border}`,
-              minHeight: "290px",
+              minHeight: "100px",
               background: `
                 linear-gradient(
                   105deg,
                   #FCFBF7 0%,
-                  #F7F6F1 48%,
-                  #DCE4DA 72%,
-                  #AEBEAF 100%
+                  #F7F6F1 58%,
+                  ${COLORS.primarySoftStrong} 100%
                 )
               `,
-              boxShadow: `
-                0 1px 2px rgba(32, 34, 31, 0.03),
-                0 16px 36px rgba(32, 34, 31, 0.07)
-              `,
+              boxShadow:
+                "0 1px 2px rgba(32,34,31,0.03), 0 10px 24px rgba(32,34,31,0.05)",
             }}
           >
-            {/* Large soft sage glow */}
             <div
               style={{
                 position: "absolute",
-                width: "430px",
-                height: "430px",
+                width: "260px",
+                height: "260px",
                 borderRadius: "50%",
                 background:
-                  "radial-gradient(circle, rgba(77,94,81,0.22) 0%, rgba(77,94,81,0.08) 42%, transparent 70%)",
+                  "radial-gradient(circle, rgba(67,86,109,0.16) 0%, rgba(67,86,109,0.05) 45%, transparent 72%)",
                 top: "-150px",
-                right: "-80px",
+                right: "-50px",
                 pointerEvents: "none",
               }}
             />
 
-            {/* Large curved shape bottom left */}
-            <div
-              style={{
-                position: "absolute",
-                width: "620px",
-                height: "250px",
-                borderRadius: "50%",
-                background:
-                  "linear-gradient(135deg, rgba(77,94,81,0.95), rgba(104,122,108,0.85))",
-                bottom: "-185px",
-                left: "-120px",
-                transform: "rotate(6deg)",
-                pointerEvents: "none",
-              }}
-            />
-
-            {/* Secondary soft curve */}
-            <div
-              style={{
-                position: "absolute",
-                width: "520px",
-                height: "200px",
-                borderRadius: "50%",
-                background: "rgba(238,241,237,0.78)",
-                bottom: "-155px",
-                left: "80px",
-                transform: "rotate(3deg)",
-                pointerEvents: "none",
-              }}
-            />
-
-            {/* Fine circular lines on right */}
-            <div
-              style={{
-                position: "absolute",
-                width: "310px",
-                height: "310px",
-                borderRadius: "50%",
-                border:
-                  "1px solid rgba(255,255,255,0.30)",
-                top: "-40px",
-                right: "35px",
-                pointerEvents: "none",
-              }}
-            />
-
-            <div
-              style={{
-                position: "absolute",
-                width: "220px",
-                height: "220px",
-                borderRadius: "50%",
-                border:
-                  "1px solid rgba(255,255,255,0.22)",
-                top: "5px",
-                right: "80px",
-                pointerEvents: "none",
-              }}
-            />
-
-            {/* Main content */}
             <div
               style={{
                 position: "relative",
                 zIndex: 2,
-                padding: "42px 42px 46px",
+                padding: "20px 26px",
               }}
             >
-              <InlineStack
-                align="space-between"
-                blockAlign="center"
-                gap="600"
-                wrap
+              <div
+                style={{
+                  fontSize: "10px",
+                  lineHeight: 1,
+                  fontWeight: 750,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: COLORS.primaryDark,
+                  marginBottom: "8px",
+                }}
               >
-                {/* LEFT SIDE */}
-
-                <div
-                  style={{
-                    maxWidth: "660px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      lineHeight: 1,
-                      fontWeight: 700,
-                      letterSpacing: "0.13em",
-                      textTransform: "uppercase",
-                      color: COLORS.sageDark,
-                      marginBottom: "18px",
-                    }}
-                  >
-                    SubscriptionSync
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: "36px",
-                      fontWeight: 650,
-                      letterSpacing: "-0.04em",
-                      lineHeight: 1.08,
-                      color: COLORS.text,
-                      marginBottom: "16px",
-                      maxWidth: "580px",
-                    }}
-                  >
-                    Personalized subscriptions,
-                    <br />
-
-                    <span
-                      style={{
-                        color: COLORS.sageDark,
-                      }}
-                    >
-                      simplified.
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: "15px",
-                      lineHeight: 1.65,
-                      color: COLORS.textSoft,
-                      maxWidth: "580px",
-                    }}
-                  >
-                    Customer preferences, subscription details,
-                    and fulfillment rules working together in one
-                    clear operational workflow.
-                  </div>
-                </div>
-
-                {/* RIGHT SIDE */}
-
-                <div
-                  style={{
-                    minWidth: "240px",
-                    maxWidth: "280px",
-                    background:
-                      "rgba(255,255,255,0.72)",
-                    backdropFilter: "blur(10px)",
-                    border:
-                      "1px solid rgba(255,255,255,0.60)",
-                    borderRadius: "18px",
-                    padding: "20px",
-                    boxShadow:
-                      "0 10px 30px rgba(32,34,31,0.08)",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: COLORS.sageDark,
-                      marginBottom: "12px",
-                    }}
-                  >
-                    Subscription Flow
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: "10px",
-                    }}
-                  >
-                    <FlowItem
-                      label="Customer"
-                      detail="Subscription active"
-                    />
-
-                    <FlowConnector />
-
-                    <FlowItem
-                      label="Preferences"
-                      detail="Selection captured"
-                    />
-
-                    <FlowConnector />
-
-                    <FlowItem
-                      label="Fulfillment"
-                      detail="Ready to process"
-                      active
-                    />
-                  </div>
-                </div>
-              </InlineStack>
-
-              {/* Sandbox badge */}
+                SubscriptionSync
+              </div>
 
               <div
                 style={{
-                  position: "absolute",
-                  top: "18px",
-                  right: "18px",
-                  background:
-                    "rgba(255,255,255,0.80)",
-                  backdropFilter: "blur(8px)",
-                  border:
-                    "1px solid rgba(77,94,81,0.16)",
-                  borderRadius: "999px",
-                  padding: "8px 12px",
-                  boxShadow:
-                    "0 4px 12px rgba(32,34,31,0.04)",
+                  fontSize: "25px",
+                  fontWeight: 680,
+                  letterSpacing: "-0.035em",
+                  lineHeight: 1.1,
+                  color: COLORS.text,
+                  marginBottom: "6px",
                 }}
               >
-                <InlineStack
-                  gap="200"
-                  blockAlign="center"
-                  wrap={false}
-                >
-                  <div
-                    style={{
-                      width: "7px",
-                      height: "7px",
-                      borderRadius: "999px",
-                      background: COLORS.sageDark,
-                    }}
-                  />
+                Personalized subscriptions,{" "}
+                <span style={{ color: COLORS.primaryDark }}>simplified.</span>
+              </div>
 
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 650,
-                      color: COLORS.sageDark,
-                    }}
-                  >
-                    Development Sandbox
-                  </span>
-                </InlineStack>
+              <div
+                style={{
+                  fontSize: "13px",
+                  lineHeight: 1.45,
+                  color: COLORS.textSoft,
+                  maxWidth: "760px",
+                }}
+              >
+                A clear place to monitor subscription activity, review exceptions,
+                and manage the parts of the customer experience your team can change.
               </div>
             </div>
           </div>
@@ -520,115 +305,202 @@ export default function Dashboard() {
             }}
           >
             <MetricCard
-              label="Needs attention"
-              value={totalNeedsAttention}
-              description="Open selections and shipments"
-              emphasis
+              label="Action needed"
+              value={actionNeeded}
+              description={
+                actionNeeded === 0
+                  ? "All clear — no team action is needed"
+                  : "Exceptions that require someone on the team to step in"
+              }
+              url="/app/daily-queue?filter=action-needed"
+              actionCard
+              emphasis={actionNeeded > 0}
             />
 
             <MetricCard
-              label="Selections waiting"
+              label="Selections in progress"
               value={pendingSelections}
-              description="Customer selections still pending"
+              description="Customers moving through the normal selection workflow"
+              url="/app/daily-queue?filter=selections-in-progress"
             />
 
             <MetricCard
-              label="Shipments pending"
+              label="Ready for shipping"
               value={pendingShipments}
-              description="Fulfillment records awaiting processing"
+              description="Pending fulfillment records for the shipping team"
+              url="/app/daily-queue?filter=shipments-pending"
             />
 
             <MetricCard
               label="Active subscribers"
               value={activeSubscribers}
               description="Currently active subscriptions"
+              url="/app/subscriber-list"
             />
           </div>
 
           {/* ======================================================
-              OPERATIONAL SUMMARY
+              HOW TO USE THIS DASHBOARD
               ====================================================== */}
 
           <div
             style={{
-              background: COLORS.sageSoft,
-              border: `1px solid ${COLORS.sageSoftStrong}`,
+              background: COLORS.white,
+              border: `1px solid ${COLORS.border}`,
               borderRadius: "16px",
-              padding: "20px 22px",
+              overflow: "hidden",
             }}
           >
-            <InlineStack
-              align="space-between"
-              blockAlign="center"
-              gap="400"
-              wrap
+            <div
+              style={{
+                padding: "18px 22px",
+                borderBottom: `1px solid ${COLORS.border}`,
+                background: COLORS.primarySoft,
+              }}
             >
-              <InlineStack
-                gap="300"
-                blockAlign="center"
-                wrap={false}
+              <div
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: COLORS.text,
+                  marginBottom: "5px",
+                }}
+              >
+                Most of SubscriptionSync is automatic
+              </div>
+
+              <div
+                style={{
+                  fontSize: "13px",
+                  lineHeight: 1.55,
+                  color: COLORS.textSoft,
+                  maxWidth: "900px",
+                }}
+              >
+                This dashboard is mainly here so you can see what SubscriptionSync
+                is doing. Routine selection timing, reminders, and fulfillment
+                workflow are designed to move forward automatically. You do not need
+                an employee clicking through normal subscriptions every day.
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "0",
+              }}
+            >
+              <div
+                style={{
+                  padding: "20px 22px",
+                  borderRight: `1px solid ${COLORS.border}`,
+                }}
               >
                 <div
                   style={{
-                    width: "38px",
-                    height: "38px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: COLORS.white,
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: "11px",
-                    flexShrink: 0,
+                    fontSize: "11px",
+                    fontWeight: 750,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: COLORS.primaryDark,
+                    marginBottom: "10px",
                   }}
                 >
-                  <Icon
-                    source={ListBulletedIcon}
-                    tone="base"
-                  />
+                  View & monitor
                 </div>
 
-                <div>
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      color: COLORS.text,
-                      fontWeight: 650,
-                      marginBottom: "3px",
-                    }}
-                  >
-                    {totalNeedsAttention === 0
-                      ? "Everything is caught up"
-                      : `${totalNeedsAttention} item${
-                          totalNeedsAttention === 1
-                            ? ""
-                            : "s"
-                        } need attention`}
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      color: COLORS.muted,
-                    }}
-                  >
-                    SubscriptionSync is organizing the work
-                    between customer choice and fulfillment.
-                  </div>
+                <div
+                  style={{
+                    fontSize: "13px",
+                    lineHeight: 1.65,
+                    color: COLORS.textSoft,
+                  }}
+                >
+                  View subscriber status, selections, upcoming shipments, activity,
+                  and the progress of automated workflow. If everything is moving
+                  normally, there is nothing your team needs to do.
                 </div>
-              </InlineStack>
+              </div>
 
-              <Link
-                to="/app/daily-queue"
+              <div
                 style={{
-                  textDecoration: "none",
-                  color: COLORS.sageDark,
-                  fontSize: "13px",
-                  fontWeight: 650,
+                  padding: "20px 22px",
                 }}
               >
-                View Daily Queue →
-              </Link>
-            </InlineStack>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 750,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: COLORS.primaryDark,
+                    marginBottom: "10px",
+                  }}
+                >
+                  Things your team can manage
+                </div>
+
+                <div
+                  style={{
+                    fontSize: "13px",
+                    lineHeight: 1.65,
+                    color: COLORS.textSoft,
+                  }}
+                >
+                  Open a customer when a manual change is needed, review or edit
+                  customer communications, edit the customer selection form, manage
+                  fulfillment profiles and rules, and change application settings.
+                  These are intentional management tools — not daily steps required
+                  for every subscriber.
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: "14px 22px",
+                background: actionNeeded > 0 ? COLORS.dangerSoft : "#FBFCFD",
+                borderTop: `1px solid ${
+                  actionNeeded > 0 ? COLORS.dangerBorder : COLORS.border
+                }`,
+              }}
+            >
+              <InlineStack
+                align="space-between"
+                blockAlign="center"
+                gap="300"
+                wrap
+              >
+                <div
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 650,
+                    color:
+                      actionNeeded > 0 ? COLORS.dangerText : COLORS.textSoft,
+                  }}
+                >
+                  {actionNeeded > 0
+                    ? `⚠ ${actionNeeded} exception${
+                        actionNeeded === 1 ? "" : "s"
+                      } need team attention.`
+                    : "✓ Action Needed is clear. SubscriptionSync is handling the normal workflow."}
+                </div>
+
+                <Link
+                  to="/app/daily-queue?filter=action-needed"
+                  style={{
+                    textDecoration: "none",
+                    color:
+                      actionNeeded > 0 ? COLORS.dangerText : COLORS.primaryDark,
+                    fontSize: "12px",
+                    fontWeight: 750,
+                  }}
+                >
+                  {actionNeeded > 0 ? "REVIEW ACTION NEEDED →" : "VIEW ACTION NEEDED →"}
+                </Link>
+              </InlineStack>
+            </div>
           </div>
 
           <Divider />
@@ -718,7 +590,7 @@ export default function Dashboard() {
                 to="/app/tiers"
                 style={{
                   textDecoration: "none",
-                  color: COLORS.sageDark,
+                  color: COLORS.primaryDark,
                   fontSize: "13px",
                   fontWeight: 650,
                 }}
@@ -758,7 +630,7 @@ export default function Dashboard() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: COLORS.sageSoft,
+                        background: COLORS.primarySoft,
                         borderRadius: "13px",
                       }}
                     >
@@ -817,7 +689,7 @@ export default function Dashboard() {
                                   justifyContent:
                                     "center",
                                   background:
-                                    COLORS.sageSoft,
+                                    COLORS.primarySoft,
                                   borderRadius: "10px",
                                   flexShrink: 0,
                                 }}
@@ -907,124 +779,6 @@ export default function Dashboard() {
 }
 
 /* ============================================================
-   HERO FLOW ITEM
-   ============================================================ */
-
-function FlowItem({
-  label,
-  detail,
-  active = false,
-}: {
-  label: string;
-  detail: string;
-  active?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "10px",
-
-        background: active
-          ? COLORS.sageDark
-          : "rgba(255,255,255,0.82)",
-
-        border: `1px solid ${
-          active
-            ? COLORS.sageDark
-            : "rgba(77,94,81,0.10)"
-        }`,
-
-        borderRadius: "12px",
-        padding: "10px 12px",
-
-        boxShadow: active
-          ? "0 5px 14px rgba(47,60,51,0.14)"
-          : "0 1px 3px rgba(32,34,31,0.025)",
-      }}
-    >
-      <div
-        style={{
-          width: "9px",
-          height: "9px",
-          borderRadius: "999px",
-
-          background: active
-            ? "#FFFFFF"
-            : COLORS.sage,
-
-          boxShadow: active
-            ? "0 0 0 4px rgba(255,255,255,0.10)"
-            : "0 0 0 4px rgba(104,122,108,0.08)",
-
-          flexShrink: 0,
-        }}
-      />
-
-      <div>
-        <div
-          style={{
-            fontSize: "12px",
-            fontWeight: 650,
-
-            color: active
-              ? "#FFFFFF"
-              : COLORS.text,
-          }}
-        >
-          {label}
-        </div>
-
-        <div
-          style={{
-            fontSize: "10px",
-
-            color: active
-              ? "rgba(255,255,255,0.72)"
-              : COLORS.muted,
-
-            marginTop: "2px",
-          }}
-        >
-          {detail}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ============================================================
-   HERO FLOW CONNECTOR
-   ============================================================ */
-
-function FlowConnector() {
-  return (
-    <div
-      style={{
-        position: "relative",
-        width: "1px",
-        height: "12px",
-        background: "rgba(77,94,81,0.28)",
-        marginLeft: "16px",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          bottom: "-2px",
-          left: "-2px",
-          width: "5px",
-          height: "5px",
-          borderRadius: "999px",
-          background: COLORS.sage,
-        }}
-      />
-    </div>
-  );
-}
-
-/* ============================================================
    METRIC CARD
    ============================================================ */
 
@@ -1032,72 +786,120 @@ function MetricCard({
   label,
   value,
   description,
+  url,
   emphasis = false,
+  actionCard = false,
 }: {
   label: string;
   value: number;
   description: string;
+  url: string;
   emphasis?: boolean;
+  actionCard?: boolean;
 }) {
   return (
-    <div
+    <Link
+      to={url}
       style={{
-        background: emphasis
-          ? COLORS.sageSoft
-          : COLORS.white,
-
-        border: `1px solid ${
-          emphasis
-            ? COLORS.sageSoftStrong
-            : COLORS.border
-        }`,
-
-        borderRadius: "16px",
-        padding: "20px",
-        minHeight: "132px",
-
-        boxShadow:
-          "0 1px 2px rgba(32, 34, 31, 0.02)",
+        textDecoration: "none",
+        color: "inherit",
+        display: "block",
+        height: "100%",
       }}
     >
       <div
         style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: emphasis
-            ? COLORS.sageDark
-            : COLORS.muted,
-          marginBottom: "14px",
+          background: actionCard
+            ? emphasis
+              ? COLORS.dangerSoft
+              : "#FFF8F8"
+            : COLORS.white,
+          border: `2px solid ${
+            actionCard
+              ? emphasis
+                ? "#C94A4A"
+                : COLORS.dangerBorder
+              : COLORS.border
+          }`,
+          borderRadius: "16px",
+          padding: "20px",
+          minHeight: "142px",
+          height: "100%",
+          cursor: "pointer",
+          boxShadow: actionCard
+            ? emphasis
+              ? "0 8px 22px rgba(139,66,66,0.12)"
+              : "0 4px 12px rgba(139,66,66,0.06)"
+            : "0 1px 2px rgba(32,34,31,0.02)",
+          transition:
+            "transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease",
+        }}
+        onMouseEnter={(event) => {
+          event.currentTarget.style.transform = "translateY(-2px)";
+          event.currentTarget.style.boxShadow = actionCard
+            ? emphasis
+              ? "0 12px 28px rgba(139,66,66,0.18)"
+              : "0 9px 22px rgba(139,66,66,0.10)"
+            : "0 8px 20px rgba(32,34,31,0.08)";
+        }}
+        onMouseLeave={(event) => {
+          event.currentTarget.style.transform = "translateY(0)";
+          event.currentTarget.style.boxShadow = actionCard
+            ? emphasis
+              ? "0 8px 22px rgba(139,66,66,0.12)"
+              : "0 4px 12px rgba(139,66,66,0.06)"
+            : "0 1px 2px rgba(32,34,31,0.02)";
         }}
       >
-        {label}
-      </div>
+        <div
+          style={{
+            fontSize: "11px",
+            fontWeight: 750,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: actionCard ? COLORS.dangerText : COLORS.muted,
+            marginBottom: "12px",
+          }}
+        >
+          {actionCard ? (emphasis ? "⚠ " : "✓ ") : ""}
+          {label}
+        </div>
 
-      <div
-        style={{
-          fontSize: "32px",
-          fontWeight: 650,
-          letterSpacing: "-0.04em",
-          lineHeight: 1,
-          color: COLORS.text,
-          marginBottom: "11px",
-        }}
-      >
-        {value}
-      </div>
+        <div
+          style={{
+            fontSize: "34px",
+            fontWeight: 700,
+            letterSpacing: "-0.04em",
+            lineHeight: 1,
+            color: actionCard ? COLORS.dangerText : COLORS.text,
+            marginBottom: "11px",
+          }}
+        >
+          {value}
+        </div>
 
-      <div
-        style={{
-          fontSize: "12px",
-          lineHeight: 1.45,
-          color: COLORS.muted,
-        }}
-      >
-        {description}
+        <div
+          style={{
+            fontSize: "12px",
+            lineHeight: 1.45,
+            color: COLORS.muted,
+            marginBottom: "12px",
+          }}
+        >
+          {description}
+        </div>
+
+        <div
+          style={{
+            fontSize: "11px",
+            fontWeight: 750,
+            color: actionCard ? COLORS.dangerText : COLORS.primaryDark,
+          }}
+        >
+          {actionCard ? (emphasis ? "REVIEW NOW →" : "VIEW DETAILS →") : "VIEW →"}
+        </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -1171,7 +973,7 @@ function NavigationCard({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: COLORS.sageSoft,
+                  background: COLORS.primarySoft,
                   borderRadius: "11px",
                 }}
               >
@@ -1285,7 +1087,7 @@ function SectionHeader({
           fontWeight: 700,
           letterSpacing: "0.11em",
           textTransform: "uppercase",
-          color: COLORS.sage,
+          color: COLORS.primary,
           marginBottom: "6px",
         }}
       >

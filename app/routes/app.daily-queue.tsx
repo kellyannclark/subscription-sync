@@ -6,24 +6,17 @@ import type {
 import { json } from "@remix-run/node";
 
 import {
-  Form,
   Link,
-  useActionData,
   useLoaderData,
-  useNavigation,
+  useSearchParams,
 } from "@remix-run/react";
 
-import {
-  useMemo,
-  useState,
-} from "react";
+import { useMemo } from "react";
 
 import {
   Badge,
-  Banner,
   BlockStack,
   Box,
-  Button,
   Card,
   Divider,
   IndexTable,
@@ -37,34 +30,7 @@ import {
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
-/* ============================================================
-   SUBSCRIPTIONSYNC DESIGN SYSTEM
-   ============================================================ */
-
-const COLORS = {
-  page: "#F7F7F4",
-  white: "#FFFFFF",
-
-  text: "#20221F",
-  textSoft: "#52574F",
-  muted: "#787D75",
-
-  sage: "#687A6C",
-  sageDark: "#4D5E51",
-  sageSoft: "#EEF1ED",
-  sageSoftStrong: "#E4EAE3",
-
-  border: "#E4E5DF",
-  borderStrong: "#D7DAD2",
-
-  warm: "#F6F1E8",
-  warmText: "#755F38",
-  warmBorder: "#E8DDC8",
-
-  dangerSoft: "#F9EEEE",
-  dangerText: "#8B4242",
-  dangerBorder: "#EBCFCF",
-};
+import { COLORS } from "../styles/theme";
 
 /* ============================================================
    TYPES
@@ -92,7 +58,14 @@ type QueueSubscriber = {
   orderCreationDate: string;
 
   workflowStatus: string;
+  shipmentStatus: string | null;
   status: QueueStatus;
+
+  actionNeeded: boolean;
+  actionReason: string | null;
+  recommendedAction: string | null;
+  actionLabel: string | null;
+  actionUrl: string | null;
 };
 
 type QueueStats = {
@@ -222,6 +195,23 @@ export const loader = async ({
               null,
           });
 
+        const actionInfo =
+          getActionNeededInfo({
+            id: subscriber.id,
+            subscriptionStatus:
+              subscriber.subscriptionStatus,
+            workflowStatus:
+              subscriber.workflowStatus,
+            hasFulfillmentProfile:
+              Boolean(subscriber.fulfillmentProfile),
+            selectionDeadline:
+              subscriber.nextSelectionDeadline,
+            autoSelectionDate:
+              subscriber.autoSelectionDate,
+            latestShipmentStatus:
+              latestShipment?.status ?? null,
+          });
+
         return {
           id:
             subscriber.id,
@@ -267,7 +257,25 @@ export const loader = async ({
             subscriber
               .workflowStatus,
 
+          shipmentStatus:
+            latestShipment?.status ?? null,
+
           status,
+
+          actionNeeded:
+            actionInfo.actionNeeded,
+
+          actionReason:
+            actionInfo.reason,
+
+          recommendedAction:
+            actionInfo.recommendedAction,
+
+          actionLabel:
+            actionInfo.actionLabel,
+
+          actionUrl:
+            actionInfo.actionUrl,
         };
       },
     );
@@ -880,13 +888,21 @@ export const action = async ({
 
 export default function DailyQueuePage() {
   const { stats, queueSubscribers } = useLoaderData<typeof loader>();
-  const actionData = useActionData<typeof action>();
-  const navigation = useNavigation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [filter, setFilter] = useState("all");
-  const [intent, setIntent] = useState("");
+  const filter = searchParams.get("filter") || "all";
 
-  const isSubmitting = navigation.state === "submitting";
+  const setFilter = (value: string) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (value === "all") {
+      nextParams.delete("filter");
+    } else {
+      nextParams.set("filter", value);
+    }
+
+    setSearchParams(nextParams);
+  };
 
   const filteredSubscribers = useMemo(() => {
     if (filter === "all") {
@@ -894,6 +910,18 @@ export default function DailyQueuePage() {
     }
 
     return queueSubscribers.filter((subscriber) => {
+      if (filter === "action-needed") {
+        return subscriber.actionNeeded;
+      }
+
+      if (filter === "selections-in-progress") {
+        return subscriber.workflowStatus === "Waiting for Selection";
+      }
+
+      if (filter === "shipments-pending") {
+        return subscriber.shipmentStatus?.toLowerCase() === "pending";
+      }
+
       if (filter === "due-today") {
         return subscriber.status === "Due Today";
       }
@@ -918,16 +946,13 @@ export default function DailyQueuePage() {
         return subscriber.status === "Fulfilled";
       }
 
-      if (filter === "needs-review") {
-        return subscriber.status === "Needs Review";
-      }
-
       return true;
     });
   }, [filter, queueSubscribers]);
 
-  const needsAttention =
-    stats.dueToday + stats.autoSelectNeeded + stats.needsReview;
+  const needsAttention = queueSubscribers.filter(
+    (subscriber) => subscriber.actionNeeded,
+  ).length;
 
   return (
     <div
@@ -937,440 +962,516 @@ export default function DailyQueuePage() {
       }}
     >
       <Page
-        title="Daily Queue"
-        subtitle="Manage each subscriber according to their individual selection, auto-selection, order, and shipping schedule."
         backAction={{
           content: "Dashboard",
           url: "/app",
         }}
       >
-        <Form method="post">
-          <input type="hidden" name="intent" value={intent} />
+        <BlockStack gap="500">
+          {/* ==================================================
+              INTRO / HERO
+              ================================================== */}
 
-          <BlockStack gap="600">
-            {/* ACTION RESULT */}
-            {actionData?.message && (
-              <Banner
-                title={actionData.success ? "Success" : "Action needed"}
-                tone={actionData.success ? "success" : "critical"}
-              >
-                <p>{actionData.message}</p>
-              </Banner>
-            )}
-
-            {/* ==================================================
-                INTRO / HERO
-                ================================================== */}
+          <div
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: "18px",
+              border: `1px solid ${COLORS.border}`,
+              minHeight: "72px",
+              background: `
+                linear-gradient(
+                  105deg,
+                  #FCFBF7 0%,
+                  #F7F6F1 58%,
+                  ${COLORS.primarySoftStrong} 100%
+                )
+              `,
+              boxShadow:
+                "0 1px 2px rgba(32,34,31,0.03), 0 10px 24px rgba(32,34,31,0.05)",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                width: "260px",
+                height: "260px",
+                borderRadius: "50%",
+                background:
+                  "radial-gradient(circle, rgba(67,86,109,0.16) 0%, rgba(67,86,109,0.05) 45%, transparent 72%)",
+                top: "-150px",
+                right: "-50px",
+                pointerEvents: "none",
+              }}
+            />
 
             <div
               style={{
                 position: "relative",
-                overflow: "hidden",
-                borderRadius: "22px",
-                border: `1px solid ${COLORS.border}`,
-                background: `
-                  linear-gradient(
-                    108deg,
-                    #FCFBF7 0%,
-                    #F7F6F1 48%,
-                    #D9E2D8 72%,
-                    #9FB09F 100%
-                  )
-                `,
-                boxShadow:
-                  "0 1px 2px rgba(32,34,31,0.03), 0 16px 36px rgba(32,34,31,0.07)",
+                zIndex: 2,
+                padding: "13px 18px",
               }}
             >
               <div
                 style={{
-                  position: "absolute",
-                  width: "520px",
-                  height: "220px",
-                  borderRadius: "50%",
-                  background:
-                    "linear-gradient(135deg, rgba(77,94,81,0.96), rgba(104,122,108,0.86))",
-                  bottom: "-180px",
-                  left: "-110px",
-                  transform: "rotate(5deg)",
-                  pointerEvents: "none",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "absolute",
-                  width: "330px",
-                  height: "330px",
-                  borderRadius: "50%",
-                  border: "1px solid rgba(255,255,255,0.32)",
-                  top: "-120px",
-                  right: "15px",
-                  pointerEvents: "none",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "absolute",
-                  width: "230px",
-                  height: "230px",
-                  borderRadius: "50%",
-                  border: "1px solid rgba(255,255,255,0.22)",
-                  top: "-68px",
-                  right: "65px",
-                  pointerEvents: "none",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "relative",
-                  zIndex: 2,
-                  padding: "38px 40px",
+                  fontSize: "10px",
+                  lineHeight: 1,
+                  fontWeight: 750,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: COLORS.primaryDark,
+                  marginBottom: "5px",
                 }}
               >
-                <InlineStack
-                  align="space-between"
-                  blockAlign="center"
-                  gap="600"
-                  wrap
-                >
-                  <div style={{ maxWidth: "620px" }}>
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        letterSpacing: "0.13em",
-                        textTransform: "uppercase",
-                        color: COLORS.sageDark,
-                        marginBottom: "15px",
-                      }}
-                    >
-                      Workflow
-                    </div>
+                Daily Queue
+              </div>
 
-                    <div
-                      style={{
-                        fontSize: "34px",
-                        fontWeight: 650,
-                        letterSpacing: "-0.04em",
-                        lineHeight: 1.08,
-                        color: COLORS.text,
-                        marginBottom: "14px",
-                      }}
-                    >
-                      Daily fulfillment,
-                      <br />
-                      <span style={{ color: COLORS.sageDark }}>
-                        made clear.
-                      </span>
-                    </div>
+              <div
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 680,
+                  letterSpacing: "-0.035em",
+                  lineHeight: 1.1,
+                  color: COLORS.text,
+                  marginBottom: "4px",
+                }}
+              >
+                Monitor the workflow.{" "}
+                <span style={{ color: COLORS.primaryDark }}>
+                  Step in only when needed.
+                </span>
+              </div>
 
-                    <div
-                      style={{
-                        fontSize: "14px",
-                        lineHeight: 1.65,
-                        color: COLORS.textSoft,
-                        maxWidth: "570px",
-                      }}
-                    >
-                      See what needs attention, move subscribers through
-                      selection, and prepare fulfillment from one organized
-                      queue.
-                    </div>
-                  </div>
+              <div
+                style={{
+                  fontSize: "12px",
+                  lineHeight: 1.4,
+                  color: COLORS.textSoft,
+                  maxWidth: "820px",
+                }}
+              >
+                SubscriptionSync is designed to move routine subscription work
+                forward automatically. This page shows where each subscriber is
+                in that process and clearly flags the exceptions that need a person.
+              </div>
+            </div>
+          </div>
 
-                  <div
-                    style={{
-                      minWidth: "235px",
-                      background: "rgba(255,255,255,0.78)",
-                      backdropFilter: "blur(10px)",
-                      border: "1px solid rgba(255,255,255,0.64)",
-                      borderRadius: "18px",
-                      padding: "18px 20px",
-                      boxShadow: "0 10px 28px rgba(32,34,31,0.08)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        letterSpacing: "0.10em",
-                        textTransform: "uppercase",
-                        color: COLORS.sageDark,
-                        marginBottom: "10px",
-                      }}
-                    >
-                      Right now
-                    </div>
+          {/* ==================================================
+              PURPOSE / AUTOMATION EXPLANATION
+              ================================================== */}
 
-                    <div
-                      style={{
-                        fontSize: "34px",
-                        lineHeight: 1,
-                        fontWeight: 650,
-                        letterSpacing: "-0.04em",
-                        color: COLORS.text,
-                        marginBottom: "7px",
-                      }}
-                    >
-                      {needsAttention}
-                    </div>
+          <div
+            style={{
+              background: COLORS.white,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: "16px",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                padding: "18px 22px",
+                background: COLORS.primarySoft,
+                borderBottom: `1px solid ${COLORS.primarySoftStrong}`,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "15px",
+                  fontWeight: 700,
+                  color: COLORS.text,
+                  marginBottom: "5px",
+                }}
+              >
+                You do not need to run the Daily Queue
+              </div>
 
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        lineHeight: 1.45,
-                        color: COLORS.muted,
-                        marginBottom: "15px",
-                      }}
-                    >
-                      item{needsAttention === 1 ? "" : "s"} need attention
-                    </div>
-
-                    <div
-                      style={{
-                        paddingTop: "12px",
-                        borderTop: `1px solid ${COLORS.border}`,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "7px",
-                          height: "7px",
-                          borderRadius: "999px",
-                          background: COLORS.sageDark,
-                          boxShadow:
-                            "0 0 0 4px rgba(77,94,81,0.10)",
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: 650,
-                          color: COLORS.sageDark,
-                        }}
-                      >
-                        Sandbox connected
-                      </span>
-                    </div>
-                  </div>
-                </InlineStack>
+              <div
+                style={{
+                  fontSize: "13px",
+                  lineHeight: 1.55,
+                  color: COLORS.textSoft,
+                  maxWidth: "920px",
+                }}
+              >
+                Routine reminders, customer selection timing, automatic selection
+                rules, and fulfillment preparation are intended to happen
+                automatically. The Daily Queue is primarily a monitoring screen.
               </div>
             </div>
 
-            {/* ==================================================
-                QUEUE SNAPSHOT
-                ================================================== */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              }}
+            >
+              <div
+                style={{
+                  padding: "20px 22px",
+                  borderRight: `1px solid ${COLORS.border}`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 750,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: COLORS.primaryDark,
+                    marginBottom: "9px",
+                  }}
+                >
+                  SubscriptionSync is handling it
+                </div>
 
-            <BlockStack gap="300">
-              <SectionHeader
-                eyebrow="Overview"
-                title="Queue snapshot"
-                description="A quick view of where subscribers are in today’s fulfillment workflow."
-              />
+                <div
+                  style={{
+                    fontSize: "13px",
+                    lineHeight: 1.65,
+                    color: COLORS.textSoft,
+                  }}
+                >
+                  Waiting for a customer, reminder timing, auto-selection timing,
+                  and normal fulfillment progress are statuses to view. They are
+                  not instructions for an employee to press a button.
+                </div>
+              </div>
 
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fit, minmax(150px, 1fr))",
-                  gap: "12px",
+                  padding: "20px 22px",
+                  background: needsAttention > 0 ? COLORS.dangerSoft : "#FFFDFD",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: COLORS.dangerText,
+                    marginBottom: "9px",
+                  }}
+                >
+                  {needsAttention > 0 ? "⚠ Action Needed" : "✓ Action Needed"}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: "13px",
+                    lineHeight: 1.65,
+                    color: COLORS.textSoft,
+                    marginBottom: "10px",
+                  }}
+                >
+                  {needsAttention > 0
+                    ? `${needsAttention} exception${
+                        needsAttention === 1 ? "" : "s"
+                      } match a rule that automation cannot safely finish by itself.`
+                    : "There are no exceptions that match a rule requiring a person right now."}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: "12px",
+                    lineHeight: 1.55,
+                    color: COLORS.muted,
+                    marginBottom: needsAttention > 0 ? "12px" : 0,
+                  }}
+                >
+                  Current Action Needed rules include: a missing fulfillment profile,
+                  an item explicitly marked Needs Review, an overdue customer
+                  selection with no automatic fallback scheduled, or a failed
+                  shipment status.
+                </div>
+
+                {needsAttention > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setFilter("action-needed")}
+                    style={{
+                      border: "none",
+                      borderRadius: "9px",
+                      padding: "10px 13px",
+                      background: COLORS.dangerText,
+                      color: "#FFFFFF",
+                      fontSize: "12px",
+                      fontWeight: 750,
+                      cursor: "pointer",
+                    }}
+                  >
+                    REVIEW ACTION NEEDED →
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ==================================================
+              QUEUE SNAPSHOT
+              ================================================== */}
+
+          <BlockStack gap="300">
+            <SectionHeader
+              eyebrow="Overview"
+              title="Workflow snapshot"
+              description="These cards show what the automated workflow is doing. Only Action Needed represents work that requires a person."
+            />
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(155px, 1fr))",
+                gap: "12px",
+              }}
+            >
+              <StatBox
+                label="Selections In Progress"
+                value={
+                  queueSubscribers.filter(
+                    (item) => item.workflowStatus === "Waiting for Selection",
+                  ).length
+                }
+              />
+              <StatBox
+                label="Auto-Selection Scheduled"
+                value={stats.autoSelectNeeded}
+                tone="attention"
+              />
+              <StatBox
+                label="Ready for Shipping"
+                value={stats.ordersReady}
+                tone="positive"
+              />
+              <StatBox
+                label="Fulfilled"
+                value={stats.fulfilled}
+                tone="positive"
+              />
+              <button
+                type="button"
+                onClick={() => setFilter("action-needed")}
+                style={{
+                  border: "none",
+                  padding: 0,
+                  margin: 0,
+                  background: "transparent",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  width: "100%",
                 }}
               >
                 <StatBox
-                  label="Due Today"
-                  value={stats.dueToday}
+                  label="Action Needed — Review →"
+                  value={needsAttention}
                   tone="urgent"
+                  strong
                 />
-                <StatBox
-                  label="Due Tomorrow"
-                  value={stats.dueTomorrow}
-                  tone="attention"
-                />
-                <StatBox
-                  label="Pending Selections"
-                  value={stats.pendingSelections}
-                />
-                <StatBox
-                  label="Auto-Select Needed"
-                  value={stats.autoSelectNeeded}
-                  tone="attention"
-                />
-                <StatBox
-                  label="Orders Ready"
-                  value={stats.ordersReady}
-                  tone="positive"
-                />
-                <StatBox
-                  label="Fulfilled"
-                  value={stats.fulfilled}
-                  tone="positive"
-                />
-                <StatBox
-                  label="Needs Review"
-                  value={stats.needsReview}
-                  tone="urgent"
-                />
-              </div>
-            </BlockStack>
+              </button>
+            </div>
+          </BlockStack>
 
-            <Layout>
-              <Layout.Section>
-                <BlockStack gap="500">
-                  {/* ==================================================
-                      DAILY ACTIONS
-                      ================================================== */}
+          <Layout>
+            <Layout.Section>
+              <BlockStack gap="500">
+                {/* ==================================================
+                    SUBSCRIBERS
+                    ================================================== */}
 
-                  <div
-                    style={{
-                      background: COLORS.white,
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: "18px",
-                      padding: "22px",
-                      boxShadow: "0 1px 2px rgba(32,34,31,0.02)",
-                    }}
-                  >
-                    <BlockStack gap="400">
+                <div
+                  style={{
+                    background: COLORS.white,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: "18px",
+                    overflow: "hidden",
+                    boxShadow: "0 1px 2px rgba(32,34,31,0.02)",
+                  }}
+                >
+                  <div style={{ padding: "22px 22px 18px" }}>
+                    <InlineStack
+                      align="space-between"
+                      gap="300"
+                      blockAlign="center"
+                      wrap
+                    >
                       <SectionHeader
-                        eyebrow="Actions"
-                        title="Move the queue forward"
-                        description="Use the current sandbox workflow state and Fulfillment Profile rules to process the next steps."
+                        eyebrow="Subscribers"
+                        title="Workflow details"
+                        description={`${filteredSubscribers.length} subscriber${
+                          filteredSubscribers.length === 1 ? "" : "s"
+                        } shown. Open a customer when you need more detail or a manual change.`}
                       />
 
-                      <InlineStack gap="300" wrap>
-                        <Button
-                          submit
-                          loading={
-                            isSubmitting && intent === "send-reminders"
-                          }
-                          onClick={() => setIntent("send-reminders")}
-                        >
-                          Prepare Reminders
-                        </Button>
-
-                        <Button
-                          submit
-                          loading={
-                            isSubmitting &&
-                            intent === "run-auto-selection"
-                          }
-                          onClick={() => setIntent("run-auto-selection")}
-                        >
-                          Run Auto-Selection
-                        </Button>
-
-                        <Button
-                          submit
-                          loading={
-                            isSubmitting && intent === "create-orders"
-                          }
-                          onClick={() => setIntent("create-orders")}
-                        >
-                          Create Ready Fulfillment
-                        </Button>
-
-                        <Button
-                          submit
-                          loading={isSubmitting && intent === "sync-now"}
-                          onClick={() => setIntent("sync-now")}
-                        >
-                          Sandbox Sync
-                        </Button>
-
-                        <Button url="/app/activity-log">
-                          View Activity Log
-                        </Button>
-                      </InlineStack>
-
-                      <div
-                        style={{
-                          background: COLORS.sageSoft,
-                          border: `1px solid ${COLORS.sageSoftStrong}`,
-                          borderRadius: "12px",
-                          padding: "12px 14px",
-                          fontSize: "12px",
-                          lineHeight: 1.5,
-                          color: COLORS.textSoft,
-                        }}
-                      >
-                        Sandbox actions are safe for testing. They do not
-                        change live Little Adventures orders, emails, or
-                        inventory.
+                      <div style={{ minWidth: "250px" }}>
+                        <Select
+                          label="Filter queue"
+                          labelHidden
+                          value={filter}
+                          onChange={setFilter}
+                          options={[
+                            { label: "All workflow activity", value: "all" },
+                            {
+                              label: "⚠ Action Needed",
+                              value: "action-needed",
+                            },
+                            {
+                              label: "Selections In Progress",
+                              value: "selections-in-progress",
+                            },
+                            {
+                              label: "Ready for Shipping",
+                              value: "shipments-pending",
+                            },
+                            { label: "Shipping Today", value: "due-today" },
+                            {
+                              label: "Shipping Tomorrow",
+                              value: "due-tomorrow",
+                            },
+                            {
+                              label: "Waiting for Selection",
+                              value: "pending-selection",
+                            },
+                            {
+                              label: "Auto-Selection Scheduled",
+                              value: "auto-select-needed",
+                            },
+                            {
+                              label: "Order Ready",
+                              value: "order-ready",
+                            },
+                            { label: "Fulfilled", value: "fulfilled" },
+                          ]}
+                        />
                       </div>
-                    </BlockStack>
+                    </InlineStack>
                   </div>
 
-                  {/* ==================================================
-                      SUBSCRIBERS
-                      ================================================== */}
+                  <Divider />
 
-                  <div
-                    style={{
-                      background: COLORS.white,
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: "18px",
-                      overflow: "hidden",
-                      boxShadow: "0 1px 2px rgba(32,34,31,0.02)",
-                    }}
-                  >
-                    <div style={{ padding: "22px 22px 18px" }}>
-                      <InlineStack
-                        align="space-between"
-                        gap="300"
-                        blockAlign="center"
-                        wrap
-                      >
-                        <SectionHeader
-                          eyebrow="Subscribers"
-                          title="In the queue"
-                          description={`${filteredSubscribers.length} subscriber${
-                            filteredSubscribers.length === 1 ? "" : "s"
-                          } shown`}
-                        />
-
-                        <div style={{ minWidth: "250px" }}>
-                          <Select
-                            label="Filter queue"
-                            labelHidden
-                            value={filter}
-                            onChange={setFilter}
-                            options={[
-                              { label: "All", value: "all" },
-                              { label: "Due Today", value: "due-today" },
-                              {
-                                label: "Due Tomorrow",
-                                value: "due-tomorrow",
-                              },
-                              {
-                                label: "Pending Selection",
-                                value: "pending-selection",
-                              },
-                              {
-                                label: "Auto-Select Needed",
-                                value: "auto-select-needed",
-                              },
-                              {
-                                label: "Order Ready",
-                                value: "order-ready",
-                              },
-                              { label: "Fulfilled", value: "fulfilled" },
-                              {
-                                label: "Needs Review",
-                                value: "needs-review",
-                              },
-                            ]}
-                          />
+                  <div style={{ overflow: "hidden" }}>
+                    {filter === "action-needed" ? (
+                      filteredSubscribers.length === 0 ? (
+                        <div
+                          style={{
+                            padding: "34px 24px",
+                            textAlign: "center",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "15px",
+                              fontWeight: 700,
+                              color: COLORS.text,
+                              marginBottom: "6px",
+                            }}
+                          >
+                            ✓ Nothing needs team action
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "13px",
+                              color: COLORS.muted,
+                            }}
+                          >
+                            SubscriptionSync can continue handling the normal workflow.
+                          </div>
                         </div>
-                      </InlineStack>
-                    </div>
+                      ) : (
+                        <IndexTable
+                          resourceName={{
+                            singular: "exception",
+                            plural: "exceptions",
+                          }}
+                          itemCount={filteredSubscribers.length}
+                          selectable={false}
+                          headings={[
+                            { title: "Customer" },
+                            { title: "Why it stopped" },
+                            { title: "What the worker should do" },
+                            { title: "Selection Deadline" },
+                            { title: "Action" },
+                          ]}
+                        >
+                          {filteredSubscribers.map((subscriber, index) => (
+                            <IndexTable.Row
+                              id={subscriber.id}
+                              key={subscriber.id}
+                              position={index}
+                            >
+                              <IndexTable.Cell>
+                                <BlockStack gap="050">
+                                  <Text as="span" fontWeight="semibold">
+                                    {subscriber.name}
+                                  </Text>
+                                  <Text
+                                    as="span"
+                                    variant="bodySm"
+                                    tone="subdued"
+                                  >
+                                    {subscriber.email}
+                                  </Text>
+                                </BlockStack>
+                              </IndexTable.Cell>
 
-                    <Divider />
+                              <IndexTable.Cell>
+                                <div
+                                  style={{
+                                    maxWidth: "240px",
+                                    fontSize: "13px",
+                                    fontWeight: 650,
+                                    lineHeight: 1.45,
+                                    color: COLORS.dangerText,
+                                  }}
+                                >
+                                  {subscriber.actionReason}
+                                </div>
+                              </IndexTable.Cell>
 
-                    <div style={{ overflow: "hidden" }}>
+                              <IndexTable.Cell>
+                                <div
+                                  style={{
+                                    maxWidth: "300px",
+                                    fontSize: "13px",
+                                    lineHeight: 1.5,
+                                    color: COLORS.textSoft,
+                                  }}
+                                >
+                                  {subscriber.recommendedAction}
+                                </div>
+                              </IndexTable.Cell>
+
+                              <IndexTable.Cell>
+                                {subscriber.selectionDeadline}
+                              </IndexTable.Cell>
+
+                              <IndexTable.Cell>
+                                {subscriber.actionUrl && (
+                                  <Link
+                                    to={subscriber.actionUrl}
+                                    style={{
+                                      display: "inline-block",
+                                      background: COLORS.dangerText,
+                                      color: "#FFFFFF",
+                                      borderRadius: "8px",
+                                      padding: "8px 10px",
+                                      fontSize: "12px",
+                                      fontWeight: 750,
+                                      textDecoration: "none",
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {subscriber.actionLabel ?? "OPEN CUSTOMER"} →
+                                  </Link>
+                                )}
+                              </IndexTable.Cell>
+                            </IndexTable.Row>
+                          ))}
+                        </IndexTable>
+                      )
+                    ) : (
                       <IndexTable
                         resourceName={{
                           singular: "subscriber",
@@ -1386,8 +1487,8 @@ export default function DailyQueuePage() {
                           { title: "Selection Deadline" },
                           { title: "Auto-Select Date" },
                           { title: "Order Date" },
-                          { title: "Queue Status" },
-                          { title: "Actions" },
+                          { title: "Workflow Status" },
+                          { title: "Open" },
                         ]}
                       >
                         {filteredSubscribers.map((subscriber, index) => (
@@ -1398,9 +1499,16 @@ export default function DailyQueuePage() {
                           >
                             <IndexTable.Cell>
                               <BlockStack gap="050">
-                                <Text as="span" fontWeight="semibold">
-                                  {subscriber.name}
-                                </Text>
+                                <Link
+                                  to={`/app/subscriber-view/${subscriber.id}`}
+                                  style={{
+                                    color: COLORS.primaryDark,
+                                    fontWeight: 700,
+                                    textDecoration: "none",
+                                  }}
+                                >
+                                  {subscriber.name} →
+                                </Link>
                                 <Text
                                   as="span"
                                   variant="bodySm"
@@ -1438,14 +1546,18 @@ export default function DailyQueuePage() {
                             </IndexTable.Cell>
 
                             <IndexTable.Cell>
-                              <StatusBadge status={subscriber.status} />
+                              {subscriber.actionNeeded ? (
+                                <Badge tone="critical">Action Needed</Badge>
+                              ) : (
+                                <StatusBadge status={subscriber.status} />
+                              )}
                             </IndexTable.Cell>
 
                             <IndexTable.Cell>
                               <Link
                                 to={`/app/subscriber-view/${subscriber.id}`}
                                 style={{
-                                  color: COLORS.sageDark,
+                                  color: COLORS.primaryDark,
                                   fontWeight: 650,
                                   textDecoration: "none",
                                 }}
@@ -1456,65 +1568,74 @@ export default function DailyQueuePage() {
                           </IndexTable.Row>
                         ))}
                       </IndexTable>
-                    </div>
+                    )}
                   </div>
-                </BlockStack>
-              </Layout.Section>
+                </div>
+              </BlockStack>
+            </Layout.Section>
 
-              {/* ==================================================
-                  QUEUE HEALTH
-                  ================================================== */}
+            <Layout.Section variant="oneThird">
+              <BlockStack gap="400">
+                <div
+                  style={{
+                    background: COLORS.white,
+                    border: `1px solid ${COLORS.border}`,
+                    borderRadius: "18px",
+                    padding: "20px",
+                    boxShadow: "0 1px 2px rgba(32,34,31,0.02)",
+                  }}
+                >
+                  <BlockStack gap="400">
+                    <SectionHeader
+                      eyebrow="About this page"
+                      title="What to do here"
+                      description="Use the queue to monitor automation and investigate exceptions."
+                    />
 
-              <Layout.Section variant="oneThird">
-                <BlockStack gap="400">
-                  <div
+                    <InfoRow
+                      label="Normal workflow"
+                      value="Automatic"
+                      dot
+                    />
+                    <InfoRow
+                      label="Team work"
+                      value="Action Needed exceptions"
+                    />
+                    <InfoRow
+                      label="Customer details"
+                      value="Open as needed"
+                    />
+                    <InfoRow
+                      label="Activity history"
+                      value="Available to review"
+                    />
+                  </BlockStack>
+                </div>
+
+                <SoftInfoBox title="What happens after Action Needed?">
+                  Click Action Needed to see only the exceptions. Each row explains
+                  why automation stopped, what the worker should do next, and gives
+                  a direct Open Customer action for that subscriber.
+                </SoftInfoBox>
+
+                <SoftInfoBox title="Need to see what the system did?">
+                  <Link
+                    to="/app/activity-log"
                     style={{
-                      background: COLORS.white,
-                      border: `1px solid ${COLORS.border}`,
-                      borderRadius: "18px",
-                      padding: "20px",
-                      boxShadow: "0 1px 2px rgba(32,34,31,0.02)",
+                      color: COLORS.primaryDark,
+                      fontWeight: 650,
+                      textDecoration: "none",
                     }}
                   >
-                    <BlockStack gap="400">
-                      <SectionHeader
-                        eyebrow="System"
-                        title="Queue health"
-                        description="Development environment status and recent activity."
-                      />
+                    View the Activity Log →
+                  </Link>
+                </SoftInfoBox>
+              </BlockStack>
+            </Layout.Section>
+          </Layout>
 
-                      <InfoRow
-                        label="Connection"
-                        value={stats.syncStatus}
-                        dot
-                      />
-                      <InfoRow
-                        label="Last reminder"
-                        value={stats.lastReminderSent}
-                      />
-                      <InfoRow label="Last sync" value={stats.lastSync} />
-                      <InfoRow label="Schedule" value="Rolling daily" />
-                      <InfoRow label="Data source" value="Neon sandbox" />
-                    </BlockStack>
-                  </div>
-
-                  <SoftInfoBox title="How the queue works">
-                    Each subscriber’s dates are calculated from their own
-                    subscription schedule. Fulfillment Profile rules determine
-                    what happens next.
-                  </SoftInfoBox>
-
-                  <SoftInfoBox title="Sandbox mode" emphasis>
-                    No live Little Adventures orders, emails, or inventory are
-                    changed by these demo actions.
-                  </SoftInfoBox>
-                </BlockStack>
-              </Layout.Section>
-            </Layout>
-
-            <div style={{ height: "24px" }} />
-          </BlockStack>
-        </Form>
+          <div style={{ height: "24px" }} />
+        </BlockStack>
       </Page>
     </div>
   );
@@ -1541,7 +1662,7 @@ function SectionHeader({
           fontWeight: 700,
           letterSpacing: "0.11em",
           textTransform: "uppercase",
-          color: COLORS.sage,
+          color: COLORS.primary,
           marginBottom: "6px",
         }}
       >
@@ -1583,10 +1704,12 @@ function StatBox({
   label,
   value,
   tone = "neutral",
+  strong = false,
 }: {
   label: string;
   value: string | number;
   tone?: "neutral" | "urgent" | "attention" | "positive";
+  strong?: boolean;
 }) {
   const background =
     tone === "urgent"
@@ -1594,7 +1717,7 @@ function StatBox({
       : tone === "attention"
         ? COLORS.warm
         : tone === "positive"
-          ? COLORS.sageSoft
+          ? COLORS.primarySoft
           : COLORS.white;
 
   const border =
@@ -1603,7 +1726,7 @@ function StatBox({
       : tone === "attention"
         ? COLORS.warmBorder
         : tone === "positive"
-          ? COLORS.sageSoftStrong
+          ? COLORS.primarySoftStrong
           : COLORS.border;
 
   const accent =
@@ -1612,18 +1735,20 @@ function StatBox({
       : tone === "attention"
         ? COLORS.warmText
         : tone === "positive"
-          ? COLORS.sageDark
+          ? COLORS.primaryDark
           : COLORS.muted;
 
   return (
     <div
       style={{
         background,
-        border: `1px solid ${border}`,
+        border: `${strong ? "2px" : "1px"} solid ${border}`,
         borderRadius: "15px",
         padding: "17px 18px",
         minHeight: "112px",
-        boxShadow: "0 1px 2px rgba(32,34,31,0.02)",
+        boxShadow: strong
+          ? "0 8px 22px rgba(139,66,66,0.14)"
+          : "0 1px 2px rgba(32,34,31,0.02)",
       }}
     >
       <div
@@ -1681,9 +1806,9 @@ function SoftInfoBox({
   return (
     <div
       style={{
-        background: emphasis ? COLORS.sageSoft : COLORS.white,
+        background: emphasis ? COLORS.primarySoft : COLORS.white,
         border: `1px solid ${
-          emphasis ? COLORS.sageSoftStrong : COLORS.border
+          emphasis ? COLORS.primarySoftStrong : COLORS.border
         }`,
         borderRadius: "16px",
         padding: "18px",
@@ -1764,8 +1889,8 @@ function InfoRow({
               width: "7px",
               height: "7px",
               borderRadius: "999px",
-              background: COLORS.sageDark,
-              boxShadow: "0 0 0 3px rgba(77,94,81,0.09)",
+              background: COLORS.primaryDark,
+              boxShadow: "0 0 0 3px rgba(67,86,109,0.09)",
               flexShrink: 0,
             }}
           />
@@ -1791,8 +1916,8 @@ function StatusBadge({
     "Due Today"
   ) {
     return (
-      <Badge tone="critical">
-        Due Today
+      <Badge tone="info">
+        Shipping Today
       </Badge>
     );
   }
@@ -1802,8 +1927,8 @@ function StatusBadge({
     "Due Tomorrow"
   ) {
     return (
-      <Badge tone="attention">
-        Due Tomorrow
+      <Badge tone="info">
+        Shipping Tomorrow
       </Badge>
     );
   }
@@ -1814,7 +1939,7 @@ function StatusBadge({
   ) {
     return (
       <Badge tone="info">
-        Pending Selection
+        Waiting for Selection
       </Badge>
     );
   }
@@ -1824,8 +1949,8 @@ function StatusBadge({
     "Auto-Select Needed"
   ) {
     return (
-      <Badge tone="warning">
-        Auto-Select Needed
+      <Badge tone="info">
+        Auto-Selection Scheduled
       </Badge>
     );
   }
@@ -1836,7 +1961,7 @@ function StatusBadge({
   ) {
     return (
       <Badge tone="success">
-        Order Ready
+        Ready for Shipping
       </Badge>
     );
   }
@@ -1854,9 +1979,121 @@ function StatusBadge({
 
   return (
     <Badge tone="critical">
-      Needs Review
+      Action Needed
     </Badge>
   );
+}
+
+/* ============================================================
+   ACTION NEEDED RULES
+   ============================================================ */
+
+type ActionNeededInfo = {
+  actionNeeded: boolean;
+  reason: string | null;
+  recommendedAction: string | null;
+  actionLabel: string | null;
+  actionUrl: string | null;
+};
+
+function getActionNeededInfo({
+  id,
+  subscriptionStatus,
+  workflowStatus,
+  hasFulfillmentProfile,
+  selectionDeadline,
+  autoSelectionDate,
+  latestShipmentStatus,
+}: {
+  id: string;
+  subscriptionStatus: string;
+  workflowStatus: string;
+  hasFulfillmentProfile: boolean;
+  selectionDeadline: Date;
+  autoSelectionDate: Date | null;
+  latestShipmentStatus: string | null;
+}): ActionNeededInfo {
+  const noAction: ActionNeededInfo = {
+    actionNeeded: false,
+    reason: null,
+    recommendedAction: null,
+    actionLabel: null,
+    actionUrl: null,
+  };
+
+  // Cancelled / paused / otherwise inactive subscriptions should not become
+  // human exceptions simply because they are not active.
+  if (subscriptionStatus !== "Active") {
+    return noAction;
+  }
+
+  const customerUrl = `/app/subscriber-view/${id}`;
+
+  if (workflowStatus === "Needs Review") {
+    return {
+      actionNeeded: true,
+      reason: "This subscription has been marked Needs Review.",
+      recommendedAction:
+        "Open the customer, review the subscription history and current workflow state, then correct the issue before automation continues.",
+      actionLabel: "OPEN CUSTOMER",
+      actionUrl: customerUrl,
+    };
+  }
+
+  if (!hasFulfillmentProfile && workflowStatus !== "Fulfilled") {
+    return {
+      actionNeeded: true,
+      reason: "No fulfillment profile is assigned.",
+      recommendedAction:
+        "Open the customer and confirm which fulfillment profile should control selections, timing, and fulfillment for this subscription.",
+      actionLabel: "REVIEW PROFILE",
+      actionUrl: customerUrl,
+    };
+  }
+
+  const failedShipmentStatuses = [
+    "failed",
+    "error",
+    "blocked",
+    "exception",
+  ];
+
+  if (
+    latestShipmentStatus &&
+    failedShipmentStatuses.includes(
+      latestShipmentStatus.toLowerCase(),
+    )
+  ) {
+    return {
+      actionNeeded: true,
+      reason: `Shipment status is ${latestShipmentStatus}.`,
+      recommendedAction:
+        "Open the customer, review the shipment problem, and correct the fulfillment issue before the workflow continues.",
+      actionLabel: "REVIEW SHIPMENT",
+      actionUrl: customerUrl,
+    };
+  }
+
+  const today = startOfDay(new Date());
+  const deadline = startOfDay(new Date(selectionDeadline));
+
+  if (
+    workflowStatus === "Waiting for Selection" &&
+    deadline < today &&
+    !autoSelectionDate
+  ) {
+    return {
+      actionNeeded: true,
+      reason:
+        "The selection deadline passed and no automatic fallback is scheduled.",
+      recommendedAction:
+        "Open the customer and decide the appropriate next step, such as correcting the automation rule, choosing a valid fallback, or contacting the customer.",
+      actionLabel: "RESOLVE",
+      actionUrl: customerUrl,
+    };
+  }
+
+  return noAction;
 }
 
 /* ============================================================
