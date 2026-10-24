@@ -82,7 +82,7 @@ async function main() {
     data: {
       name: "Anna Jones",
       email: "anna@email.com",
-      status: "Shipped",
+      workflowStatus: "Fulfilled",
       subscriptionStartDate: new Date("2026-09-21"),
       nextShipDate: new Date("2026-10-21"),
       nextSelectionDeadline: new Date("2026-10-18"),
@@ -117,7 +117,7 @@ async function main() {
       {
         name: "Weston Clark",
         email: "weston@email.com",
-        status: "Needs Review",
+        workflowStatus: "Needs Review",
         subscriptionStartDate: new Date("2026-09-22"),
         nextShipDate: new Date("2026-10-22"),
         nextSelectionDeadline: new Date("2026-10-19"),
@@ -126,7 +126,7 @@ async function main() {
       {
         name: "Sadie Brown",
         email: "sadie.brown@email.com",
-        status: "Pending Selection",
+        workflowStatus: "Waiting for Selection",
         subscriptionStartDate: new Date("2026-09-23"),
         nextShipDate: new Date("2026-10-23"),
         nextSelectionDeadline: new Date("2026-10-20"),

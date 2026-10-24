@@ -16,7 +16,6 @@
     "moduleResolution": "Bundler",
     "target": "ES2022",
 
-    "ignoreDeprecations": "6.0",
 
     "types": ["node"]
   }
