@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -123,8 +124,37 @@ model Subscriber {
   preferenceSubmissions PreferenceSubmission[]
   selections            Selection[]
 
+  // Secure customer preference links
+  preferenceAccessLinks PreferenceAccessLink[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============================================================
+// SECURE CUSTOMER PREFERENCE ACCESS
+// ============================================================
+//
+// Each access link belongs to one individual subscription.
+//
+// Only a hash of the secret token is stored in the database.
+// Links can expire or be revoked.
+//
+// This model does not generate or validate tokens by itself.
+// That behavior will be implemented in the application.
+// ============================================================
+
+model PreferenceAccessLink {
+  id           String     @id @default(cuid())
+  subscriberId String
+  subscriber   Subscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([subscriberId])
 }
 
 model Shipment {
