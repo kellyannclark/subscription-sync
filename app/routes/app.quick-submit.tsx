@@ -620,7 +620,7 @@ export default function QuickSubmitPage() {
     >
       <Page
         title="Quick Submit"
-        subtitle="Manually record or adjust a customer's monthly selection when needed."
+        subtitle="Manually record or adjust a subscriber's monthly selection when needed."
         backAction={{
           content: "Dashboard",
           url: "/app",
@@ -855,7 +855,7 @@ export default function QuickSubmitPage() {
                             COLORS.sageDark,
                         }}
                       >
-                        a customer needs help.
+                        a subscriber needs help.
                       </span>
                     </div>
 
@@ -1052,7 +1052,7 @@ export default function QuickSubmitPage() {
                     <BlockStack gap="400">
                       <SectionHeader
                         eyebrow="Step 1"
-                        title="Choose customer"
+                        title="Choose subscriber"
                         description="Select the subscriber whose monthly choices you need to enter or adjust."
                       />
 
@@ -1109,7 +1109,7 @@ export default function QuickSubmitPage() {
                             gap="400"
                           >
                             <InfoItem
-                              label="Customer"
+                              label="Subscriber"
                               value={
                                 selectedSubscriber.name
                               }
@@ -1212,7 +1212,7 @@ export default function QuickSubmitPage() {
                         <SectionHeader
                           eyebrow="Step 2"
                           title="Monthly selections"
-                          description="Only products allowed by the selected customer's Fulfillment Profile are available."
+                          description="Only products allowed by the selected subscriber's Fulfillment Profile are available."
                         />
 
                         <div
@@ -1402,7 +1402,7 @@ export default function QuickSubmitPage() {
                               "4px",
                           }}
                         >
-                          Save customer selections
+                          Save subscriber selections
                         </div>
 
                         <div

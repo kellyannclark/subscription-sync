@@ -499,7 +499,7 @@ Little Adventures`,
     >
       <Page
         title="Create Fulfillment Profile"
-        subtitle="Create a subscription program and define how customers move from Appstle to selection and fulfillment."
+        subtitle="Create a subscription program and define how subscribers move from Appstle to selection and fulfillment."
         backAction={{
           content: "Fulfillment Profiles",
           url: "/app/tiers",
@@ -642,7 +642,7 @@ Little Adventures`,
                     }}
                   >
                     Connect an Appstle subscription
-                    to customer selection, reminders,
+                    to subscriber selection, reminders,
                     inventory, and fulfillment rules.
                     Products and exact SKUs come next.
                   </div>
@@ -769,7 +769,7 @@ Little Adventures`,
               onChange={setDescription}
               multiline={3}
               autoComplete="off"
-              placeholder="Example: Monthly Twirl subscription with customer style and size selection."
+              placeholder="Example: Monthly Twirl subscription with subscriber style and size selection."
             />
 
             <div
@@ -809,7 +809,7 @@ Little Adventures`,
               for the subscription itself.
               SubscriptionSync uses this profile
               to control the workflow around
-              customer selection and fulfillment.
+              subscriber selection and fulfillment.
             </InfoBox>
           </SettingsSection>
 
@@ -819,8 +819,8 @@ Little Adventures`,
 
           <SettingsSection
             eyebrow="Step 3"
-            title="Customer timeline"
-            description="Choose when customers can make a selection and when SubscriptionSync should step in automatically."
+            title="Subscriber timeline"
+            description="Choose when subscribers can make a selection and when SubscriptionSync should step in automatically."
           >
             <div
               style={{
@@ -833,7 +833,7 @@ Little Adventures`,
               <TimelineSetting
                 step="01"
                 label="Selection Opens"
-                description="Customer can begin choosing."
+                description="Subscriber can begin choosing."
                 value={selectionOpenOffset}
                 onChange={setSelectionOpenOffset}
                 suffix="days before order"
@@ -842,7 +842,7 @@ Little Adventures`,
               <TimelineSetting
                 step="02"
                 label="Selection Deadline"
-                description="Customer choice closes."
+                description="Subscriber choice closes."
                 value={selectionDeadlineOffset}
                 onChange={setSelectionDeadlineOffset}
                 suffix="days before order"
@@ -867,7 +867,7 @@ Little Adventures`,
 
             <ToggleSetting
               label="Enable Auto Selection"
-              description="If the customer misses the deadline, allow SubscriptionSync to move them into the automatic selection workflow."
+              description="If the subscriber misses the deadline, allow SubscriptionSync to move them into the automatic selection workflow."
               enabled={autoSelectEnabled}
               onToggle={() =>
                 setAutoSelectEnabled(
@@ -883,8 +883,8 @@ Little Adventures`,
 
           <SettingsSection
             eyebrow="Step 4"
-            title="Customer reminders"
-            description="Choose when SubscriptionSync should remind customers before their selection deadline."
+            title="Subscriber reminders"
+            description="Choose when SubscriptionSync should remind subscribers before their selection deadline."
           >
             <div
               style={{
@@ -947,11 +947,11 @@ Little Adventures`,
           <SettingsSection
             eyebrow="Step 5"
             title="Inventory rules"
-            description="Choose how Shopify inventory should affect the products and sizes customers can select."
+            description="Choose how Shopify inventory should affect the products and sizes subscribers can select."
           >
             <ToggleSetting
               label="Hide Out-of-Stock Products"
-              description="Customers will not see unavailable products or individual size variants."
+              description="Subscribers will not see unavailable products or individual size variants."
               enabled={hideOutOfStock}
               onToggle={() =>
                 setHideOutOfStock(
@@ -964,7 +964,7 @@ Little Adventures`,
 
             <ToggleSetting
               label="Require Inventory Check"
-              description="Verify availability again before a customer selection moves into fulfillment."
+              description="Verify availability again before a subscriber selection moves into fulfillment."
               enabled={requireInventoryCheck}
               onToggle={() =>
                 setRequireInventoryCheck(
@@ -993,8 +993,8 @@ Little Adventures`,
 
           <SettingsSection
             eyebrow="Step 6"
-            title="Customer selection email"
-            description="Set up the message customers will eventually receive when it is time to make a selection."
+            title="Subscriber selection email"
+            description="Set up the message subscribers will eventually receive when it is time to make a selection."
           >
             <TextField
               label="Email Subject"
@@ -1075,7 +1075,7 @@ Little Adventures`,
                     After creating the profile,
                     choose the exact Little
                     Adventures products, sizes,
-                    and SKUs customers in this
+                    and SKUs subscribers in this
                     subscription can receive.
                   </div>
                 </div>

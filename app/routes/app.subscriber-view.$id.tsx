@@ -4,7 +4,6 @@ import { Link, useLoaderData } from "@remix-run/react";
 import {
   Badge,
   BlockStack,
-  InlineGrid,
   InlineStack,
   Layout,
   Page,
@@ -13,6 +12,7 @@ import {
 
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { COLORS } from "../styles/theme";
 
 type PreferenceSubmissionRow = {
   id: string;
@@ -45,6 +45,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       id: subscriberId,
     },
     include: {
+      fulfillmentProfile: true,
       tier: true,
       shipments: {
         orderBy: {
@@ -74,9 +75,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 export default function SubscriberViewPage() {
   const { subscriber } = useLoaderData<typeof loader>();
 
-  const autoSelectionEnabled = Boolean(
-    subscriber.autoSelectionDate,
-  );
 
   const preferenceSubmissions =
     subscriber.preferenceSubmissions as PreferenceSubmissionRow[];
@@ -90,10 +88,6 @@ export default function SubscriberViewPage() {
   const latestSelection =
     selections[0];
 
-  const nextActionLabel =
-    subscriber.autoSelectionDate
-      ? "Auto-selection scheduled"
-      : "Waiting for customer selection";
 
   return (
     <div
@@ -103,10 +97,10 @@ export default function SubscriberViewPage() {
       }}
     >
       <Page
-        title="Customer View"
-        subtitle="Review this customer's subscription, personalization, and fulfillment history."
+        title={subscriber.name}
+        subtitle={subscriber.email}
         backAction={{
-          content: "Subscriber List",
+          content: "Back to Subscribers",
           url: "/app/subscriber-list",
         }}
       >
@@ -114,388 +108,146 @@ export default function SubscriberViewPage() {
           <Layout.Section>
             <BlockStack gap="600">
 
-              {/* ==================================================
-                  HERO
-                  ================================================== */}
+              {/* Main navigation */}
+              <nav
+                aria-label="SubscriptionSync navigation"
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "10px",
+                  alignItems: "center",
+                }}
+              >
+                {[
+                  { label: "Home", to: "/app" },
+                  { label: "Subscribers", to: "/app/subscriber-list" },
+                  { label: "Activity", to: "/app/activity-log" },
+                  { label: "Settings", to: "/app/settings" },
+                ].map((item) => (
+                  <Link
+                    key={item.label}
+                    to={item.to}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "9px 14px",
+                      borderRadius: "10px",
+                      border: `1px solid ${
+                        item.label === "Subscribers"
+                          ? COLORS.primaryDark
+                          : COLORS.border
+                      }`,
+                      background:
+                        item.label === "Subscribers"
+                          ? COLORS.primarySoftStrong
+                          : COLORS.white,
+                      color: COLORS.primaryDark,
+                      fontSize: "13px",
+                      fontWeight: 650,
+                      textDecoration: "none",
+                    }}
+                  >
+                    {item.label} →
+                  </Link>
+                ))}
+              </nav>
 
+              {/* Compact subscriber status card */}
               <div
                 style={{
-                  position: "relative",
-                  overflow: "hidden",
-                  border: "1px solid #E4E5DF",
-                  borderRadius: "20px",
-                  minHeight: "230px",
-                  background: `
-                    linear-gradient(
-                      108deg,
-                      #FCFBF7 0%,
-                      #F5F4EF 48%,
-                      #D8E0D6 74%,
-                      #A8B9A9 100%
-                    )
-                  `,
-                  boxShadow:
-                    "0 10px 28px rgba(32,34,31,0.06)",
+                  borderRadius: "18px",
+                  border: `1px solid ${COLORS.border}`,
+                  background: `linear-gradient(
+                    105deg,
+                    #FCFBF7 0%,
+                    #F7F6F1 58%,
+                    ${COLORS.primarySoftStrong} 100%
+                  )`,
+                  padding: "20px 22px",
+                  boxShadow: "0 2px 8px rgba(32,34,31,0.04)",
                 }}
               >
                 <div
                   style={{
-                    position: "absolute",
-                    width: "390px",
-                    height: "390px",
-                    borderRadius: "50%",
-                    background:
-                      "radial-gradient(circle, rgba(57,72,61,0.22) 0%, rgba(57,72,61,0.07) 45%, transparent 70%)",
-                    right: "-85px",
-                    top: "-180px",
-                    pointerEvents: "none",
-                  }}
-                />
-
-                <div
-                  style={{
-                    position: "absolute",
-                    width: "560px",
-                    height: "170px",
-                    borderRadius: "50%",
-                    background:
-                      "linear-gradient(135deg, rgba(57,72,61,0.94), rgba(104,122,108,0.74))",
-                    right: "-160px",
-                    bottom: "-125px",
-                    transform: "rotate(-5deg)",
-                    pointerEvents: "none",
-                  }}
-                />
-
-                <div
-                  style={{
-                    position: "absolute",
-                    width: "245px",
-                    height: "245px",
-                    borderRadius: "50%",
-                    border:
-                      "1px solid rgba(255,255,255,0.28)",
-                    right: "38px",
-                    top: "-28px",
-                    pointerEvents: "none",
-                  }}
-                />
-
-                <div
-                  style={{
-                    position: "relative",
-                    zIndex: 2,
-                    padding: "36px 38px",
-                  }}
-                >
-                  <InlineStack
-                    align="space-between"
-                    blockAlign="center"
-                    gap="600"
-                    wrap
-                  >
-                    <div
-                      style={{
-                        maxWidth: "640px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          letterSpacing: "0.12em",
-                          textTransform: "uppercase",
-                          color: "#4D5E51",
-                          marginBottom: "14px",
-                        }}
-                      >
-                        Subscriber profile
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: "30px",
-                          lineHeight: 1.12,
-                          fontWeight: 650,
-                          letterSpacing: "-0.035em",
-                          color: "#20221F",
-                          marginBottom: "11px",
-                        }}
-                      >
-                        {subscriber.name}
-                        <br />
-                        <span
-                          style={{
-                            color: "#4D5E51",
-                          }}
-                        >
-                          subscription at a glance.
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          maxWidth: "560px",
-                          fontSize: "14px",
-                          lineHeight: 1.6,
-                          color: "#52574F",
-                        }}
-                      >
-                        See the customer's subscription
-                        details, selection activity,
-                        upcoming schedule, and shipment
-                        history in one place.
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        minWidth: "235px",
-                        padding: "18px 20px",
-                        borderRadius: "16px",
-                        background:
-                          "rgba(255,255,255,0.76)",
-                        border:
-                          "1px solid rgba(255,255,255,0.72)",
-                        backdropFilter: "blur(8px)",
-                        boxShadow:
-                          "0 8px 24px rgba(32,34,31,0.07)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "10px",
-                          fontWeight: 700,
-                          letterSpacing: "0.10em",
-                          textTransform: "uppercase",
-                          color: "#4D5E51",
-                          marginBottom: "9px",
-                        }}
-                      >
-                        Current status
-                      </div>
-
-                      <div
-                        style={{
-                          marginBottom: "10px",
-                        }}
-                      >
-                        <SubscriptionStatusBadge
-                          status={subscriber.subscriptionStatus}
-                        />
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          lineHeight: 1.45,
-                          color: "#787D75",
-                        }}
-                      >
-                        {nextActionLabel}
-                      </div>
-
-                      <div
-                        style={{
-                          height: "1px",
-                          background:
-                            "rgba(77,94,81,0.12)",
-                          margin: "13px 0",
-                        }}
-                      />
-
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          color: "#52574F",
-                        }}
-                      >
-                        {selections.length} selection
-                        {selections.length === 1 ? "" : "s"} •{" "}
-                        {shipments.length} shipment
-                        {shipments.length === 1 ? "" : "s"}
-                      </div>
-                    </div>
-                  </InlineStack>
-                </div>
-
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "15px",
-                    right: "15px",
-                    background:
-                      "rgba(255,255,255,0.76)",
-                    border:
-                      "1px solid rgba(77,94,81,0.16)",
-                    borderRadius: "999px",
-                    padding: "7px 11px",
-                    backdropFilter: "blur(7px)",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      fontWeight: 650,
-                      color: "#4D5E51",
-                    }}
-                  >
-                    ● Development sandbox
-                  </span>
-                </div>
-              </div>
-
-              {/* ==================================================
-                  QUICK SUMMARY
-                  ================================================== */}
-
-              <div>
-                <SectionHeader
-                  eyebrow="Overview"
-                  title="Customer summary"
-                  description="The most important subscription and fulfillment details for this customer."
-                />
-
-                <div
-                  style={{
                     display: "grid",
                     gridTemplateColumns:
-                      "repeat(auto-fit, minmax(190px, 1fr))",
-                    gap: "12px",
-                    marginTop: "16px",
+                      "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: "20px",
+                    alignItems: "start",
                   }}
                 >
-                  <SummaryCard
-                    label="Subscription"
-                    value={subscriber.tier?.name ?? "No tier assigned"}
-                  />
+                  <div>
+                    <div style={{
+                      color: COLORS.textSoft,
+                      fontSize: "12px",
+                      marginBottom: "8px",
+                    }}>
+                      Subscription status
+                    </div>
+                    <SubscriptionStatusBadge
+                      status={subscriber.subscriptionStatus}
+                    />
+                  </div>
 
-                  <SummaryCard
-                    label="Next ship date"
-                    value={formatDate(
-                      subscriber.nextShipDate,
-                    )}
-                  />
+                  <div>
+                    <div style={{
+                      color: COLORS.textSoft,
+                      fontSize: "12px",
+                      marginBottom: "8px",
+                    }}>
+                      Workflow status
+                    </div>
+                    <WorkflowStatusBadge
+                      status={subscriber.workflowStatus}
+                    />
+                  </div>
 
-                  <SummaryCard
-                    label="Selection deadline"
-                    value={formatDate(
-                      subscriber.nextSelectionDeadline,
-                    )}
-                  />
-
-                  <SummaryCard
-                    label="Auto-selection"
-                    value={
-                      autoSelectionEnabled
-                        ? formatDate(
-                            subscriber.autoSelectionDate,
-                          )
-                        : "Not scheduled"
-                    }
-                  />
+                  <div>
+                    <div style={{
+                      color: COLORS.textSoft,
+                      fontSize: "12px",
+                      marginBottom: "8px",
+                    }}>
+                      Fulfillment profile
+                    </div>
+                    <div style={{
+                      color: COLORS.text,
+                      fontSize: "14px",
+                      fontWeight: 650,
+                    }}>
+                      {subscriber.fulfillmentProfile?.name
+                        ?? subscriber.tier?.name
+                        ?? "Not assigned"}
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* ==================================================
-                  PROFILE + SCHEDULE
-                  ================================================== */}
-
-              <InlineGrid
-                columns={{ xs: 1, md: 2 }}
-                gap="400"
+              {/* Essential schedule information */}
+              <SoftSection
+                eyebrow="Schedule"
+                title="Key dates"
+                description="Selection and shipping dates recorded for this subscription."
               >
-                <SoftSection
-                  eyebrow="Customer"
-                  title="Customer information"
-                  description="Identity and current subscription status."
-                >
-                  <InfoRow
-                    label="Name"
-                    value={subscriber.name}
-                  />
-
-                  <InfoRow
-                    label="Email"
-                    value={subscriber.email}
-                  />
-
-                  <InfoRow
-                    label="Subscription Tier"
-                    value={
-                      subscriber.tier?.name ??
-                      "No tier assigned"
-                    }
-                  />
-
-                  <InfoRow
-                    label="Subscription Status"
-                    valueNode={
-                      <SubscriptionStatusBadge
-                        status={subscriber.subscriptionStatus}
-                      />
-                    }
-                  />
-
-                  <InfoRow
-                    label="Workflow Status"
-                    valueNode={
-                      <WorkflowStatusBadge
-                        status={subscriber.workflowStatus}
-                      />
-                    }
-                  />
-
-                  <InfoRow
-                    label="Auto Selection"
-                    valueNode={
-                      autoSelectionEnabled ? (
-                        <Badge tone="success">
-                          Scheduled
-                        </Badge>
-                      ) : (
-                        <Badge tone="attention">
-                          Not scheduled
-                        </Badge>
-                      )
-                    }
-                  />
-                </SoftSection>
-
-                <SoftSection
-                  eyebrow="Schedule"
-                  title="Subscription schedule"
-                  description="Upcoming dates that drive this customer's workflow."
-                >
-                  <InfoRow
-                    label="Subscription Start Date"
-                    value={formatDate(
-                      subscriber.subscriptionStartDate,
-                    )}
-                  />
-
-                  <InfoRow
-                    label="Next Ship Date"
-                    value={formatDate(
-                      subscriber.nextShipDate,
-                    )}
-                  />
-
-                  <InfoRow
-                    label="Next Selection Deadline"
-                    value={formatDate(
-                      subscriber.nextSelectionDeadline,
-                    )}
-                  />
-
-                  <InfoRow
-                    label="Auto-Selection Date"
-                    value={formatDate(
-                      subscriber.autoSelectionDate,
-                    )}
-                  />
-                </SoftSection>
-              </InlineGrid>
+                <InfoRow
+                  label="Selection deadline"
+                  value={formatDate(
+                    subscriber.nextSelectionDeadline
+                  )}
+                />
+                <InfoRow
+                  label="Next ship date"
+                  value={formatDate(
+                    subscriber.nextShipDate
+                  )}
+                />
+                <InfoRow
+                  label="Auto-selection date (configured)"
+                  value={formatDate(
+                    subscriber.autoSelectionDate
+                  )}
+                />
+              </SoftSection>
 
               {/* ==================================================
                   LATEST SELECTION
@@ -571,7 +323,7 @@ export default function SubscriberViewPage() {
               <HistorySection
                 eyebrow="Personalization"
                 title="Form submission history"
-                description="Customer-submitted preferences and sizing information."
+                description="Subscriber-submitted preferences and sizing information."
               >
                 <div style={{ overflowX: "auto" }}>
                   <table
@@ -634,7 +386,7 @@ export default function SubscriberViewPage() {
                               </TableCell>
 
                               <TableCell>
-                                Customer Form
+                                Subscriber Form
                               </TableCell>
                             </tr>
                           ),
@@ -659,7 +411,7 @@ export default function SubscriberViewPage() {
               <HistorySection
                 eyebrow="Selections"
                 title="Selection history"
-                description="Products chosen by the customer or created through SubscriptionSync."
+                description="Products chosen by the subscriber or created through SubscriptionSync."
               >
                 <div style={{ overflowX: "auto" }}>
                   <table
@@ -740,7 +492,7 @@ export default function SubscriberViewPage() {
               <HistorySection
                 eyebrow="Fulfillment"
                 title="Shipment history"
-                description="Past and upcoming shipment records associated with this customer."
+                description="Past and upcoming shipment records associated with this subscriber."
               >
                 <div style={{ overflowX: "auto" }}>
                   <table

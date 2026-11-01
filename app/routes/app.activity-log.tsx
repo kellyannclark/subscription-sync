@@ -2,6 +2,7 @@ import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 
 import {
+  Link,
   useLoaderData,
 } from "@remix-run/react";
 
@@ -212,377 +213,48 @@ export default function ActivityLogPage() {
       >
         <BlockStack gap="600">
 
-          {/* ==================================================
-              HERO
-              ================================================== */}
-
-          <div
+          {/* Main navigation */}
+          <nav
+            aria-label="SubscriptionSync navigation"
             style={{
-              position: "relative",
-              overflow: "hidden",
-
-              border:
-                `1px solid ${COLORS.border}`,
-
-              borderRadius: "20px",
-
-              minHeight: "215px",
-
-              background: `
-                linear-gradient(
-                  108deg,
-                  #FCFBF7 0%,
-                  #F5F4EF 48%,
-                  #D8E0D6 74%,
-                  #A8B9A9 100%
-                )
-              `,
-
-              boxShadow:
-                "0 10px 28px rgba(32,34,31,0.06)",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "10px",
+              marginBottom: "18px",
             }}
           >
-            <div
-              style={{
-                position: "absolute",
-
-                width: "390px",
-                height: "390px",
-
-                borderRadius: "50%",
-
-                background:
-                  "radial-gradient(circle, rgba(57,72,61,0.22) 0%, rgba(57,72,61,0.07) 45%, transparent 70%)",
-
-                right: "-85px",
-                top: "-180px",
-
-                pointerEvents: "none",
-              }}
-            />
-
-            <div
-              style={{
-                position: "absolute",
-
-                width: "560px",
-                height: "170px",
-
-                borderRadius: "50%",
-
-                background:
-                  "linear-gradient(135deg, rgba(57,72,61,0.94), rgba(104,122,108,0.74))",
-
-                right: "-160px",
-                bottom: "-125px",
-
-                transform:
-                  "rotate(-5deg)",
-
-                pointerEvents: "none",
-              }}
-            />
-
-            <div
-              style={{
-                position: "absolute",
-
-                width: "245px",
-                height: "245px",
-
-                borderRadius: "50%",
-
-                border:
-                  "1px solid rgba(255,255,255,0.28)",
-
-                right: "38px",
-                top: "-28px",
-
-                pointerEvents: "none",
-              }}
-            />
-
-            <div
-              style={{
-                position: "relative",
-                zIndex: 2,
-
-                padding:
-                  "36px 38px",
-              }}
-            >
-              <InlineStack
-                align="space-between"
-                blockAlign="center"
-                gap="600"
-                wrap
-              >
-                <div
-                  style={{
-                    maxWidth: "620px",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "11px",
-
-                      fontWeight: 700,
-
-                      letterSpacing:
-                        "0.12em",
-
-                      textTransform:
-                        "uppercase",
-
-                      color:
-                        COLORS.sageDark,
-
-                      marginBottom:
-                        "14px",
-                    }}
-                  >
-                    System history
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: "30px",
-
-                      lineHeight: 1.12,
-
-                      fontWeight: 650,
-
-                      letterSpacing:
-                        "-0.035em",
-
-                      color:
-                        COLORS.text,
-
-                      marginBottom:
-                        "11px",
-                    }}
-                  >
-                    See what happened.
-                    <br />
-
-                    <span
-                      style={{
-                        color:
-                          COLORS.sageDark,
-                      }}
-                    >
-                      Understand what changed.
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      maxWidth: "560px",
-
-                      fontSize: "14px",
-
-                      lineHeight: 1.6,
-
-                      color:
-                        COLORS.textSoft,
-                    }}
-                  >
-                    Search and audit SubscriptionSync
-                    activity across automation,
-                    reminders, fulfillment, manual
-                    actions, and system events.
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    minWidth: "225px",
-
-                    padding:
-                      "18px 20px",
-
-                    borderRadius: "16px",
-
-                    background:
-                      "rgba(255,255,255,0.76)",
-
-                    border:
-                      "1px solid rgba(255,255,255,0.72)",
-
-                    backdropFilter:
-                      "blur(8px)",
-
-                    boxShadow:
-                      "0 8px 24px rgba(32,34,31,0.07)",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: "10px",
-
-                      fontWeight: 700,
-
-                      letterSpacing:
-                        "0.10em",
-
-                      textTransform:
-                        "uppercase",
-
-                      color:
-                        COLORS.sageDark,
-
-                      marginBottom:
-                        "9px",
-                    }}
-                  >
-                    Recorded activity
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: "30px",
-
-                      lineHeight: 1,
-
-                      fontWeight: 650,
-
-                      letterSpacing:
-                        "-0.04em",
-
-                      color: COLORS.text,
-
-                      marginBottom:
-                        "8px",
-                    }}
-                  >
-                    {logs.length}
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: "12px",
-                      lineHeight: 1.45,
-                      color: COLORS.muted,
-                    }}
-                  >
-                    total event
-                    {logs.length === 1
-                      ? ""
-                      : "s"}
-                  </div>
-
-                  <div
-                    style={{
-                      height: "1px",
-                      background:
-                        "rgba(77,94,81,0.12)",
-                      margin:
-                        "13px 0",
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color:
-                        attentionCount > 0
-                          ? COLORS.warmText
-                          : COLORS.sageDark,
-                    }}
-                  >
-                    {attentionCount} need
-                    {attentionCount === 1
-                      ? "s"
-                      : ""}{" "}
-                    attention
-                  </div>
-                </div>
-              </InlineStack>
-            </div>
-
-            <div
-              style={{
-                position: "absolute",
-
-                top: "15px",
-                right: "15px",
-
-                background:
-                  "rgba(255,255,255,0.76)",
-
-                border:
-                  "1px solid rgba(77,94,81,0.16)",
-
-                borderRadius: "999px",
-
-                padding: "7px 11px",
-
-                backdropFilter:
-                  "blur(7px)",
-              }}
-            >
-              <span
+            {[
+              { label: "Home", to: "/app" },
+              { label: "Subscribers", to: "/app/subscriber-list" },
+              { label: "Activity", to: "/app/activity-log" },
+              { label: "Settings", to: "/app/settings" },
+            ].map((item) => (
+              <Link
+                key={item.label}
+                to={item.to}
+                aria-current={
+                  item.label === "Activity" ? "page" : undefined
+                }
                 style={{
-                  fontSize: "11px",
-
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "9px 14px",
+                  borderRadius: "10px",
+                  border: "1px solid #D6DDE5",
+                  background:
+                    item.label === "Activity"
+                      ? "#E6EDF5"
+                      : "#FFFFFF",
+                  color: "#43566D",
+                  fontSize: "13px",
                   fontWeight: 650,
-
-                  color:
-                    COLORS.sageDark,
+                  textDecoration: "none",
                 }}
               >
-                ● Sandbox activity
-              </span>
-            </div>
-          </div>
-
-          {/* ==================================================
-              SNAPSHOT
-              ================================================== */}
-
-          <div>
-            <SectionHeader
-              eyebrow="Overview"
-              title="Activity snapshot"
-              description="A quick summary of the system history currently recorded by SubscriptionSync."
-            />
-
-            <div
-              style={{
-                display: "grid",
-
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(175px, 1fr))",
-
-                gap: "12px",
-
-                marginTop: "16px",
-              }}
-            >
-              <ActivityMetric
-                label="Total events"
-                value={logs.length}
-              />
-
-              <ActivityMetric
-                label="Successful"
-                value={successCount}
-                tone="success"
-              />
-
-              <ActivityMetric
-                label="Warnings"
-                value={warningCount}
-                tone="attention"
-              />
-
-              <ActivityMetric
-                label="Errors"
-                value={errorCount}
-                tone="critical"
-              />
-            </div>
-          </div>
+                {item.label} →
+              </Link>
+            ))}
+          </nav>
 
           {/* ==================================================
               FILTERS

@@ -128,7 +128,7 @@ export const loader = async ({
     existingSettings ??
     (await db.settings.create({
       data: {
-        automationEnabled: true,
+        automationEnabled: false,
 
         selectionDeadlineOffset: 7,
         autoSelectionOffset: 2,
@@ -146,8 +146,8 @@ export const loader = async ({
         hideDiscontinued: true,
         allowBackorders: false,
 
-        autoCreateOrders: true,
-        requireManualReview: false,
+        autoCreateOrders: false,
+        requireManualReview: true,
 
         autoOrderTag:
           "SubscriptionSync-Auto",
@@ -263,121 +263,24 @@ export const action = async ({
     formData.get("intent");
 
   /* ==========================================================
-     SYNC
+     INTEGRATION ACTIONS — NOT IMPLEMENTED YET
      ========================================================== */
 
   if (
-    intent ===
-    "sync-now"
+    intent === "sync-now" ||
+    intent === "test-reminder" ||
+    intent === "generate-test-order"
   ) {
-    await db.activityLog.create({
-      data: {
-        eventType: "Sync",
-
-        description:
-          "Manual settings sync check started.",
-
-        status: "Success",
-
-        user: "Admin",
-
-        source: "Settings",
-      },
-    });
+    const message =
+      intent === "sync-now"
+        ? "Appstle synchronization is not implemented yet. No sync was performed."
+        : intent === "test-reminder"
+          ? "Test reminder delivery is not implemented yet. No email was sent."
+          : "Test order generation is not implemented yet. No Shopify order was created.";
 
     return json<ActionResponse>({
-      success: true,
-
-      message:
-        "Sync check completed successfully.",
-    });
-  }
-
-  /* ==========================================================
-     TEST REMINDER
-     ========================================================== */
-
-  if (
-    intent ===
-    "test-reminder"
-  ) {
-    const testSubscriberEmail =
-      formData.get(
-        "testSubscriberEmail",
-      );
-
-    if (
-      !testSubscriberEmail ||
-      typeof testSubscriberEmail !==
-        "string"
-    ) {
-      return json<ActionResponse>({
-        success: false,
-
-        message:
-          "Enter a test subscriber email before sending a reminder.",
-      });
-    }
-
-    await db.activityLog.create({
-      data: {
-        eventType:
-          "Reminder",
-
-        description:
-          `Test reminder prepared for ${testSubscriberEmail}.`,
-
-        status:
-          "Success",
-
-        user:
-          "Admin",
-
-        source:
-          "Settings",
-      },
-    });
-
-    return json<ActionResponse>({
-      success: true,
-
-      message:
-        `Test reminder prepared for ${testSubscriberEmail}.`,
-    });
-  }
-
-  /* ==========================================================
-     TEST ORDER
-     ========================================================== */
-
-  if (
-    intent ===
-    "generate-test-order"
-  ) {
-    await db.activityLog.create({
-      data: {
-        eventType:
-          "Order",
-
-        description:
-          "Sandbox test order generation started.",
-
-        status:
-          "Success",
-
-        user:
-          "Admin",
-
-        source:
-          "Settings",
-      },
-    });
-
-    return json<ActionResponse>({
-      success: true,
-
-      message:
-        "Sandbox test order generation started.",
+      success: false,
+      message,
     });
   }
 
@@ -1115,7 +1018,7 @@ export default function SettingsPage() {
                     >
                       Configure the default behavior
                       SubscriptionSync uses across
-                      reminders, customer choices,
+                      reminders, subscriber choices,
                       product availability, and
                       fulfillment.
                     </div>
@@ -1299,11 +1202,11 @@ export default function SettingsPage() {
               >
                 <TimelineCard
                   step="01"
-                  title="Customer selection"
+                  title="Subscriber selection"
                   description="Selection deadline"
                 >
                   <Select
-                    label="Customer selection deadline"
+                    label="Subscriber selection deadline"
                     labelHidden
                     value={
                       selectionDeadlineOffset
@@ -1349,7 +1252,7 @@ export default function SettingsPage() {
                 <TimelineCard
                   step="02"
                   title="Automatic selection"
-                  description="If the customer has not selected"
+                  description="If the subscriber has not selected"
                 >
                   <Select
                     label="Automatic selection timing"
@@ -1440,8 +1343,8 @@ export default function SettingsPage() {
 
             <SettingsSection
               eyebrow="Communication"
-              title="Customer reminders"
-              description="Choose which reminders customers receive before their selection deadline."
+              title="Subscriber reminders"
+              description="Choose which reminders subscribers receive before their selection deadline."
             >
               <div
                 style={{
@@ -1519,11 +1422,11 @@ export default function SettingsPage() {
             <SettingsSection
               eyebrow="Products"
               title="Product availability"
-              description="Control which products and size variants customers can see and select."
+              description="Control which products and size variants subscribers can see and select."
             >
               <ToggleSetting
                 label="Hide out-of-stock products"
-                description="Products and sizes with no available inventory will not appear on customer selection forms."
+                description="Products and sizes with no available inventory will not appear on subscriber selection forms."
                 enabled={
                   hideOutOfStock
                 }
@@ -1539,7 +1442,7 @@ export default function SettingsPage() {
 
               <ToggleSetting
                 label="Hide discontinued products"
-                description="Keep discontinued products out of customer selection options."
+                description="Keep discontinued products out of subscriber selection options."
                 enabled={
                   hideDiscontinued
                 }
@@ -1575,7 +1478,7 @@ export default function SettingsPage() {
             <SettingsSection
               eyebrow="Fulfillment"
               title="Order processing"
-              description="Control how SubscriptionSync prepares Shopify orders after customer selections are complete."
+              description="Control how SubscriptionSync prepares Shopify orders after subscriber selections are complete."
             >
               <ToggleSetting
                 label="Automatically create orders"
@@ -1683,7 +1586,7 @@ export default function SettingsPage() {
             <SettingsSection
               eyebrow="Communication"
               title="Email settings"
-              description="Configure the default sender used for SubscriptionSync customer communication."
+              description="Configure the default sender used for SubscriptionSync subscriber communication."
             >
               <TextField
                 label="Sender Email"
@@ -1698,7 +1601,7 @@ export default function SettingsPage() {
               />
 
               <InfoBox>
-                Customer selection templates are
+                Subscriber selection templates are
                 configured within each Fulfillment
                 Profile. This setting controls the
                 default sender address.
@@ -1889,7 +1792,7 @@ export default function SettingsPage() {
                 />
 
                 <TextField
-                  label="Test Customer Email"
+                  label="Test Subscriber Email"
                   value={
                     testSubscriberEmail
                   }
@@ -1897,7 +1800,7 @@ export default function SettingsPage() {
                     setTestSubscriberEmail
                   }
                   autoComplete="email"
-                  placeholder="customer@example.com"
+                  placeholder="subscriber@example.com"
                 />
 
                 <InlineStack

@@ -1,3 +1,4 @@
+import { COLORS as HOME_COLORS } from "../styles/theme";
 import type { LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 
@@ -31,7 +32,7 @@ import db from "../db.server";
    SUBSCRIPTIONSYNC DESIGN SYSTEM
    ============================================================ */
 
-const COLORS = {
+const LEGACY_COLORS = {
   // Main surfaces
   page: "#F7F7F4",
   white: "#FFFFFF",
@@ -65,6 +66,21 @@ const COLORS = {
   criticalSoft: "#F8EDEC",
   criticalBorder: "#E8C7C4",
 };
+
+const COLORS = {
+  ...LEGACY_COLORS,
+  page: HOME_COLORS.page,
+  text: HOME_COLORS.text,
+  textSoft: HOME_COLORS.textSoft,
+  border: HOME_COLORS.border,
+
+  sage: HOME_COLORS.primaryDark,
+  sageDark: HOME_COLORS.primaryDark,
+  sageDeep: HOME_COLORS.primaryDark,
+  sageSoft: HOME_COLORS.primarySoftStrong,
+  sageSoftStrong: HOME_COLORS.primarySoftStrong,
+};
+
 
 /* ============================================================
    TYPES
@@ -420,7 +436,7 @@ export default function SubscriberListPage() {
     >
       <Page
         title="Subscribers"
-        subtitle="Monitor subscription status, personalization progress, and upcoming fulfillment activity."
+        subtitle="Find subscribers and review their dress-selection workflow."
         backAction={{
           content:
             "Dashboard",
@@ -433,479 +449,83 @@ export default function SubscriberListPage() {
           <Layout.Section>
             <BlockStack gap="600">
 
-              {/* ==================================================
-                  HERO
-                  ================================================== */}
+              
+              
+              {/* Navigation */}
+              <style>{`
+                .ss-subscribers-nav {
+                  display: flex;
+                  flex-wrap: wrap;
+                  align-items: center;
+                  gap: 10px;
+                  margin-bottom: 2px;
+                }
 
-              <div
-                style={{
-                  position:
-                    "relative",
+                .ss-subscribers-nav-link {
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+                  padding: 9px 14px;
+                  border-radius: 10px;
+                  background: ${HOME_COLORS.white};
+                  color: ${HOME_COLORS.primaryDark};
+                  border: 1px solid ${HOME_COLORS.border};
+                  text-decoration: none;
+                  font-size: 13px;
+                  font-weight: 650;
+                  transition:
+                    background .15s ease,
+                    border-color .15s ease,
+                    box-shadow .15s ease;
+                }
 
-                  overflow:
-                    "hidden",
+                .ss-subscribers-nav-link:hover,
+                .ss-subscribers-nav-link:focus-visible {
+                  background: ${HOME_COLORS.primarySoftStrong};
+                  border-color: ${HOME_COLORS.primaryDark};
+                  box-shadow: 0 2px 7px rgba(32,34,31,.08);
+                  outline-offset: 2px;
+                }
 
-                  border:
-                    `1px solid ${COLORS.border}`,
+                .ss-subscribers-nav-link--active {
+                  background: ${HOME_COLORS.primarySoftStrong};
+                  border-color: ${HOME_COLORS.primaryDark};
+                }
+              `}</style>
 
-                  borderRadius:
-                    "20px",
-
-                  minHeight:
-                    "220px",
-
-                  background: `
-                    linear-gradient(
-                      108deg,
-                      #FCFBF7 0%,
-                      #F5F4EF 48%,
-                      #D8E0D6 74%,
-                      #A8B9A9 100%
-                    )
-                  `,
-
-                  boxShadow:
-                    "0 10px 28px rgba(32,34,31,0.06)",
-                }}
+              <nav
+                className="ss-subscribers-nav"
+                aria-label="SubscriptionSync navigation"
               >
-                <div
-                  style={{
-                    position:
-                      "absolute",
-
-                    width:
-                      "390px",
-
-                    height:
-                      "390px",
-
-                    borderRadius:
-                      "50%",
-
-                    background:
-                      "radial-gradient(circle, rgba(57,72,61,0.22) 0%, rgba(57,72,61,0.07) 45%, transparent 70%)",
-
-                    right:
-                      "-85px",
-
-                    top:
-                      "-180px",
-
-                    pointerEvents:
-                      "none",
-                  }}
-                />
-
-                <div
-                  style={{
-                    position:
-                      "absolute",
-
-                    width:
-                      "560px",
-
-                    height:
-                      "170px",
-
-                    borderRadius:
-                      "50%",
-
-                    background:
-                      "linear-gradient(135deg, rgba(57,72,61,0.94), rgba(104,122,108,0.74))",
-
-                    right:
-                      "-160px",
-
-                    bottom:
-                      "-125px",
-
-                    transform:
-                      "rotate(-5deg)",
-
-                    pointerEvents:
-                      "none",
-                  }}
-                />
-
-                <div
-                  style={{
-                    position:
-                      "absolute",
-
-                    width:
-                      "245px",
-
-                    height:
-                      "245px",
-
-                    borderRadius:
-                      "50%",
-
-                    border:
-                      "1px solid rgba(255,255,255,0.28)",
-
-                    right:
-                      "38px",
-
-                    top:
-                      "-28px",
-
-                    pointerEvents:
-                      "none",
-                  }}
-                />
-
-                <div
-                  style={{
-                    position:
-                      "relative",
-
-                    zIndex:
-                      2,
-
-                    padding:
-                      "36px 38px",
-                  }}
+                <Link
+                  className="ss-subscribers-nav-link"
+                  to="/app"
                 >
-                  <InlineStack
-                    align="space-between"
-                    blockAlign="center"
-                    gap="600"
-                    wrap
-                  >
-                    <div
-                      style={{
-                        maxWidth:
-                          "650px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize:
-                            "11px",
+                  Home →
+                </Link>
 
-                          fontWeight:
-                            700,
-
-                          letterSpacing:
-                            "0.12em",
-
-                          textTransform:
-                            "uppercase",
-
-                          color:
-                            COLORS.sageDark,
-
-                          marginBottom:
-                            "14px",
-                        }}
-                      >
-                        Customer operations
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize:
-                            "30px",
-
-                          lineHeight:
-                            1.12,
-
-                          fontWeight:
-                            650,
-
-                          letterSpacing:
-                            "-0.035em",
-
-                          color:
-                            COLORS.text,
-
-                          marginBottom:
-                            "11px",
-                        }}
-                      >
-                        Every subscriber,
-                        <br />
-
-                        <span
-                          style={{
-                            color:
-                              COLORS.sageDark,
-                          }}
-                        >
-                          one clear workflow.
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          maxWidth:
-                            "580px",
-
-                          fontSize:
-                            "14px",
-
-                          lineHeight:
-                            1.6,
-
-                          color:
-                            COLORS.textSoft,
-                        }}
-                      >
-                        Review each customer’s
-                        subscription, fulfillment
-                        profile, selection status,
-                        and next operational date
-                        from one place.
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        minWidth:
-                          "225px",
-
-                        padding:
-                          "18px 20px",
-
-                        borderRadius:
-                          "16px",
-
-                        background:
-                          "rgba(255,255,255,0.76)",
-
-                        border:
-                          "1px solid rgba(255,255,255,0.72)",
-
-                        backdropFilter:
-                          "blur(8px)",
-
-                        boxShadow:
-                          "0 8px 24px rgba(32,34,31,0.07)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize:
-                            "10px",
-
-                          fontWeight:
-                            700,
-
-                          letterSpacing:
-                            "0.10em",
-
-                          textTransform:
-                            "uppercase",
-
-                          color:
-                            COLORS.sageDark,
-
-                          marginBottom:
-                            "9px",
-                        }}
-                      >
-                        Subscriber base
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize:
-                            "30px",
-
-                          lineHeight:
-                            1,
-
-                          fontWeight:
-                            650,
-
-                          letterSpacing:
-                            "-0.04em",
-
-                          color:
-                            COLORS.text,
-
-                          marginBottom:
-                            "8px",
-                        }}
-                      >
-                        {
-                          stats.total
-                        }
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize:
-                            "12px",
-
-                          lineHeight:
-                            1.45,
-
-                          color:
-                            COLORS.muted,
-                        }}
-                      >
-                        total subscriber
-                        {stats.total === 1
-                          ? ""
-                          : "s"}
-                      </div>
-
-                      <div
-                        style={{
-                          height:
-                            "1px",
-
-                          background:
-                            "rgba(77,94,81,0.12)",
-
-                          margin:
-                            "13px 0",
-                        }}
-                      />
-
-                      <div
-                        style={{
-                          fontSize:
-                            "11px",
-
-                          color:
-                            stats.needsAttention > 0
-                              ? COLORS.warmText
-                              : COLORS.sageDark,
-                        }}
-                      >
-                        {
-                          stats.needsAttention
-                        }{" "}
-                        need
-                        {stats.needsAttention === 1
-                          ? "s"
-                          : ""}{" "}
-                        attention
-                      </div>
-                    </div>
-                  </InlineStack>
-                </div>
-
-                <div
-                  style={{
-                    position:
-                      "absolute",
-
-                    top:
-                      "15px",
-
-                    right:
-                      "15px",
-
-                    background:
-                      "rgba(255,255,255,0.76)",
-
-                    border:
-                      "1px solid rgba(77,94,81,0.16)",
-
-                    borderRadius:
-                      "999px",
-
-                    padding:
-                      "7px 11px",
-
-                    backdropFilter:
-                      "blur(7px)",
-                  }}
+                <Link
+                  className="ss-subscribers-nav-link ss-subscribers-nav-link--active"
+                  to="/app/subscriber-list"
+                  aria-current="page"
                 >
-                  <span
-                    style={{
-                      fontSize:
-                        "11px",
+                  Subscribers →
+                </Link>
 
-                      fontWeight:
-                        650,
-
-                      color:
-                        COLORS.sageDark,
-                    }}
-                  >
-                    ● Development sandbox
-                  </span>
-                </div>
-              </div>
-
-              {/* ==================================================
-                  SNAPSHOT
-                  ================================================== */}
-
-              <div>
-                <SectionHeader
-                  eyebrow="Overview"
-                  title="Subscription snapshot"
-                  description="A quick view of the current subscriber and fulfillment workload."
-                />
-
-                <div
-                  style={{
-                    display:
-                      "grid",
-
-                    gridTemplateColumns:
-                      "repeat(auto-fit, minmax(165px, 1fr))",
-
-                    gap:
-                      "12px",
-
-                    marginTop:
-                      "16px",
-                  }}
+                <Link
+                  className="ss-subscribers-nav-link"
+                  to="/app/activity-log"
                 >
-                  <SubscriberMetric
-                    label="Total"
-                    value={
-                      stats.total
-                    }
-                  />
+                  Activity →
+                </Link>
 
-                  <SubscriberMetric
-                    label="Active"
-                    value={
-                      stats.active
-                    }
-                    tone="success"
-                  />
-
-                  <SubscriberMetric
-                    label="Waiting"
-                    value={
-                      stats.waitingForSelection
-                    }
-                  />
-
-                  <SubscriberMetric
-                    label="Ready"
-                    value={
-                      stats.readyForFulfillment
-                    }
-                    tone="success"
-                  />
-
-                  <SubscriberMetric
-                    label="Fulfilled"
-                    value={
-                      stats.fulfilled
-                    }
-                    tone="success"
-                  />
-
-                  <SubscriberMetric
-                    label="Needs attention"
-                    value={
-                      stats.needsAttention
-                    }
-                    tone="attention"
-                  />
-                </div>
-              </div>
+                <Link
+                  className="ss-subscribers-nav-link"
+                  to="/app/settings"
+                >
+                  Settings →
+                </Link>
+              </nav>
 
               {/* ==================================================
                   SEARCH + FILTERS
@@ -913,8 +533,7 @@ export default function SubscriberListPage() {
 
               <div
                 style={{
-                  background:
-                    COLORS.white,
+                  background: `linear-gradient(105deg, #FCFBF7 0%, #F7F6F1 58%, ${HOME_COLORS.primarySoftStrong} 100%)`,
 
                   border:
                     `1px solid ${COLORS.border}`,
@@ -940,7 +559,7 @@ export default function SubscriberListPage() {
                     <SectionHeader
                       eyebrow="Search"
                       title="Find subscribers"
-                      description="Search by customer, email, or fulfillment profile, then narrow by status."
+                      description="Search by subscriber, email, or fulfillment profile, then narrow by status."
                     />
 
                     <div
@@ -1136,9 +755,9 @@ export default function SubscriberListPage() {
                   }}
                 >
                   <SectionHeader
-                    eyebrow="Customers"
+                    eyebrow="Subscribers"
                     title="Subscriber management"
-                    description="Open a customer to review their full subscription and fulfillment history."
+                    description="Open a subscriber to review their full subscription and fulfillment history."
                   />
                 </div>
 
@@ -1211,7 +830,7 @@ export default function SubscriberListPage() {
                     headings={[
                       {
                         title:
-                          "Customer",
+                          "Subscriber",
                       },
 
                       {
@@ -1219,10 +838,6 @@ export default function SubscriberListPage() {
                           "Fulfillment Profile",
                       },
 
-                      {
-                        title:
-                          "Next Order",
-                      },
 
                       {
                         title:
@@ -1256,11 +871,6 @@ export default function SubscriberListPage() {
                             ?.name ??
                           null;
 
-                        const nextOperationalDate =
-                          subscriber
-                            .nextOrderDate ??
-                          subscriber
-                            .nextShipDate;
 
                         return (
                           <IndexTable.Row
@@ -1292,11 +902,10 @@ export default function SubscriberListPage() {
                                   <Link
                                     to={`/app/subscriber-view/${subscriber.id}`}
                                     style={{
-                                      color:
-                                        "inherit",
-
-                                      textDecoration:
-                                        "none",
+                                      color: COLORS.sageDark,
+                                      textDecoration: "underline",
+                                      textUnderlineOffset: "3px",
+                                      fontWeight: 700,
                                     }}
                                   >
                                     <Text
@@ -1366,27 +975,6 @@ export default function SubscriberListPage() {
                               )}
                             </IndexTable.Cell>
 
-                            <IndexTable.Cell>
-                              <BlockStack gap="050">
-                                <Text
-                                  as="span"
-                                >
-                                  {formatDate(
-                                    nextOperationalDate,
-                                  )}
-                                </Text>
-
-                                <Text
-                                  as="span"
-                                  variant="bodySm"
-                                  tone="subdued"
-                                >
-                                  {getRelativeDate(
-                                    nextOperationalDate,
-                                  )}
-                                </Text>
-                              </BlockStack>
-                            </IndexTable.Cell>
 
                             <IndexTable.Cell>
                               <BlockStack gap="050">
@@ -1432,10 +1020,10 @@ export default function SubscriberListPage() {
 
                             <IndexTable.Cell>
                               <Button
-                                variant="plain"
+                                variant="secondary"
                                 url={`/app/subscriber-view/${subscriber.id}`}
                               >
-                                View
+                                View subscriber
                               </Button>
                             </IndexTable.Cell>
                           </IndexTable.Row>

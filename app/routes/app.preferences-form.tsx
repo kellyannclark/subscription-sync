@@ -833,7 +833,7 @@ export default function SubscriberFormPage() {
                   the Princess Twirl
                   Fulfillment Profile
                   before testing this
-                  customer form.
+                  subscriber form.
                 </p>
               </Banner>
             )}

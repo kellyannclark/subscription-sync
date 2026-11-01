@@ -490,7 +490,7 @@ export default function FulfillmentProfileListPage() {
                     subscription program to its
                     eligible products, sizes,
                     reminders, inventory rules,
-                    and customer workflow.
+                    and subscriber workflow.
                   </div>
                 </div>
 
@@ -734,7 +734,7 @@ export default function FulfillmentProfileListPage() {
               <SectionHeader
                 eyebrow="Programs"
                 title="Subscription programs"
-                description="Each profile defines how a subscription moves from customer choice through fulfillment."
+                description="Each profile defines how a subscription moves from subscriber choice through fulfillment."
               />
 
               {profiles.length > 0 ? (
@@ -1236,7 +1236,7 @@ function ProfileCard({
               fullWidth
               url="/app/preferences-form"
             >
-              Preview Customer Form
+              Preview Subscriber Form
             </Button>
           </BlockStack>
 

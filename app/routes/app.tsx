@@ -45,31 +45,16 @@ export default function App() {
       apiKey={apiKey}
     >
       <NavMenu>
-        <Link
-          to="/app"
-          rel="home"
-        >
-          Dashboard
-        </Link>
-
-        <Link to="/app/daily-queue">
-          Daily Queue
+        <Link to="/app" rel="home">
+          Home
         </Link>
 
         <Link to="/app/subscriber-list">
           Subscribers
         </Link>
 
-        <Link to="/app/preferences-form">
-          Customer Selection Form
-        </Link>
-
-        <Link to="/app/tiers">
-          Fulfillment Profiles
-        </Link>
-
         <Link to="/app/activity-log">
-          Activity Log
+          Activity
         </Link>
 
         <Link to="/app/settings">

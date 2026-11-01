@@ -640,7 +640,7 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
     >
       <Page
         title="Edit Fulfillment Profile"
-        subtitle="Manage the rules that connect this subscription plan to customer selection and fulfillment."
+        subtitle="Manage the rules that connect this subscription plan to subscriber selection and fulfillment."
         backAction={{
           content: "Fulfillment Profiles",
           url: "/app/tiers",
@@ -931,8 +931,8 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
 
           <SettingsSection
             eyebrow="Timing"
-            title="Customer selection window"
-            description="Choose when customers can begin making their monthly selection and when that selection closes."
+            title="Subscriber selection window"
+            description="Choose when subscribers can begin making their monthly selection and when that selection closes."
           >
             <div
               style={{
@@ -945,7 +945,7 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
               <TimelineInputCard
                 step="01"
                 title="Selection opens"
-                description="How early customers can begin choosing."
+                description="How early subscribers can begin choosing."
               >
                 <TextField
                   label="Selection opens"
@@ -961,7 +961,7 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
               <TimelineInputCard
                 step="02"
                 title="Selection deadline"
-                description="When the customer's choice must be complete."
+                description="When the subscriber's choice must be complete."
               >
                 <TextField
                   label="Selection deadline"
@@ -983,7 +983,7 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
           <SettingsSection
             eyebrow="Communication"
             title="Reminder schedule"
-            description="Choose which reminders SubscriptionSync should send before the customer's selection deadline."
+            description="Choose which reminders SubscriptionSync should send before the subscriber's selection deadline."
           >
             <div
               style={{
@@ -1046,11 +1046,11 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
           <SettingsSection
             eyebrow="Automation"
             title="Auto selection"
-            description="Define what happens when a customer does not submit a selection before the deadline."
+            description="Define what happens when a subscriber does not submit a selection before the deadline."
           >
             <ToggleSetting
               label="Enable Auto Selection"
-              description="Move customers who do not submit a selection into the automatic selection workflow."
+              description="Move subscribers who do not submit a selection into the automatic selection workflow."
               enabled={autoSelectEnabled}
               onToggle={() =>
                 setAutoSelectEnabled(
@@ -1084,11 +1084,11 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
           <SettingsSection
             eyebrow="Products"
             title="Inventory rules"
-            description="Control how Shopify inventory affects the exact products and sizes customers can choose."
+            description="Control how Shopify inventory affects the exact products and sizes subscribers can choose."
           >
             <ToggleSetting
               label="Hide Out-of-Stock Products"
-              description="Do not show unavailable products or variants on the customer selection form."
+              description="Do not show unavailable products or variants on the subscriber selection form."
               enabled={hideOutOfStock}
               onToggle={() =>
                 setHideOutOfStock(
@@ -1146,7 +1146,7 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
                 <SectionHeader
                   eyebrow="Eligibility"
                   title="Eligible products & sizes"
-                  description="Manage the exact Little Adventures products, sizes, and SKUs customers in this profile may select."
+                  description="Manage the exact Little Adventures products, sizes, and SKUs subscribers in this profile may select."
                 />
 
                 <Button
@@ -1218,8 +1218,8 @@ If subscribers are assigned to this profile, SubscriptionSync will block the del
 
           <SettingsSection
             eyebrow="Communication"
-            title="Customer selection email"
-            description="Configure the message customers will eventually receive when it is time to make their monthly selection."
+            title="Subscriber selection email"
+            description="Configure the message subscribers will eventually receive when it is time to make their monthly selection."
           >
             <TextField
               label="Email subject"

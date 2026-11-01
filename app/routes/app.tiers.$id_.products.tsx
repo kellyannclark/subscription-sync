@@ -837,7 +837,7 @@ export default function EligibleProductsPage() {
                   variant and SKU. Selecting one
                   product does not automatically
                   select every size, so choose only
-                  the exact variants customers in
+                  the exact variants subscribers in
                   this profile should see.
                 </div>
               </div>
