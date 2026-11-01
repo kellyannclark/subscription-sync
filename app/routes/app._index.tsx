@@ -906,11 +906,25 @@ export default function SubscriptionSyncHomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const filter = searchParams.get("filter") || "action-needed";
+  const shipmentDateFilter =
+    searchParams.get("shipmentDate") || "all";
 
   const setFilter = (value: string) => {
     const nextParams = new URLSearchParams(searchParams.toString());
 
     nextParams.set("filter", value);
+
+    setSearchParams(nextParams);
+  };
+
+  const setShipmentDateFilter = (value: string) => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+
+    if (value === "all") {
+      nextParams.delete("shipmentDate");
+    } else {
+      nextParams.set("shipmentDate", value);
+    }
 
     setSearchParams(nextParams);
   };
@@ -1007,9 +1021,32 @@ export default function SubscriptionSyncHomePage() {
           matchesWorkflow = true;
       }
 
-      return matchesWorkflow;
+      let matchesShipmentDate = true;
+
+      switch (shipmentDateFilter) {
+        case "today":
+          matchesShipmentDate =
+            shipDate !== null &&
+            shipDate.getTime() === today.getTime();
+          break;
+
+        case "tomorrow":
+          matchesShipmentDate =
+            shipDate !== null &&
+            shipDate.getTime() === tomorrow.getTime();
+          break;
+
+        case "next-seven":
+          matchesShipmentDate =
+            shipDate !== null &&
+            shipDate >= today &&
+            shipDate < sevenDayEnd;
+          break;
+      }
+
+      return matchesWorkflow && matchesShipmentDate;
     });
-  }, [filter, queueSubscribers]);
+  }, [filter, shipmentDateFilter, queueSubscribers]);
 
   // Keep older Dashboard links recognizable in the dropdown.
   const legacyFilterLabels: Record<string, string> = {
@@ -1288,6 +1325,24 @@ export default function SubscriptionSyncHomePage() {
                           />
                         </div>
 
+                        <div
+                          style={{
+                            minWidth: "180px",
+                            flex: "1 1 180px",
+                          }}
+                        >
+                          <Select
+                            label="Shipment date"
+                            value={shipmentDateFilter}
+                            onChange={setShipmentDateFilter}
+                            options={[
+                              { label: "All Dates", value: "all" },
+                              { label: "Today", value: "today" },
+                              { label: "Tomorrow", value: "tomorrow" },
+                              { label: "Next 7 Days", value: "next-seven" },
+                            ]}
+                          />
+                        </div>
                       </div>
                     </InlineStack>
                   </div>
