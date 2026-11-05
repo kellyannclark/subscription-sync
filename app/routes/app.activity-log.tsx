@@ -26,45 +26,35 @@ import {
 
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { COLORS as DASHBOARD_COLORS } from "../styles/theme";
 
 /* ============================================================
    SUBSCRIPTIONSYNC DESIGN SYSTEM
    ============================================================ */
 
 const COLORS = {
-  // Main surfaces
-  page: "#F7F7F4",
-  white: "#FFFFFF",
+  ...DASHBOARD_COLORS,
 
-  // Typography
-  text: "#20221F",
-  textSoft: "#52574F",
-  muted: "#787D75",
+  // Map previous Activity colors to the shared Dashboard theme.
+  sage: DASHBOARD_COLORS.primary,
+  sageDark: DASHBOARD_COLORS.primaryDark,
+  sageDeep: DASHBOARD_COLORS.primaryDark,
+  sageSoft: DASHBOARD_COLORS.primarySoft,
+  sageSoftStrong: DASHBOARD_COLORS.primarySoftStrong,
 
-  // Sage
-  sage: "#687A6C",
-  sageDark: "#4D5E51",
-  sageDeep: "#39483D",
-  sageSoft: "#EEF1ED",
-  sageSoftStrong: "#E4EAE3",
+  cream: DASHBOARD_COLORS.warm,
+  creamStrong: DASHBOARD_COLORS.warmBorder,
 
-  // Warm neutral
-  cream: "#F5F1E8",
-  creamStrong: "#E9E1D3",
-  warmText: "#705F42",
+  attentionSoft: DASHBOARD_COLORS.warm,
+  attentionBorder: DASHBOARD_COLORS.warmBorder,
 
-  // Borders
-  border: "#E4E5DF",
-  borderStrong: "#D6D8D2",
-
-  // Status surfaces
-  attentionSoft: "#F7F0E2",
-  attentionBorder: "#E9D6AE",
+  // Preserve meaningful success status colors.
   successSoft: "#EDF3ED",
   successBorder: "#CDDCCF",
-  criticalSoft: "#F8EDEC",
-  criticalBorder: "#E8C7C4",
-};
+
+  criticalSoft: DASHBOARD_COLORS.dangerSoft,
+  criticalBorder: DASHBOARD_COLORS.dangerBorder,
+} as const;
 
 /* ============================================================
    TYPES
@@ -275,7 +265,7 @@ export default function ActivityLogPage() {
                 "22px 24px",
 
               boxShadow:
-                "0 2px 8px rgba(32,34,31,0.025)",
+                "0 2px 8px rgba(32,36,42,0.025)",
             }}
           >
             <BlockStack gap="400">
@@ -508,7 +498,7 @@ export default function ActivityLogPage() {
                     "hidden",
 
                   boxShadow:
-                    "0 2px 8px rgba(32,34,31,0.025)",
+                    "0 2px 8px rgba(32,36,42,0.025)",
                 }}
               >
                 <div
@@ -874,7 +864,7 @@ function ActivityMetric({
           "112px",
 
         boxShadow:
-          "0 1px 2px rgba(32,34,31,0.02)",
+          "0 1px 2px rgba(32,36,42,0.02)",
       }}
     >
       <div

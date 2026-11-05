@@ -80,8 +80,8 @@ model Settings {
   hideDiscontinued Boolean @default(true)
   allowBackorders  Boolean @default(false)
 
-  autoCreateOrders    Boolean @default(true)
-  requireManualReview Boolean @default(false)
+  autoCreateOrders    Boolean @default(false)
+  requireManualReview Boolean @default(true)
 
   autoOrderTag        String? @default("SubscriptionSync-Auto")
   customerSelectedTag String? @default("MonthlySelection")

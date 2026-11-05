@@ -108,6 +108,26 @@ export default function SubscriberViewPage() {
           <Layout.Section>
             <BlockStack gap="600">
 
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12 }}>
+                <Link
+                  to={`/app/quick-submit?subscriberId=${encodeURIComponent(subscriber.id)}`}
+                  style={{
+                    display: "inline-block",
+                    borderRadius: 10,
+                    background: COLORS.primaryDark,
+                    padding: "11px 18px",
+                    color: "white",
+                    textDecoration: "none",
+                    fontWeight: 700,
+                  }}
+                >
+                  Enter Selection
+                </Link>
+                <span style={{ fontSize: 13, color: COLORS.textSoft }}>
+                  Preview only: saving remains disabled until SKU tracking is ready.
+                </span>
+              </div>
+
               {/* Main navigation */}
               <nav
                 aria-label="SubscriptionSync navigation"

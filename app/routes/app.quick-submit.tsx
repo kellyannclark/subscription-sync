@@ -10,6 +10,7 @@ import {
   useActionData,
   useLoaderData,
   useNavigation,
+  useSearchParams,
 } from "@remix-run/react";
 
 import {
@@ -187,8 +188,12 @@ export const loader = async ({
 
   return json({
     subscribers,
-    selections:
-      initialSelections,
+    selections: initialSelections,
+    // The old form stores product names rather than exact variant IDs/SKUs.
+    // Never enable production writes until that workflow is rebuilt and tested.
+    quickSubmitEnabled:
+      process.env.NODE_ENV !== "production" &&
+      process.env.ENABLE_QUICK_SUBMIT_ACTIONS === "true",
   });
 };
 
@@ -200,6 +205,19 @@ export const action = async ({
   request,
 }: ActionFunctionArgs) => {
   await authenticate.admin(request);
+
+  if (
+    process.env.NODE_ENV === "production" ||
+    process.env.ENABLE_QUICK_SUBMIT_ACTIONS !== "true"
+  ) {
+    return json(
+      {
+        success: false,
+        message: "Manual selection saves are disabled until variant/SKU validation is complete.",
+      },
+      { status: 403 },
+    );
+  }
 
   const formData =
     await request.formData();
@@ -442,7 +460,11 @@ export default function QuickSubmitPage() {
   const {
     subscribers,
     selections,
+    quickSubmitEnabled,
   } = useLoaderData<typeof loader>();
+
+  const [searchParams] = useSearchParams();
+  const requestedSubscriberId = searchParams.get("subscriberId");
 
   const actionData =
     useActionData<typeof action>();
@@ -462,7 +484,9 @@ export default function QuickSubmitPage() {
     selectedSubscriberId,
     setSelectedSubscriberId,
   ] = useState(
-    subscribers[0]?.id ?? "",
+    subscribers.find((subscriber) => subscriber.id === requestedSubscriberId)?.id
+      ?? subscribers[0]?.id
+      ?? "",
   );
 
   const [
@@ -619,8 +643,8 @@ export default function QuickSubmitPage() {
       }}
     >
       <Page
-        title="Quick Submit"
-        subtitle="Manually record or adjust a subscriber's monthly selection when needed."
+        title="Enter Selection"
+        subtitle="Preview manual entry for a subscriber. Live saving is disabled until dress variant/SKU validation is complete."
         backAction={{
           content: "Dashboard",
           url: "/app",
@@ -668,6 +692,12 @@ export default function QuickSubmitPage() {
           )}
 
           <BlockStack gap="600">
+
+            {!quickSubmitEnabled && (
+              <Banner tone="warning" title="Manual entry is not active">
+                <p>This form is available to review the interface, but it cannot save selections. A production-safe version must record exact dress variant IDs and SKUs.</p>
+              </Banner>
+            )}
 
             {/* ==================================================
                 RESULT
@@ -1452,6 +1482,7 @@ export default function QuickSubmitPage() {
                               "save"
                           }
                           disabled={
+                            !quickSubmitEnabled ||
                             !selectedSubscriberId ||
                             selectedCount === 0
                           }

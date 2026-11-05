@@ -7,6 +7,7 @@ import { json } from "@remix-run/node";
 
 import {
   Form,
+  Link,
   useActionData,
   useLoaderData,
   useNavigation,
@@ -28,45 +29,34 @@ import {
 
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
+import { COLORS as DASHBOARD_COLORS } from "../styles/theme";
 
 /* ============================================================
    SUBSCRIPTIONSYNC DESIGN SYSTEM
    ============================================================ */
 
 const COLORS = {
-  // Main surfaces
-  page: "#F7F7F4",
-  white: "#FFFFFF",
+  ...DASHBOARD_COLORS,
 
-  // Typography
-  text: "#20221F",
-  textSoft: "#52574F",
-  muted: "#787D75",
+  // Legacy names mapped to the shared Dashboard theme.
+  sage: DASHBOARD_COLORS.primary,
+  sageDark: DASHBOARD_COLORS.primaryDark,
+  sageDeep: DASHBOARD_COLORS.primaryDark,
+  sageSoft: DASHBOARD_COLORS.primarySoft,
+  sageSoftStrong: DASHBOARD_COLORS.primarySoftStrong,
 
-  // Sage
-  sage: "#687A6C",
-  sageDark: "#4D5E51",
-  sageDeep: "#39483D",
-  sageSoft: "#EEF1ED",
-  sageSoftStrong: "#E4EAE3",
+  cream: DASHBOARD_COLORS.warm,
+  creamStrong: DASHBOARD_COLORS.warmBorder,
 
-  // Warm neutral
-  cream: "#F5F1E8",
-  creamStrong: "#E9E1D3",
-  warmText: "#705F42",
+  attentionSoft: DASHBOARD_COLORS.warm,
+  attentionBorder: DASHBOARD_COLORS.warmBorder,
 
-  // Borders
-  border: "#E4E5DF",
-  borderStrong: "#D6D8D2",
+  successSoft: DASHBOARD_COLORS.primarySoft,
+  successBorder: DASHBOARD_COLORS.primaryBorder,
 
-  // Status surfaces
-  attentionSoft: "#F7F0E2",
-  attentionBorder: "#E9D6AE",
-  successSoft: "#EDF3ED",
-  successBorder: "#CDDCCF",
-  criticalSoft: "#F8EDEC",
-  criticalBorder: "#E8C7C4",
-};
+  criticalSoft: DASHBOARD_COLORS.dangerSoft,
+  criticalBorder: DASHBOARD_COLORS.dangerBorder,
+} as const;
 
 /* ============================================================
    TYPES
@@ -242,8 +232,25 @@ export const loader = async ({
       ),
   };
 
+  // Appstle owns subscription plans. These profiles only determine
+  // which dresses/variants each plan is allowed to select.
+  const dressEligibilityProfiles = await db.fulfillmentProfile.findMany({
+    select: {
+      id: true,
+      name: true,
+      appstlePlanId: true,
+      appstlePlanName: true,
+      isActive: true,
+      _count: {
+        select: { products: true, subscribers: true },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
   return json({
     settings,
+    dressEligibilityProfiles,
   });
 };
 
@@ -311,13 +318,6 @@ export const action = async ({
         ) ?? 2,
       ),
 
-    orderCreationOffset:
-      Number(
-        formData.get(
-          "orderCreationOffset",
-        ) ?? 1,
-      ),
-
     reminder14Days:
       formData.get(
         "reminder14Days",
@@ -360,36 +360,15 @@ export const action = async ({
         "allowBackorders",
       ) === "true",
 
-    autoCreateOrders:
-      formData.get(
-        "autoCreateOrders",
-      ) === "true",
+    // Appstle owns recurring order creation.
+    // Keep SubscriptionSync order creation disabled.
+    autoCreateOrders: false,
 
     requireManualReview:
       formData.get(
         "requireManualReview",
       ) === "true",
 
-    autoOrderTag:
-      String(
-        formData.get(
-          "autoOrderTag",
-        ) ?? "",
-      ),
-
-    customerSelectedTag:
-      String(
-        formData.get(
-          "customerSelectedTag",
-        ) ?? "",
-      ),
-
-    modifiedOrderTag:
-      String(
-        formData.get(
-          "modifiedOrderTag",
-        ) ?? "",
-      ),
   };
 
   if (
@@ -445,6 +424,7 @@ export const action = async ({
 export default function SettingsPage() {
   const {
     settings,
+    dressEligibilityProfiles,
   } = useLoaderData<typeof loader>();
 
   const actionData =
@@ -490,13 +470,6 @@ export default function SettingsPage() {
       settings.autoSelectionOffset,
     );
 
-  const [
-    orderCreationOffset,
-    setOrderCreationOffset,
-  ] =
-    useState(
-      settings.orderCreationOffset,
-    );
 
   /* ==========================================================
      REMINDERS
@@ -586,13 +559,6 @@ export default function SettingsPage() {
      ORDERS
      ========================================================== */
 
-  const [
-    autoCreateOrders,
-    setAutoCreateOrders,
-  ] =
-    useState(
-      settings.autoCreateOrders,
-    );
 
   const [
     requireManualReview,
@@ -602,43 +568,8 @@ export default function SettingsPage() {
       settings.requireManualReview,
     );
 
-  const [
-    autoOrderTag,
-    setAutoOrderTag,
-  ] =
-    useState(
-      settings.autoOrderTag,
-    );
 
-  const [
-    customerSelectedTag,
-    setCustomerSelectedTag,
-  ] =
-    useState(
-      settings.customerSelectedTag,
-    );
 
-  const [
-    modifiedOrderTag,
-    setModifiedOrderTag,
-  ] =
-    useState(
-      settings.modifiedOrderTag,
-    );
-
-  const enabledReminderCount = [
-    reminder14Days,
-    reminder7Days,
-    reminder3Days,
-    reminder1Day,
-  ].filter(Boolean).length;
-
-  const connectedServiceCount = [
-    settings.shopifyConnected,
-    settings.appstleConnected,
-    settings.databaseConnected,
-    Boolean(emailSender),
-  ].filter(Boolean).length;
 
   return (
     <div
@@ -658,6 +589,104 @@ export default function SettingsPage() {
             "/app",
         }}
       >
+        <nav
+          aria-label="SubscriptionSync quick navigation"
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "10px",
+            background: COLORS.white,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: "18px",
+            padding: "14px 18px",
+            marginBottom: "20px",
+          }}
+        >
+          <style>{`
+            .ss-settings-nav-link {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              min-height: 40px;
+              padding: 10px 16px;
+              border: 1px solid ${COLORS.border};
+              border-radius: 10px;
+              background: ${COLORS.white};
+              color: ${COLORS.sageDark};
+              text-decoration: none;
+              font-size: 13px;
+              font-weight: 700;
+              transition: background-color 0.15s ease,
+                          border-color 0.15s ease;
+            }
+            .ss-settings-nav-link:hover {
+              background: ${COLORS.sageSoftStrong};
+              border-color: ${COLORS.sageDark};
+            }
+            .ss-settings-nav-link:focus-visible {
+              outline: 2px solid ${COLORS.primaryDark};
+              outline-offset: 3px;
+            }
+
+            /* Match primary Save button to Dashboard theme */
+            .ss-settings-save button[type="submit"] {
+              background: ${COLORS.primaryDark} !important;
+              background-color: ${COLORS.primaryDark} !important;
+              border-color: ${COLORS.primaryDark} !important;
+              color: #FFFFFF !important;
+            }
+
+            .ss-settings-save button[type="submit"]:hover {
+              background: ${COLORS.primary} !important;
+              background-color: ${COLORS.primary} !important;
+              border-color: ${COLORS.primary} !important;
+            }
+
+            .ss-settings-save button[type="submit"]:focus-visible {
+              outline: 2px solid ${COLORS.primaryDark};
+              outline-offset: 3px;
+            }
+          `}</style>
+
+          <Link className="ss-settings-nav-link" to="/app">
+            Home →
+          </Link>
+
+          <Link
+            className="ss-settings-nav-link"
+            to="/app/subscriber-list"
+          >
+            Subscribers →
+          </Link>
+
+          <Link
+            className="ss-settings-nav-link"
+            to="/app/activity-log"
+          >
+            Activity →
+          </Link>
+
+          <span
+            aria-current="page"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              minHeight: "40px",
+              padding: "10px 16px",
+              borderRadius: "10px",
+              background: COLORS.sageSoftStrong,
+              border: `1px solid ${COLORS.sageDark}`,
+              color: COLORS.sageDark,
+              fontSize: "13px",
+              fontWeight: 750,
+            }}
+          >
+            Settings
+          </span>
+        </nav>
+
         <Form method="post">
 
           {/* ==================================================
@@ -694,13 +723,6 @@ export default function SettingsPage() {
             }
           />
 
-          <input
-            type="hidden"
-            name="orderCreationOffset"
-            value={
-              orderCreationOffset
-            }
-          />
 
           <input
             type="hidden"
@@ -766,13 +788,6 @@ export default function SettingsPage() {
             )}
           />
 
-          <input
-            type="hidden"
-            name="autoCreateOrders"
-            value={String(
-              autoCreateOrders,
-            )}
-          />
 
           <input
             type="hidden"
@@ -782,29 +797,8 @@ export default function SettingsPage() {
             )}
           />
 
-          <input
-            type="hidden"
-            name="autoOrderTag"
-            value={
-              autoOrderTag
-            }
-          />
 
-          <input
-            type="hidden"
-            name="customerSelectedTag"
-            value={
-              customerSelectedTag
-            }
-          />
 
-          <input
-            type="hidden"
-            name="modifiedOrderTag"
-            value={
-              modifiedOrderTag
-            }
-          />
 
           <input
             type="hidden"
@@ -841,326 +835,44 @@ export default function SettingsPage() {
               </Banner>
             )}
 
-            {/* ==================================================
-                HERO
-                ================================================== */}
-
+            {/* DEVELOPMENT INFORMATION */}
             <div
               style={{
-                position: "relative",
-                overflow: "hidden",
-
-                border:
-                  `1px solid ${COLORS.border}`,
-
-                borderRadius: "20px",
-
-                minHeight: "225px",
-
-                background: `
-                  linear-gradient(
-                    108deg,
-                    #FCFBF7 0%,
-                    #F5F4EF 48%,
-                    #D8E0D6 74%,
-                    #A8B9A9 100%
-                  )
-                `,
-
+                padding: "18px 22px",
+                background: `linear-gradient(
+                  105deg,
+                  #FCFBF7 0%,
+                  #F7F6F1 58%,
+                  ${COLORS.sageSoftStrong} 100%
+                )`,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: "18px",
                 boxShadow:
-                  "0 10px 28px rgba(32,34,31,0.06)",
+                  "0 1px 2px rgba(32,36,42,0.03), 0 10px 24px rgba(32,36,42,0.05)",
               }}
             >
               <div
                 style={{
-                  position: "absolute",
-
-                  width: "390px",
-                  height: "390px",
-
-                  borderRadius: "50%",
-
-                  background:
-                    "radial-gradient(circle, rgba(57,72,61,0.22) 0%, rgba(57,72,61,0.07) 45%, transparent 70%)",
-
-                  right: "-85px",
-                  top: "-180px",
-
-                  pointerEvents: "none",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "absolute",
-
-                  width: "560px",
-                  height: "170px",
-
-                  borderRadius: "50%",
-
-                  background:
-                    "linear-gradient(135deg, rgba(57,72,61,0.94), rgba(104,122,108,0.74))",
-
-                  right: "-160px",
-                  bottom: "-125px",
-
-                  transform:
-                    "rotate(-5deg)",
-
-                  pointerEvents: "none",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "absolute",
-
-                  width: "245px",
-                  height: "245px",
-
-                  borderRadius: "50%",
-
-                  border:
-                    "1px solid rgba(255,255,255,0.28)",
-
-                  right: "38px",
-                  top: "-28px",
-
-                  pointerEvents: "none",
-                }}
-              />
-
-              <div
-                style={{
-                  position: "relative",
-                  zIndex: 2,
-
-                  padding:
-                    "36px 38px",
+                  fontSize: "16px",
+                  fontWeight: 650,
+                  color: COLORS.text,
+                  marginBottom: "6px",
                 }}
               >
-                <InlineStack
-                  align="space-between"
-                  blockAlign="center"
-                  gap="600"
-                  wrap
-                >
-                  <div
-                    style={{
-                      maxWidth: "650px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "11px",
-
-                        fontWeight: 700,
-
-                        letterSpacing:
-                          "0.12em",
-
-                        textTransform:
-                          "uppercase",
-
-                        color:
-                          COLORS.sageDark,
-
-                        marginBottom:
-                          "14px",
-                      }}
-                    >
-                      System controls
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "30px",
-
-                        lineHeight: 1.12,
-
-                        fontWeight: 650,
-
-                        letterSpacing:
-                          "-0.035em",
-
-                        color:
-                          COLORS.text,
-
-                        marginBottom:
-                          "11px",
-                      }}
-                    >
-                      Set the rules once.
-                      <br />
-
-                      <span
-                        style={{
-                          color:
-                            COLORS.sageDark,
-                        }}
-                      >
-                        Let the workflow follow them.
-                      </span>
-                    </div>
-
-                    <div
-                      style={{
-                        maxWidth: "580px",
-
-                        fontSize: "14px",
-
-                        lineHeight: 1.6,
-
-                        color:
-                          COLORS.textSoft,
-                      }}
-                    >
-                      Configure the default behavior
-                      SubscriptionSync uses across
-                      reminders, subscriber choices,
-                      product availability, and
-                      fulfillment.
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      minWidth: "230px",
-
-                      padding:
-                        "18px 20px",
-
-                      borderRadius: "16px",
-
-                      background:
-                        "rgba(255,255,255,0.76)",
-
-                      border:
-                        "1px solid rgba(255,255,255,0.72)",
-
-                      backdropFilter:
-                        "blur(8px)",
-
-                      boxShadow:
-                        "0 8px 24px rgba(32,34,31,0.07)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "10px",
-
-                        fontWeight: 700,
-
-                        letterSpacing:
-                          "0.10em",
-
-                        textTransform:
-                          "uppercase",
-
-                        color:
-                          COLORS.sageDark,
-
-                        marginBottom:
-                          "9px",
-                      }}
-                    >
-                      Automation
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "22px",
-
-                        lineHeight: 1.1,
-
-                        fontWeight: 650,
-
-                        color:
-                          automationEnabled
-                            ? COLORS.sageDark
-                            : COLORS.warmText,
-
-                        marginBottom:
-                          "8px",
-                      }}
-                    >
-                      {automationEnabled
-                        ? "Enabled"
-                        : "Paused"}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        lineHeight: 1.45,
-                        color: COLORS.muted,
-                      }}
-                    >
-                      {enabledReminderCount} reminder
-                      {enabledReminderCount === 1
-                        ? ""
-                        : "s"}{" "}
-                      active
-                    </div>
-
-                    <div
-                      style={{
-                        height: "1px",
-                        background:
-                          "rgba(77,94,81,0.12)",
-                        margin:
-                          "13px 0",
-                      }}
-                    />
-
-                    <div
-                      style={{
-                        fontSize: "11px",
-                        color:
-                          COLORS.textSoft,
-                      }}
-                    >
-                      {connectedServiceCount} of 4
-                      services connected
-                    </div>
-                  </div>
-                </InlineStack>
+                Development configuration
               </div>
-
               <div
                 style={{
-                  position: "absolute",
-
-                  top: "15px",
-                  right: "15px",
-
-                  background:
-                    "rgba(255,255,255,0.76)",
-
-                  border:
-                    "1px solid rgba(77,94,81,0.16)",
-
-                  borderRadius: "999px",
-
-                  padding: "7px 11px",
-
-                  backdropFilter:
-                    "blur(7px)",
+                  fontSize: "13px",
+                  lineHeight: 1.6,
+                  color: COLORS.textSoft,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: "11px",
-
-                    fontWeight: 650,
-
-                    color:
-                      COLORS.sageDark,
-                  }}
-                >
-                  ● Development settings
-                </span>
+                Configure subscription rules below.
+                Automated processing, email delivery,
+                and integration health have not yet
+                been verified. Live automation must
+                remain disabled until testing is complete.
               </div>
             </div>
 
@@ -1292,48 +1004,7 @@ export default function SettingsPage() {
                   />
                 </TimelineCard>
 
-                <TimelineCard
-                  step="03"
-                  title="Create Shopify order"
-                  description="Order preparation timing"
-                >
-                  <Select
-                    label="Order creation timing"
-                    labelHidden
-                    value={
-                      orderCreationOffset
-                    }
-                    onChange={
-                      setOrderCreationOffset
-                    }
-                    options={[
-                      {
-                        label:
-                          "Same day as shipment",
-                        value:
-                          "0",
-                      },
-                      {
-                        label:
-                          "1 day before shipment",
-                        value:
-                          "1",
-                      },
-                      {
-                        label:
-                          "2 days before shipment",
-                        value:
-                          "2",
-                      },
-                      {
-                        label:
-                          "3 days before shipment",
-                        value:
-                          "3",
-                      },
-                    ]}
-                  />
-                </TimelineCard>
+
               </div>
             </SettingsSection>
 
@@ -1472,111 +1143,73 @@ export default function SettingsPage() {
             </SettingsSection>
 
             {/* ==================================================
-                ORDER PROCESSING
+                DRESS ELIGIBILITY (APPSTLE PLAN MAPPING)
+                ================================================== */}
+
+            <SettingsSection
+              eyebrow="Subscriptions"
+              title="Dress eligibility"
+              description="Appstle owns plans and billing. Assign each Appstle plan to the dress collection and sizes that SubscriptionSync may offer. These settings are configured once per plan, not once per customer."
+            >
+              <div style={{ fontSize: 13, color: COLORS.textSoft }}>
+                Appstle synchronization is not connected yet. Plan names below are existing manual mappings and have not been verified against Appstle.
+              </div>
+              {dressEligibilityProfiles.length === 0 ? (
+                <div style={{ padding: 16, border: `1px solid ${COLORS.border}`, borderRadius: 12 }}>
+                  No dress-eligibility profiles are configured. We will map Appstle plans after API access is available.
+                </div>
+              ) : (
+                <div style={{ display: "grid", gap: 12 }}>
+                  {dressEligibilityProfiles.map((profile) => (
+                    <div
+                      key={profile.id}
+                      style={{
+                        padding: "16px",
+                        border: `1px solid ${COLORS.border}`,
+                        borderRadius: 12,
+                        background: COLORS.white,
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, color: COLORS.text }}>
+                        {profile.name} {profile.isActive ? "" : "(Inactive)"}
+                      </div>
+                      <div style={{ fontSize: 13, color: COLORS.textSoft, marginTop: 5 }}>
+                        Appstle plan: {profile.appstlePlanName || profile.appstlePlanId || "Not mapped"}
+                        {" • "}{profile._count.products} eligible products
+                        {" • "}{profile._count.subscribers} subscribers
+                      </div>
+                      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 12 }}>
+                        <Link to={`/app/tiers/${profile.id}`}>Edit selection rules</Link>
+                        <Link to={`/app/tiers/${profile.id}/products`}>Manage eligible dresses & sizes</Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ fontSize: 13, color: COLORS.textSoft }}>
+                Existing editor routes are retained for now; after consolidating and testing their features, we can remove unused pages safely.
+              </div>
+            </SettingsSection>
+
+            {/* ==================================================
+                FULFILLMENT REVIEW
                 ================================================== */}
 
             <SettingsSection
               eyebrow="Fulfillment"
-              title="Order processing"
-              description="Control how SubscriptionSync prepares Shopify orders after subscriber selections are complete."
+              title="Fulfillment review"
+              description="Appstle creates recurring subscription orders. SubscriptionSync manages dress selections and prepares the correct variants before renewal."
             >
               <ToggleSetting
-                label="Automatically create orders"
-                description="Allow SubscriptionSync to prepare orders when each subscriber reaches their order creation date."
-                enabled={
-                  autoCreateOrders
-                }
-                onToggle={() =>
-                  setAutoCreateOrders(
-                    (current) =>
-                      !current,
-                  )
-                }
-              />
-
-              <Divider />
-
-              <ToggleSetting
                 label="Require manual review"
-                description="Hold orders for review before allowing them to continue through the fulfillment workflow."
-                enabled={
-                  requireManualReview
-                }
+                description="Save the manual-review preference during testing. Enforcement in the fulfillment workflow still needs verification."
+                enabled={requireManualReview}
                 onToggle={() =>
                   setRequireManualReview(
-                    (current) =>
-                      !current,
+                    (current) => !current
                   )
                 }
               />
-
-              <Divider />
-
-              <div>
-                <div
-                  style={{
-                    fontSize:
-                      "13px",
-
-                    fontWeight:
-                      650,
-
-                    color:
-                      COLORS.text,
-
-                    marginBottom:
-                      "12px",
-                  }}
-                >
-                  Shopify order tags
-                </div>
-
-                <div
-                  style={{
-                    display:
-                      "grid",
-
-                    gridTemplateColumns:
-                      "repeat(auto-fit, minmax(230px, 1fr))",
-
-                    gap:
-                      "14px",
-                  }}
-                >
-                  <TextField
-                    label="Automatic Order"
-                    value={
-                      autoOrderTag
-                    }
-                    onChange={
-                      setAutoOrderTag
-                    }
-                    autoComplete="off"
-                  />
-
-                  <TextField
-                    label="Customer Selected"
-                    value={
-                      customerSelectedTag
-                    }
-                    onChange={
-                      setCustomerSelectedTag
-                    }
-                    autoComplete="off"
-                  />
-
-                  <TextField
-                    label="Modified Appstle Order"
-                    value={
-                      modifiedOrderTag
-                    }
-                    onChange={
-                      setModifiedOrderTag
-                    }
-                    autoComplete="off"
-                  />
-                </div>
-              </div>
             </SettingsSection>
 
             {/* ==================================================
@@ -1609,252 +1242,67 @@ export default function SettingsPage() {
             </SettingsSection>
 
             {/* ==================================================
-                CONNECTED SERVICES
+                INTEGRATION READINESS
                 ================================================== */}
 
-            <div>
-              <SectionHeader
-                eyebrow="Integrations"
-                title="Connected services"
-                description="Current connection status for the services SubscriptionSync depends on."
-              />
-
+            <SettingsSection
+              eyebrow="Integrations"
+              title="Integration readiness"
+              description="Connection health checks have not yet been implemented. These statuses do not confirm live connectivity."
+            >
               <div
                 style={{
-                  display:
-                    "grid",
-
+                  display: "grid",
                   gridTemplateColumns:
                     "repeat(auto-fit, minmax(220px, 1fr))",
-
-                  gap:
-                    "14px",
-
-                  marginTop:
-                    "16px",
+                  gap: "14px",
                 }}
               >
                 <IntegrationCard
                   title="Shopify"
-                  detail={
-                    settings.storeUrl
-                  }
-                  connected={
-                    settings.shopifyConnected
-                  }
+                  detail={settings.storeUrl}
+                  connected={false}
+                  disconnectedLabel="Not verified"
                 />
 
                 <IntegrationCard
                   title="Appstle"
-                  detail="Subscription data"
-                  connected={
-                    settings.appstleConnected
-                  }
-                  disconnectedLabel="Needs connection"
+                  detail="Subscription synchronization pending"
+                  connected={false}
+                  disconnectedLabel="Not verified"
                 />
 
                 <IntegrationCard
                   title="Database"
                   detail="Neon PostgreSQL"
-                  connected={
-                    settings.databaseConnected
-                  }
+                  connected={false}
+                  disconnectedLabel="Not verified"
                 />
 
                 <IntegrationCard
                   title="Email"
                   detail={
-                    emailSender ||
-                    "No sender configured"
+                    emailSender
+                      ? "Sender configured; delivery not tested"
+                      : "Sender not configured"
                   }
-                  connected={
-                    Boolean(
-                      emailSender,
-                    )
-                  }
-                  disconnectedLabel="Needs setup"
+                  connected={false}
+                  disconnectedLabel="Not verified"
                 />
               </div>
 
-              <div
-                style={{
-                  marginTop:
-                    "14px",
-
-                  background:
-                    COLORS.white,
-
-                  border:
-                    `1px solid ${COLORS.border}`,
-
-                  borderRadius:
-                    "14px",
-
-                  padding:
-                    "16px 18px",
-
-                  boxShadow:
-                    "0 1px 2px rgba(32,34,31,0.02)",
-                }}
-              >
-                <InlineStack
-                  align="space-between"
-                  blockAlign="center"
-                  gap="300"
-                  wrap
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontSize:
-                          "10px",
-
-                        fontWeight:
-                          700,
-
-                        letterSpacing:
-                          "0.08em",
-
-                        textTransform:
-                          "uppercase",
-
-                        color:
-                          COLORS.muted,
-
-                        marginBottom:
-                          "4px",
-                      }}
-                    >
-                      Last settings activity
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize:
-                          "13px",
-
-                        fontWeight:
-                          600,
-
-                        color:
-                          COLORS.text,
-                      }}
-                    >
-                      {
-                        settings.lastSync
-                      }
-                    </div>
-                  </div>
-
-                  <Button
-                    submit
-                    loading={
-                      isSubmitting &&
-                      intent ===
-                        "sync-now"
-                    }
-                    onClick={() =>
-                      setIntent(
-                        "sync-now",
-                      )
-                    }
-                  >
-                    Sync now
-                  </Button>
-                </InlineStack>
-              </div>
-            </div>
-
-            {/* ==================================================
-                ADMIN TOOLS
-                ================================================== */}
-
-            <div
-              style={{
-                background:
-                  COLORS.cream,
-
-                border:
-                  `1px solid ${COLORS.creamStrong}`,
-
-                borderRadius:
-                  "18px",
-
-                padding:
-                  "24px",
-              }}
-            >
-              <BlockStack gap="400">
-                <SectionHeader
-                  eyebrow="Development"
-                  title="Admin tools"
-                  description="Sandbox tools for testing SubscriptionSync workflows before live automation is enabled."
-                />
-
-                <TextField
-                  label="Test Subscriber Email"
-                  value={
-                    testSubscriberEmail
-                  }
-                  onChange={
-                    setTestSubscriberEmail
-                  }
-                  autoComplete="email"
-                  placeholder="subscriber@example.com"
-                />
-
-                <InlineStack
-                  gap="300"
-                  wrap
-                >
-                  <Button
-                    submit
-                    loading={
-                      isSubmitting &&
-                      intent ===
-                        "test-reminder"
-                    }
-                    onClick={() =>
-                      setIntent(
-                        "test-reminder",
-                      )
-                    }
-                  >
-                    Send test reminder
-                  </Button>
-
-                  <Button
-                    submit
-                    loading={
-                      isSubmitting &&
-                      intent ===
-                        "generate-test-order"
-                    }
-                    onClick={() =>
-                      setIntent(
-                        "generate-test-order",
-                      )
-                    }
-                  >
-                    Generate test order
-                  </Button>
-                </InlineStack>
-
-                <InfoBox warm>
-                  Additional tools such as
-                  subscriber sync, product sync,
-                  inventory refresh, and daily
-                  automation can be connected here
-                  as those integrations are built.
-                </InfoBox>
-              </BlockStack>
-            </div>
+              <InfoBox>
+                Integration testing and automated processing
+                must be completed before enabling live
+                subscription operations.
+              </InfoBox>
+            </SettingsSection>
 
             {/* ==================================================
                 SAVE
                 ================================================== */}
 
-            <div
+            <div className="ss-settings-save"
               style={{
                 background:
                   COLORS.sageDeep,
@@ -1866,7 +1314,7 @@ export default function SettingsPage() {
                   "22px 24px",
 
                 boxShadow:
-                  "0 10px 24px rgba(39,51,42,0.10)",
+                  "0 10px 24px rgba(32,36,42,0.10)",
               }}
             >
               <InlineStack
@@ -2006,7 +1454,7 @@ function SettingsSection({
           "24px",
 
         boxShadow:
-          "0 2px 8px rgba(32,34,31,0.025)",
+          "0 2px 8px rgba(32,36,42,0.025)",
       }}
     >
       <BlockStack gap="400">
@@ -2538,7 +1986,7 @@ function IntegrationCard({
           "118px",
 
         boxShadow:
-          "0 1px 2px rgba(32,34,31,0.02)",
+          "0 1px 2px rgba(32,36,42,0.02)",
       }}
     >
       <BlockStack gap="300">
